@@ -4,6 +4,7 @@
  * @ingroup Viewer
  */
 
+#include "Core/Types.h"
 #include "Viewer/FViewerCamera.h"
 
 #include "Core/Math.h"
@@ -38,7 +39,7 @@ bool FViewerCamera::Fit(const Core::FBox& Bounds, const Core::FVector2& Size, fl
     const float MinimumDepth{std::max(Radius * 0.01f, 0.0001f)};
     float Distance{MinimumDepth};
 
-    for (Core::Uint32 Corner{}; Corner < 8; ++Corner) {
+    for (Core::Index_t Corner{}; Corner < 8; ++Corner) {
         const Core::FVector Offset{(Corner & 1) != 0 ? Extent.x : -Extent.x, (Corner & 2) != 0 ? Extent.y : -Extent.y, (Corner & 4) != 0 ? Extent.z : -Extent.z};
         const float Depth{Offset.Dot(Forward)};
 

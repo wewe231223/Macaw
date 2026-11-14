@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -113,7 +114,7 @@ namespace HeaderTool {
          * @param[in] TokenIndex 오류 위치의 토큰 번호입니다.
          * @param[in] Message 오류 설명입니다.
          */
-        [[noreturn]] void Fail(std::size_t TokenIndex, const std::string& Message) const;
+        [[noreturn]] void Fail(Core::Index_t TokenIndex, const std::string& Message) const;
 
         /**
          * @brief 두 토큰 사이의 원문을 앞뒤 공백 없이 반환합니다.
@@ -121,7 +122,7 @@ namespace HeaderTool {
          * @param[in] Last 끝 토큰 번호입니다. 이 토큰은 포함하지 않습니다.
          * @return 원문 조각입니다.
          */
-        std::string TextBetween(std::size_t First, std::size_t Last) const;
+        std::string TextBetween(Core::Index_t First, Core::Index_t Last) const;
 
         /**
          * @brief 두 토큰 사이의 마스크를 앞뒤 공백 없이 반환합니다.
@@ -129,14 +130,14 @@ namespace HeaderTool {
          * @param[in] Last 끝 토큰 번호입니다. 이 토큰은 포함하지 않습니다.
          * @return 마스크 조각입니다.
          */
-        std::string MaskBetween(std::size_t First, std::size_t Last) const;
+        std::string MaskBetween(Core::Index_t First, Core::Index_t Last) const;
 
         /**
          * @brief 여는 괄호 토큰과 짝이 맞는 닫는 괄호 토큰을 찾습니다.
          * @param[in] Opening 여는 괄호 토큰 번호입니다.
          * @return 닫는 괄호 토큰 번호입니다.
          */
-        std::size_t FindClosing(std::size_t Opening) const;
+        Core::Index_t FindClosing(Core::Index_t Opening) const;
 
         /**
          * @brief 토큰이 지정한 문자열인지 검사합니다.
@@ -144,7 +145,7 @@ namespace HeaderTool {
          * @param[in] Text 비교할 문자열입니다.
          * @return 같으면 true입니다.
          */
-        bool Is(std::size_t Index, std::string_view Text) const;
+        bool Is(Core::Index_t Index, std::string_view Text) const;
     };
 
     /**

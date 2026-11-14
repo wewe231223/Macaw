@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FEditorContext.h"
 #include "Core/FilePath.h"
 #include "Engine/FProject.h"
@@ -355,7 +356,7 @@ namespace Editor {
     void Editor::FEditorContext::TrimSceneHistory() {
         constexpr std::size_t MaxEntries{128};
         constexpr std::size_t MaxBytes{64 * 1024 * 1024};
-        std::size_t First{mSceneHistory.size() - 1};
+        Core::Index_t First{static_cast<Core::Index_t>(mSceneHistory.size() - 1)};
         std::size_t Bytes{mSceneHistory[First].mBefore.mBytes.size() + mSceneHistory[First].mAfter.mBytes.size()};
 
         while (First != 0 && mSceneHistory.size() - First < MaxEntries && Bytes < MaxBytes) {
@@ -370,7 +371,7 @@ namespace Editor {
             --First;
         }
 
-        mSceneHistory.erase(mSceneHistory.begin(), mSceneHistory.begin() + static_cast<std::ptrdiff_t>(First));
+        mSceneHistory.erase(mSceneHistory.begin(), mSceneHistory.begin() + First);
         mSceneHistoryPosition -= First;
     }
 
@@ -1072,7 +1073,7 @@ namespace Editor {
     /**
      * @brief 슬롯 재질을 변경하고 장면을 수정 상태로 표시합니다.
      */
-    bool Editor::FEditorContext::SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Uint32 Slot, const Core::FString& Path) {
+    bool Editor::FEditorContext::SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Index_t Slot, const Core::FString& Path) {
         if (!CanModifyScene()) {
             return false;
         }

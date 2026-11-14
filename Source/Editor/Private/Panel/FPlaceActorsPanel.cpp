@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/Panel/FPlaceActorsPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FAssetDragDrop.h"
@@ -70,7 +71,7 @@ namespace Editor {
 
         mIcons = {};
 
-        for (std::size_t Index{1}; Index < Paths.size(); ++Index) {
+        for (Core::Index_t Index{1}; Index < Paths.size(); ++Index) {
             Core::FString Error{};
             Asset::UTexture2D* Texture{Context->GetProject()->GetAssets()->LoadTexture(Paths[Index], Error)};
 
@@ -140,7 +141,7 @@ namespace Editor {
 
         ImGui::PushID(Preset.c_str());
 
-        if (ID3D11ShaderResourceView* Resource{mIcons[static_cast<std::size_t>(Icon)].Get()}; Resource != nullptr) {
+        if (ID3D11ShaderResourceView* Resource{mIcons[static_cast<Core::Index_t>(Icon)].Get()}; Resource != nullptr) {
             ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Resource))}, {32.0f, 32.0f});
             ImGui::SameLine();
         }

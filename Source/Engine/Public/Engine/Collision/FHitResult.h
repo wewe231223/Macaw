@@ -70,7 +70,7 @@ namespace Engine {
         /**
          * @brief 충돌한 삼각형의 인덱스입니다.
          */
-        Core::Int32 mFaceIndex{-1};
+        Core::Index_t mFaceIndex{-1};
 
         /**
          * @brief 전체 추적 거리에서 적중한 비율입니다.

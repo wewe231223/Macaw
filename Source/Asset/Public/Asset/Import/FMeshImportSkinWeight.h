@@ -37,7 +37,7 @@ namespace Asset {
          * @param[in] BoneIndices 영향 슬롯별 본 인덱스 배열입니다.
          * @param[in] Weights 본 영향 슬롯별 스킨 가중치입니다.
          */
-        FMeshImportSkinWeight(const std::array<Core::Uint32, MaxInfluences>& BoneIndices, const std::array<float, MaxInfluences>& Weights);
+        FMeshImportSkinWeight(const std::array<Core::Index_t, MaxInfluences>& BoneIndices, const std::array<float, MaxInfluences>& Weights);
 
     public:
         /**
@@ -46,13 +46,13 @@ namespace Asset {
          * @param[in] Influences 결과 본 인덱스와 가중치의 쌍 목록입니다.
          * @return 정리한 정점 가중치이며 남은 영향이 없으면 모든 가중치가 0입니다.
          */
-        static Asset::FMeshImportSkinWeight FromInfluences(Core::TArray<std::pair<Core::Uint32, float>> Influences);
+        static Asset::FMeshImportSkinWeight FromInfluences(Core::TArray<std::pair<Core::Index_t, float>> Influences);
 
         /**
          * @brief 영향을 주는 본 인덱스를 조회합니다.
          * @return 결과 본 목록 기준 인덱스이며 쓰지 않는 칸은 0입니다.
          */
-        const std::array<Core::Uint32, MaxInfluences>& GetBoneIndices() const;
+        const std::array<Core::Index_t, MaxInfluences>& GetBoneIndices() const;
 
         /**
          * @brief 본별 가중치를 조회합니다.
@@ -64,7 +64,7 @@ namespace Asset {
         /**
          * @brief 결과 본 목록 기준 본 인덱스입니다.
          */
-        std::array<Core::Uint32, 4> mBoneIndices{};
+        std::array<Core::Index_t, 4> mBoneIndices{};
 
         /**
          * @brief 본별 가중치입니다.

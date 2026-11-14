@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/Math/FTransform.h"
 #include "Core/Math/FVector.h"
 #include "CoreUObject/UObject.h"
@@ -73,12 +74,12 @@ namespace Engine {
         /**
          * @brief 부모 방문 인덱스이며 루트 방문은 -1입니다.
          */
-        Core::Int32 mParentIndex{-1};
+        Core::Index_t mParentIndex{-1};
 
         /**
          * @brief 샘플 기반 노드의 샘플 인덱스이며 해당하지 않으면 -1입니다.
          */
-        Core::Int32 mSampleIndex{-1};
+        Core::Index_t mSampleIndex{-1};
     };
 
     /**
@@ -112,7 +113,7 @@ namespace Engine {
             /**
              * @brief 시퀀스 트랙별 스켈레톤 본 인덱스이며 미대응 트랙은 -1입니다.
              */
-            Core::TArray<Core::Int32> mTrackToBone{};
+            Core::TArray<Core::Index_t> mTrackToBone{};
 
             /**
              * @brief 루트 모션을 추출할 본 이름이며 빈 값은 기본 루트를 사용합니다.
@@ -122,12 +123,12 @@ namespace Engine {
             /**
              * @brief 루트 모션을 추출할 시퀀스 트랙 인덱스이며 없으면 -1입니다.
              */
-            Core::Int32 mRootTrack{-1};
+            Core::Index_t mRootTrack{-1};
 
             /**
              * @brief 루트 모션 트랙이 대응하는 스켈레톤 본 인덱스이며 없으면 -1입니다.
              */
-            Core::Int32 mRootBone{-1};
+            Core::Index_t mRootBone{-1};
         };
 
     public:
@@ -252,7 +253,7 @@ namespace Engine {
          * @param SampleIndex 샘플 기반 노드에서 사용한 샘플 인덱스입니다.
          * @param Weight 최종 포즈에 기여하는 가중치입니다.
          */
-        void RecordDebugSample(const Engine::FAnimNode_Base& Node, Core::Int32 SampleIndex, float Weight);
+        void RecordDebugSample(const Engine::FAnimNode_Base& Node, Core::Index_t SampleIndex, float Weight);
 
         /**
          * @brief 소유 컴포넌트의 월드 위치 변화로 구한 속도를 반환합니다.
@@ -439,7 +440,7 @@ namespace Engine {
         /**
          * @brief 현재 기록 중인 방문 인덱스이며 비활성 시 -1입니다.
          */
-        Core::Int32 mCurrentDebugVisit{-1};
+        Core::Index_t mCurrentDebugVisit{-1};
 
         /**
          * @brief 동일 갱신에서 중복 평가하지 않도록 기록하는 포즈 노드 집합입니다.

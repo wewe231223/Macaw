@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FSkyResources.h"
 #include "FPassTarget.h"
 #include "Core/Base/ErrorHandler.h"
@@ -31,42 +32,42 @@ namespace Renderer {
         /**
          * @brief DDS 매직 값의 워드 위치입니다.
          */
-        constexpr std::size_t MagicWord{0};
+        constexpr Core::Index_t MagicWord{0};
 
         /**
          * @brief DDS 텍스처 높이의 워드 위치입니다.
          */
-        constexpr std::size_t HeightWord{3};
+        constexpr Core::Index_t HeightWord{3};
 
         /**
          * @brief DDS 텍스처 너비의 워드 위치입니다.
          */
-        constexpr std::size_t WidthWord{4};
+        constexpr Core::Index_t WidthWord{4};
 
         /**
          * @brief DDS 밉 개수의 워드 위치입니다.
          */
-        constexpr std::size_t MipCountWord{7};
+        constexpr Core::Index_t MipCountWord{7};
 
         /**
          * @brief DDS 기본 헤더 FourCC의 워드 위치입니다.
          */
-        constexpr std::size_t FourCCWord{21};
+        constexpr Core::Index_t FourCCWord{21};
 
         /**
          * @brief DDS DX10 DXGI 포맷의 워드 위치입니다.
          */
-        constexpr std::size_t FormatWord{32};
+        constexpr Core::Index_t FormatWord{32};
 
         /**
          * @brief DDS DX10 리소스 차원의 워드 위치입니다.
          */
-        constexpr std::size_t DimensionWord{33};
+        constexpr Core::Index_t DimensionWord{33};
 
         /**
          * @brief DDS DX10 배열 크기의 워드 위치입니다.
          */
-        constexpr std::size_t ArraySizeWord{35};
+        constexpr Core::Index_t ArraySizeWord{35};
 
         /**
          * @brief DDS 파일 식별 매직 값입니다.
@@ -232,7 +233,7 @@ namespace Renderer {
 
         std::size_t Offset{};
 
-        for (Core::Uint32 Mip{}; Mip < MipCount; ++Mip) {
+        for (Core::Index_t Mip{}; Mip < MipCount; ++Mip) {
             const std::size_t BlocksWide{(static_cast<std::size_t>(std::max(Header[WidthWord] >> Mip, 1u)) + 3) / 4};
             const std::size_t BlocksHigh{(static_cast<std::size_t>(std::max(Header[HeightWord] >> Mip, 1u)) + 3) / 4};
             const std::size_t RowPitch{BlocksWide * BC7BlockBytes};

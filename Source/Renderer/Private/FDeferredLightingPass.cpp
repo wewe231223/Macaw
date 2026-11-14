@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FDeferredLightingPass.h"
 
 #include "Engine/FSceneViewFamily.h"
@@ -47,7 +48,7 @@ namespace Renderer {
         constexpr UINT ResourceSlot{11};
         std::array<ID3D11ShaderResourceView*, Renderer::GBuffer::AttachmentCount + 2> Resources{};
 
-        for (std::size_t Index{}; Index < Target.GetGBuffer().size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Target.GetGBuffer().size(); ++Index) {
             Resources[Index] = Target.GetGBuffer()[Index]->GetShaderResourceView();
         }
 

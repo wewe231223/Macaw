@@ -42,7 +42,7 @@ namespace CoreUObject {
         /**
          * @brief 원소의 주소를 반환합니다.
          */
-        void* (*mAt)(void* Array, Core::Uint32 Index);
+        void* (*mAt)(void* Array, Core::Index_t Index);
 
         /**
          * @brief 원소 주소를 컨테이너로 사용하는 프로퍼티입니다.

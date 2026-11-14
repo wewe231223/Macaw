@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "Editor/FConsoleCommandRegistry.h"
 #include "Editor/FViewportStatistics.h"
@@ -702,7 +703,7 @@ namespace Editor {
          * @param Path Content 기준 재질 경로입니다.
          * @return 변경을 적용하면 true입니다.
          */
-        bool SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Uint32 Slot, const Core::FString& Path);
+        bool SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Index_t Slot, const Core::FString& Path);
 
         /**
          * @brief C# 스크립트 필드 값을 저장하고 장면을 수정 상태로 표시합니다.
@@ -858,7 +859,7 @@ namespace Editor {
         /**
          * @brief 다음 다시 실행 명령의 위치이며 앞쪽 명령은 적용된 상태입니다.
          */
-        std::size_t mSceneHistoryPosition{};
+        Core::Index_t mSceneHistoryPosition{};
 
         /**
          * @brief 편집 토큰 발급용 단조 증가 번호입니다.

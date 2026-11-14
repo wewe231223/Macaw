@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/FWorldSerializer.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "Core/Archive.h"
@@ -48,7 +49,7 @@ namespace Engine {
         void SerializeWorldReferences(Core::FArchive& Archive, Engine::UWorld* World, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects) {
             constexpr const char* Names[]{"ActiveCamera", "InputTarget"};
 
-            for (Core::Uint32 Index{}; Index < 2 && !Archive.HasError(); ++Index) {
+            for (Core::Index_t Index{}; Index < 2 && !Archive.HasError(); ++Index) {
                 const char* Name{Names[Index]};
 
                 if (Archive.IsLoading() && !Archive.HasField(Name)) {
@@ -164,7 +165,7 @@ namespace Engine {
                 return;
             }
 
-            for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+            for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
                 if (!Archive.BeginObject(std::to_string(Index))) {
                     break;
                 }
@@ -230,7 +231,7 @@ namespace Engine {
                 return;
             }
 
-            for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+            for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
                 if (!Archive.BeginObject(std::to_string(Index))) {
                     break;
                 }

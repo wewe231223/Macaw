@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Core/Math/FVector.h"
 #include "Engine/FDrawLine.h"
@@ -28,10 +29,10 @@ namespace Engine {
      * @brief AABB의 열두 모서리를 지정한 픽셀 두께의 선분으로 수집합니다.
      */
     void Engine::FPrimitiveDrawInterface::DrawBox(const Core::FBox& Bounds, const Core::FVector& Color, bool DepthTest, float Thickness) {
-        for (Core::Int32 Corner{}; Corner < 8; ++Corner) {
+        for (Core::Index_t Corner{}; Corner < 8; ++Corner) {
             const Core::FVector Start{(Corner & 1) != 0 ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Corner & 2) != 0 ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Corner & 4) != 0 ? Bounds.mMaximum.z : Bounds.mMinimum.z};
 
-            for (Core::Int32 Axis{}; Axis < 3; ++Axis) {
+            for (Core::Index_t Axis{}; Axis < 3; ++Axis) {
                 if ((Corner & (1 << Axis)) != 0) {
                     continue;
                 }

@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FShadowDepthPass.h"
 
 #include "FScenePrimitive.h"
@@ -23,11 +24,11 @@ namespace Renderer {
         Description.ScissorEnable = true;
         Description.DepthBiasClamp = 0.005f;
 
-        for (std::size_t DepthLevel{}; DepthLevel < Rasterizers.size(); ++DepthLevel) {
+        for (Core::Index_t DepthLevel{}; DepthLevel < Rasterizers.size(); ++DepthLevel) {
             Description.DepthBias = static_cast<INT>(DepthLevel) * Engine::ShadowDepthBiasStep;
             auto& SlopeRasterizers{Rasterizers[DepthLevel]};
 
-            for (std::size_t SlopeLevel{}; SlopeLevel < SlopeRasterizers.size(); ++SlopeLevel) {
+            for (Core::Index_t SlopeLevel{}; SlopeLevel < SlopeRasterizers.size(); ++SlopeLevel) {
                 Description.SlopeScaledDepthBias = static_cast<float>(SlopeLevel) * Engine::ShadowSlopeBiasStep;
 
                 if (FAILED(mDevice->CreateRasterizerState(&Description, SlopeRasterizers[SlopeLevel].GetAddressOf()))) {

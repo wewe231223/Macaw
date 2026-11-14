@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "Core/FRevision.h"
 #include "Core/Guid.h"
@@ -46,7 +47,7 @@ namespace Renderer {
         /**
          * @brief 점광원 큐브 면 또는 방향광 캐스케이드 번호입니다.
          */
-        Core::Uint32 mFace{};
+        Core::Index_t mFace{};
     };
 
     /**

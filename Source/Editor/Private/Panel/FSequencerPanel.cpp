@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/Panel/FSequencerPanel.h"
 #include "Editor/FEditorContext.h"
 #include "EditorStyle.h"
@@ -58,14 +59,14 @@ namespace Editor {
         /**
          * @brief 변환 채널 뒤 첫 프로퍼티 채널 인덱스입니다.
          */
-        constexpr Core::Int32 FirstPropertyChannel{static_cast<Core::Int32>(Asset::FSequenceTransformSection::ChannelCount)};
+        constexpr Core::Index_t FirstPropertyChannel{static_cast<Core::Index_t>(static_cast<Core::Int32>(Asset::FSequenceTransformSection::ChannelCount))};
 
         // 키 선택의 바인딩 번호 자리에 넣어 카메라 컷 줄을 구분합니다.
 
         /**
          * @brief 카메라 컷 행을 구분하는 특수 채널 값입니다.
          */
-        constexpr Core::Int32 CameraCutRow{-2};
+        constexpr Core::Index_t CameraCutRow{-2};
 
         /**
          * @brief 바인딩의 프로퍼티 트랙 중 지정 순번의 트랙을 찾습니다.
@@ -73,8 +74,8 @@ namespace Editor {
          * @param[in] PropertyIndex 찾을 프로퍼티 트랙 순번입니다.
          * @return 지정 순번의 프로퍼티 트랙이며 없으면 nullptr입니다.
          */
-        Asset::FSequencePropertyTrack* FindPropertyTrack(const Asset::FSequenceBinding& Binding, Core::Int32 PropertyIndex) {
-            Core::Int32 Index{};
+        Asset::FSequencePropertyTrack* FindPropertyTrack(const Asset::FSequenceBinding& Binding, Core::Index_t PropertyIndex) {
+            Core::Index_t Index{};
 
             for (const auto& Track : Binding.GetTracks()) {
                 if (Track->GetType() == Asset::ESequenceTrackType::Property && Index++ == PropertyIndex) {
@@ -91,7 +92,7 @@ namespace Editor {
          * @param[in] Binding 조회할 시퀀스 바인딩입니다.
          * @return 시퀀스가 있고 바인딩 인덱스가 유효하면 true입니다.
          */
-        bool IsValidBinding(const Asset::ULevelSequence* Sequence, Core::Int32 Binding) {
+        bool IsValidBinding(const Asset::ULevelSequence* Sequence, Core::Index_t Binding) {
             return Binding >= 0 && Binding < static_cast<Core::Int32>(Sequence->GetBindings().size());
         }
 
@@ -102,7 +103,7 @@ namespace Editor {
          * @param[in] Channel 바인딩 내부의 변환·프로퍼티 채널 인덱스입니다.
          * @return 채널이 속한 트랙이며 없으면 nullptr입니다.
          */
-        Asset::FSequenceTrack* FindTrack(Asset::ULevelSequence* Sequence, Core::Int32 Binding, Core::Int32 Channel) {
+        Asset::FSequenceTrack* FindTrack(Asset::ULevelSequence* Sequence, Core::Index_t Binding, Core::Index_t Channel) {
             if (!IsValidBinding(Sequence, Binding)) {
                 return nullptr;
             }
@@ -123,7 +124,7 @@ namespace Editor {
          * @param[in] Channel 바인딩 내부의 변환·프로퍼티 채널 인덱스입니다.
          * @return 해당 채널의 비소유 주소이며 없으면 nullptr입니다.
          */
-        Asset::FSequenceChannel* FindChannel(Asset::ULevelSequence* Sequence, Core::Int32 Binding, Core::Int32 Channel) {
+        Asset::FSequenceChannel* FindChannel(Asset::ULevelSequence* Sequence, Core::Index_t Binding, Core::Index_t Channel) {
             Asset::FSequenceTrack* Track{FindTrack(Sequence, Binding, Channel)};
 
             if (Track == nullptr) {
@@ -134,7 +135,7 @@ namespace Editor {
                 return &static_cast<Asset::FSequencePropertyTrack*>(Track)->GetChannel();
             }
 
-            return &static_cast<Asset::FSequenceTransformTrack*>(Track)->FindOrAddEditSection().GetChannel(static_cast<std::size_t>(Channel));
+            return &static_cast<Asset::FSequenceTransformTrack*>(Track)->FindOrAddEditSection().GetChannel(Channel);
         }
 
         /**
@@ -144,14 +145,14 @@ namespace Editor {
          * @param[in] Channel 바인딩 내부의 변환·프로퍼티 채널 인덱스입니다.
          * @return 변환 또는 프로퍼티 채널의 표시 이름입니다.
          */
-        const char* GetChannelLabel(Asset::ULevelSequence* Sequence, Core::Int32 Binding, Core::Int32 Channel) {
+        const char* GetChannelLabel(Asset::ULevelSequence* Sequence, Core::Index_t Binding, Core::Index_t Channel) {
             if (Channel >= FirstPropertyChannel) {
                 const auto* Track{static_cast<Asset::FSequencePropertyTrack*>(FindTrack(Sequence, Binding, Channel))};
 
                 return Track != nullptr ? Track->GetPropertyName().c_str() : "";
             }
 
-            return Asset::FSequenceTransformSection::GetChannelName(static_cast<std::size_t>(Channel));
+            return Asset::FSequenceTransformSection::GetChannelName(Channel);
         }
 
         /**
@@ -564,7 +565,7 @@ namespace Editor {
         ImGui::SetNextItemWidth(180.0f * ImGui::GetFontSize() / 16.0f);
 
         if (ImGui::BeginCombo("Binding", Bindings[mActiveBinding].GetName().c_str())) {
-            for (Core::Int32 Index{}; Index < static_cast<Core::Int32>(Bindings.size()); ++Index) {
+            for (Core::Index_t Index{}; Index < static_cast<Core::Int32>(Bindings.size()); ++Index) {
                 ImGui::PushID(Index);
 
                 if (ImGui::Selectable(Bindings[Index].GetName().c_str(), Index == mActiveBinding)) {
@@ -677,7 +678,7 @@ namespace Editor {
         if (ImGui::BeginNeoSequencer("##SequenceTimeline", &Frame, &StartFrame, &EndFrame, ImVec2{}, ImGuiNeoSequencerFlags_AlwaysShowHeader)) {
             DrawCameraCutRow(Sequence, EndFrame);
 
-            for (Core::Int32 BindingIndex{}; BindingIndex < static_cast<Core::Int32>(Bindings.size()); ++BindingIndex) {
+            for (Core::Index_t BindingIndex{}; BindingIndex < static_cast<Core::Int32>(Bindings.size()); ++BindingIndex) {
                 Asset::FSequenceBinding& Binding{Bindings[BindingIndex]};
                 Asset::FSequenceTransformTrack* Track{Binding.FindTransformTrack()};
                 bool& Open{mOpenBindings.try_emplace(Binding.GetId().ToString(), true).first->second};
@@ -685,11 +686,11 @@ namespace Editor {
                 ImGui::PushID(BindingIndex);
 
                 if (ImGui::BeginNeoGroup(Binding.GetName().c_str(), &Open)) {
-                    for (std::size_t ChannelIndex{}; Track != nullptr && ChannelIndex < Asset::FSequenceTransformSection::ChannelCount; ++ChannelIndex) {
-                        DrawChannelRow(Sequence, BindingIndex, static_cast<Core::Int32>(ChannelIndex), Asset::FSequenceTransformSection::GetChannelName(ChannelIndex), Track->FindOrAddEditSection().GetChannel(ChannelIndex));
+                    for (Core::Index_t ChannelIndex{}; Track != nullptr && ChannelIndex < Asset::FSequenceTransformSection::ChannelCount; ++ChannelIndex) {
+                        DrawChannelRow(Sequence, BindingIndex, ChannelIndex, Asset::FSequenceTransformSection::GetChannelName(ChannelIndex), Track->FindOrAddEditSection().GetChannel(ChannelIndex));
                     }
 
-                    for (Core::Int32 PropertyIndex{}; const Asset::FSequencePropertyTrack* PropertyTrack{FindPropertyTrack(Binding, PropertyIndex)}; ++PropertyIndex) {
+                    for (Core::Index_t PropertyIndex{}; const Asset::FSequencePropertyTrack* PropertyTrack{FindPropertyTrack(Binding, PropertyIndex)}; ++PropertyIndex) {
                         DrawChannelRow(Sequence, BindingIndex, FirstPropertyChannel + PropertyIndex, PropertyTrack->GetPropertyName().c_str(), PropertyTrack->GetChannel());
                     }
 
@@ -736,15 +737,15 @@ namespace Editor {
 
         const auto& Cuts{Sequence->GetCameraCuts()};
 
-        for (std::size_t Index{}; Index < Cuts.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Cuts.size(); ++Index) {
             const Core::Int32 From{Sequence->TickToFrame(Cuts[Index].mTick)};
             const Core::Int32 To{Index + 1 < Cuts.size() ? Sequence->TickToFrame(Cuts[Index + 1].mTick) : EndFrame};
 
             ImGui::NeoDrawTimelineRect(From, To, Index % 2 == 0 ? ImVec4{0.20f, 0.50f, 0.80f, 0.35f} : ImVec4{0.80f, 0.50f, 0.20f, 0.35f});
         }
 
-        for (std::size_t Index{}; Index < Cuts.size(); ++Index) {
-            if (DrawKeyMarker(Sequence, CameraCutRow, 0, Cuts[Index].mTick, static_cast<Core::Int32>(Index))) {
+        for (Core::Index_t Index{}; Index < Cuts.size(); ++Index) {
+            if (DrawKeyMarker(Sequence, CameraCutRow, 0, Cuts[Index].mTick, Index)) {
                 ImGui::SetTooltip("%s", FindBindingName(Sequence, Cuts[Index].mCameraBinding));
             }
         }
@@ -755,7 +756,7 @@ namespace Editor {
     /**
      * @brief 채널의 키를 타임라인 한 줄로 그립니다.
      */
-    void Editor::FSequencerPanel::DrawChannelRow(const Asset::ULevelSequence* Sequence, Core::Int32 Binding, Core::Int32 ChannelId, const char* Label, const Asset::FSequenceChannel& Channel) {
+    void Editor::FSequencerPanel::DrawChannelRow(const Asset::ULevelSequence* Sequence, Core::Index_t Binding, Core::Index_t ChannelId, const char* Label, const Asset::FSequenceChannel& Channel) {
         ImGui::PushID(ChannelId);
 
         if (ImGui::BeginNeoTimelineEx(Label)) {
@@ -765,8 +766,8 @@ namespace Editor {
 
             const auto& Keys{Channel.GetKeys()};
 
-            for (std::size_t Index{}; Index < Keys.size(); ++Index) {
-                DrawKeyMarker(Sequence, Binding, ChannelId, Keys[Index].mTick, static_cast<Core::Int32>(Index));
+            for (Core::Index_t Index{}; Index < Keys.size(); ++Index) {
+                DrawKeyMarker(Sequence, Binding, ChannelId, Keys[Index].mTick, Index);
             }
 
             ImGui::EndNeoTimeLine();
@@ -778,7 +779,7 @@ namespace Editor {
     /**
      * @brief 키 마커를 그리고 클릭하면 선택과 드래그를 시작합니다.
      */
-    bool Editor::FSequencerPanel::DrawKeyMarker(const Asset::ULevelSequence* Sequence, Core::Int32 Binding, Core::Int32 ChannelId, Core::Int32 Tick, Core::Int32 Index) {
+    bool Editor::FSequencerPanel::DrawKeyMarker(const Asset::ULevelSequence* Sequence, Core::Index_t Binding, Core::Index_t ChannelId, Core::Int32 Tick, Core::Index_t Index) {
         const bool IsSelected{mSelection.mBinding == Binding && mSelection.mChannel == ChannelId && mSelection.mTick == Tick};
         Core::Int32 KeyFrame{Sequence->TickToFrame(Tick)};
 
@@ -936,7 +937,7 @@ namespace Editor {
         Section.ExpandToInclude(Sequence->GetStartTick());
         Section.ExpandToInclude(Sequence->GetEndTick());
 
-        for (std::size_t Index{}; Index < Values.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Values.size(); ++Index) {
             Asset::FSequenceKey Key{};
             Key.mTick = Tick;
             Key.mValue = Values[Index];
@@ -962,7 +963,7 @@ namespace Editor {
 
         const Core::Int32 Tick{FindCurrentTick(Sequence, mPlayer)};
 
-        for (Core::Int32 PropertyIndex{}; Asset::FSequencePropertyTrack* Track{FindPropertyTrack(Binding, PropertyIndex)}; ++PropertyIndex) {
+        for (Core::Index_t PropertyIndex{}; Asset::FSequencePropertyTrack* Track{FindPropertyTrack(Binding, PropertyIndex)}; ++PropertyIndex) {
             const CoreUObject::FProperty* Property{Component->GetClass()->FindClassProperty(Track->GetPropertyName())};
 
             if (Property != nullptr && Property->GetType() == CoreUObject::EPropertyType::Float) {

@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Animation/UAnimGraph.h"
 #include "Core/Archive.h"
 
@@ -158,7 +159,7 @@ namespace Asset {
         return false;
     }
 
-    bool UAnimGraph::Connect(Core::Int32 FromNode, Core::Int32 ToNode, Core::Int32 ToPin) {
+    bool UAnimGraph::Connect(Core::Int32 FromNode, Core::Int32 ToNode, Core::Index_t ToPin) {
         if (FindNode(FromNode) == nullptr || (ToNode != OutputNodeId && FindNode(ToNode) == nullptr) || ToPin < 0 || (ToNode == OutputNodeId && ToPin != 0) || WouldCreateCycle(FromNode, ToNode)) {
             return false;
         }
@@ -169,13 +170,13 @@ namespace Asset {
         return true;
     }
 
-    bool UAnimGraph::Disconnect(Core::Int32 ToNode, Core::Int32 ToPin) {
+    bool UAnimGraph::Disconnect(Core::Int32 ToNode, Core::Index_t ToPin) {
         return std::erase_if(mLinks, [ToNode, ToPin](const Asset::FAnimGraphLink& Link) {
             return Link.mToNode == ToNode && Link.mToPin == ToPin;
         }) > 0;
     }
 
-    Core::Int32 UAnimGraph::FindInput(Core::Int32 ToNode, Core::Int32 ToPin) const {
+    Core::Int32 UAnimGraph::FindInput(Core::Int32 ToNode, Core::Index_t ToPin) const {
         for (const Asset::FAnimGraphLink& Link : mLinks) {
             if (Link.mToNode == ToNode && Link.mToPin == ToPin) {
                 return Link.mFromNode;
@@ -220,20 +221,20 @@ namespace Asset {
         return true;
     }
 
-    bool UAnimGraph::SetVariable(Core::Int32 Index, const Asset::FAnimGraphVariable& Variable) {
-        if (Index < 0 || static_cast<std::size_t>(Index) >= mVariables.size() || Variable.mName.empty() || !std::isfinite(Variable.mDefault)) {
+    bool UAnimGraph::SetVariable(Core::Index_t Index, const Asset::FAnimGraphVariable& Variable) {
+        if (Index < 0 || Index >= mVariables.size() || Variable.mName.empty() || !std::isfinite(Variable.mDefault)) {
             return false;
         }
 
-        for (std::size_t Other{}; Other < mVariables.size(); ++Other) {
-            if (Other != static_cast<std::size_t>(Index) && mVariables[Other].mName == Variable.mName) {
+        for (Core::Index_t Other{}; Other < mVariables.size(); ++Other) {
+            if (Other != Index && mVariables[Other].mName == Variable.mName) {
                 return false;
             }
         }
 
-        const Core::FString OldName{mVariables[static_cast<std::size_t>(Index)].mName};
+        const Core::FString OldName{mVariables[Index].mName};
 
-        mVariables[static_cast<std::size_t>(Index)] = Variable;
+        mVariables[Index] = Variable;
 
         if (OldName != Variable.mName) {
             for (Asset::FAnimGraphVariableGetter& Getter : mVariableGetters) {
@@ -256,12 +257,12 @@ namespace Asset {
         return true;
     }
 
-    bool UAnimGraph::RemoveVariable(Core::Int32 Index) {
-        if (Index < 0 || static_cast<std::size_t>(Index) >= mVariables.size()) {
+    bool UAnimGraph::RemoveVariable(Core::Index_t Index) {
+        if (Index < 0 || Index >= mVariables.size()) {
             return false;
         }
 
-        const Core::FString Name{mVariables[static_cast<std::size_t>(Index)].mName};
+        const Core::FString Name{mVariables[Index].mName};
 
         std::erase_if(mVariableGetters, [&Name](const Asset::FAnimGraphVariableGetter& Getter) {
             return Getter.mVariable == Name;
@@ -424,7 +425,7 @@ namespace Asset {
                     })};
 
                     if (Found != Variables.end()) {
-                        const Core::Int32 Index{static_cast<Core::Int32>(Found - Variables.begin())};
+                        const Core::Index_t Index{static_cast<Core::Index_t>(static_cast<Core::Int32>(Found - Variables.begin()))};
 
                         if (NewName.empty()) {
                             State.mGraph->RemoveVariable(Index);
@@ -494,7 +495,7 @@ namespace Asset {
 
         ++Depth;
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -539,7 +540,7 @@ namespace Asset {
             Archive.SetError("Too many anim graph variable getters");
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -600,7 +601,7 @@ namespace Asset {
             mNextGetterId = 0;
         }
 
-        for (Core::Uint32 Index{}; Index < mVariables.size() && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < mVariables.size() && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -666,7 +667,7 @@ namespace Asset {
             mNodes.assign(Count, Asset::FAnimGraphNode{});
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -686,7 +687,7 @@ namespace Asset {
                     Node.mParameters.assign(std::min<Core::Uint32>(ParameterCount, 64), Asset::FAnimGraphParameter{});
                 }
 
-                for (Core::Uint32 Parameter{}; Parameter < Node.mParameters.size() && !Archive.HasError(); ++Parameter) {
+                for (Core::Index_t Parameter{}; Parameter < Node.mParameters.size() && !Archive.HasError(); ++Parameter) {
                     if (!Archive.BeginObject(std::to_string(Parameter))) {
                         break;
                     }
@@ -721,7 +722,7 @@ namespace Asset {
             mLinks.assign(std::min<Core::Uint32>(Count, MaxNodes * 4), Asset::FAnimGraphLink{});
         }
 
-        for (Core::Uint32 Index{}; Index < mLinks.size() && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < mLinks.size() && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -746,10 +747,10 @@ namespace Asset {
         mLinks.clear();
         mNextNodeId = 0;
 
-        for (std::size_t Index{}; Index < mNodes.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mNodes.size(); ++Index) {
             const Core::Int32 Id{mNodes[Index].mId};
 
-            if (Id < 0 || Id == std::numeric_limits<Core::Int32>::max() || std::any_of(mNodes.begin(), mNodes.begin() + static_cast<std::ptrdiff_t>(Index), [Id](const Asset::FAnimGraphNode& Node) {
+            if (Id < 0 || Id == std::numeric_limits<Core::Int32>::max() || std::any_of(mNodes.begin(), mNodes.begin() + Index, [Id](const Asset::FAnimGraphNode& Node) {
                 return Node.mId == Id;
             })) {
                 Archive.SetError("Invalid or duplicate anim graph node id");

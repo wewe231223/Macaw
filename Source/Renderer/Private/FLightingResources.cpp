@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FLightingResources.h"
 #include "Core/Math.h"
 #include "Core/Literals.h"
@@ -51,7 +52,7 @@ namespace Renderer {
         mLights.clear();
         mLights.reserve(Lights.size());
 
-        for (std::size_t Index{}; Index < Lights.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Lights.size(); ++Index) {
             const Engine::FLightSceneProxy& Light{Lights[Index]};
 
             if (!Light.mVisible || Light.mIntensity <= 0.0f) {

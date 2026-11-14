@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "Engine/FSceneInterface.h"
 #include "Core/GuidHash.h"
@@ -195,7 +196,7 @@ namespace Renderer {
         /**
          * @brief 광원 GUID를 조밀한 광원 배열의 인덱스에 연결합니다.
          */
-        Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mLightIndices{};
+        Core::TMap<Core::FGuid, Core::Index_t, Core::FGuidHash> mLightIndices{};
 
         /**
          * @brief 장면의 GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
@@ -215,7 +216,7 @@ namespace Renderer {
         /**
          * @brief 프리미티브 GUID에서 밀집 배열 인덱스로의 조회 맵입니다.
          */
-        Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mIndices{};
+        Core::TMap<Core::FGuid, Core::Index_t, Core::FGuidHash> mIndices{};
 
         /**
          * @brief 프리미티브 추가·제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.

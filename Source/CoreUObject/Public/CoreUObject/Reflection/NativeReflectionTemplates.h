@@ -285,7 +285,7 @@ namespace CoreUObject {
             return static_cast<Core::Uint32>(static_cast<const FArray*>(Array)->size());
         }, [](void* Array, Core::Uint32 Count) {
             static_cast<FArray*>(Array)->resize(Count);
-        }, [](void* Array, Core::Uint32 Index) -> void* {
+        }, [](void* Array, Core::Index_t Index) -> void* {
             return std::addressof((*static_cast<FArray*>(Array))[Index]);
         }, CoreUObject::GetArrayElementProperty<T>()};
 
@@ -327,4 +327,5 @@ namespace CoreUObject {
         Information.AddProperty(std::make_unique<CoreUObject::FProperty>(std::move(Name), CoreUObject::EPropertyType::Array, Flags, &CoreUObject::ReadArrayProperty<Member, Getter>, &CoreUObject::WriteArrayProperty<Member, Getter, Setter>, nullptr, Core::TArray<CoreUObject::FEnumValue>{}, nullptr, CoreUObject::GetNativeType<FValue>(), CoreUObject::GetArrayOps<FValue>()));
     }
 
-}
+}#include "Core/Types.h"
+

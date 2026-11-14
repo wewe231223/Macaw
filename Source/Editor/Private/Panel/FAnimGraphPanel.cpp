@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/Panel/FAnimGraphPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Engine/AActor.h"
@@ -195,7 +196,7 @@ namespace Editor {
          * @param Index 대상 배열의 항목 인덱스입니다.
          * @return 입력 핀을 식별하는 키입니다.
          */
-        Core::Uint64 InputPinKey(Core::Uint64 Node, std::size_t Index) {
+        Core::Uint64 InputPinKey(Core::Uint64 Node, Core::Index_t Index) {
             return Node | static_cast<Core::Uint64>(Index + 1);
         }
 
@@ -502,7 +503,7 @@ namespace Editor {
         for (const auto& [Depth, Column] : Columns) {
             const float Top{-0.5f * static_cast<float>(Column.size() - 1) * RowSpacing};
 
-            for (std::size_t Row{}; Row < Column.size(); ++Row) {
+            for (Core::Index_t Row{}; Row < Column.size(); ++Row) {
                 const Core::Uint64 Key{NodeKey(Instance, Column[Row])};
 
                 if (mPlacedNodes.contains(Key)) {
@@ -541,16 +542,16 @@ namespace Editor {
 
             for (const Engine::FAnimNodeVisit& Visit : Visits) {
                 if (Visit.mSampleIndex >= 0) {
-                    SampleTotals[static_cast<std::size_t>(Visit.mParentIndex)] += Visit.mWeight;
+                    SampleTotals[static_cast<Core::Index_t>(Visit.mParentIndex)] += Visit.mWeight;
                 }
             }
 
-            for (std::size_t Index{}; Index < Visits.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Visits.size(); ++Index) {
                 const Engine::FAnimNodeVisit& Visit{Visits[Index]};
                 float Weight{Visit.mWeight};
 
                 if (Visit.mParentIndex >= 0) {
-                    const std::size_t Parent{static_cast<std::size_t>(Visit.mParentIndex)};
+                    const Core::Index_t Parent{static_cast<Core::Index_t>(static_cast<Core::Index_t>(Visit.mParentIndex))};
                     Weight *= Weights[Parent];
 
                     if (Visit.mSampleIndex >= 0) {
@@ -641,11 +642,11 @@ namespace Editor {
                 const auto& Samples{BlendSpacePlayer->mBlendSpace->GetSamples()};
 
                 for (const Asset::FBlendSampleWeight& SampleWeight : RecordedSamples->second) {
-                    if (SampleWeight.mSampleIndex < 0 || static_cast<std::size_t>(SampleWeight.mSampleIndex) >= Samples.size()) {
+                    if (SampleWeight.mSampleIndex < 0 || static_cast<Core::Index_t>(SampleWeight.mSampleIndex) >= Samples.size()) {
                         continue;
                     }
 
-                    const Asset::FBlendSample& Sample{Samples[static_cast<std::size_t>(SampleWeight.mSampleIndex)]};
+                    const Asset::FBlendSample& Sample{Samples[static_cast<Core::Index_t>(SampleWeight.mSampleIndex)]};
                     Engine::FAnimNodeValue Entry{};
                     Entry.mName = std::format("Sample {}", SampleWeight.mSampleIndex);
                     Entry.mValue = std::format("{} @ {:.2f} : {:.0f}%", Sample.mAnimation != nullptr ? Sample.mAnimation->GetName() : "?", Sample.mSampleValue.x, SampleWeight.mWeight * 100.0f);
@@ -670,7 +671,7 @@ namespace Editor {
                 Builder.FitProperty("Weight", WeightText.c_str());
             }
 
-            for (std::size_t Index{}; Index < Values.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Values.size(); ++Index) {
                 const Engine::FAnimNodeValue& Value{Values[Index]};
                 FAnimNodeValueDisplay& Display{Displays[Index]};
 
@@ -723,7 +724,7 @@ namespace Editor {
             Builder.Header(Title, Type);
 
             // 첫 줄에 첫 입력 핀과 출력 핀을 나란히 두고, 나머지 입력 핀은 아래 줄에 둡니다.
-            for (std::size_t Pin{}; Pin < Inputs.size(); ++Pin) {
+            for (Core::Index_t Pin{}; Pin < Inputs.size(); ++Pin) {
                 Builder.InputPin(ed::PinId{static_cast<std::uintptr_t>(InputPinKey(Key, Pin))}, InputLabels[Pin].c_str(), Inputs[Pin].mLink->mLinkedNode != nullptr, Editor::FAnimGraphNodeBuilder::PoseColor());
 
                 if (Pin == 0) {
@@ -735,7 +736,7 @@ namespace Editor {
                 Builder.OutputPin(ed::PinId{static_cast<std::uintptr_t>(OutputPinKey(Key))}, "Pose", true, Editor::FAnimGraphNodeBuilder::PoseColor(), false);
             }
 
-            for (std::size_t Index{}; Index < Values.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Values.size(); ++Index) {
                 const FAnimNodeValueDisplay& Display{Displays[Index]};
 
                 if (Display.mValueNode != nullptr) {
@@ -762,7 +763,7 @@ namespace Editor {
                 ImGui::PopStyleVar();
             }
 
-            for (std::size_t Index{}; Index < Values.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Values.size(); ++Index) {
                 const FAnimNodeValueDisplay& Display{Displays[Index]};
 
                 if (Display.mValueNode != nullptr) {
@@ -866,7 +867,7 @@ namespace Editor {
 
             Node->GetPoseInputs(Inputs);
 
-            for (std::size_t Pin{}; Pin < Inputs.size(); ++Pin) {
+            for (Core::Index_t Pin{}; Pin < Inputs.size(); ++Pin) {
                 if (Engine::FAnimNode_Base* Linked{Inputs[Pin].mLink->mLinkedNode}) {
                     const float Weight{WeightOf(LinkWeights, Inputs[Pin].mLink)};
 

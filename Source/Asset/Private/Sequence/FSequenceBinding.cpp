@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Sequence/FSequenceBinding.h"
 #include "Asset/Sequence/FSequencePropertyTrack.h"
 #include "Asset/Sequence/FSequenceTransformTrack.h"
@@ -145,7 +146,7 @@ namespace Asset {
             mTracks.clear();
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }

@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
 #include "Asset/USkeletalMesh.h"
 #include "Asset/USkeleton.h"
@@ -252,7 +253,7 @@ namespace Engine {
     /**
      * @brief 본 하나의 부모 기준 변환을 변경합니다.
      */
-    bool USkeletalMeshComponent::SetBoneLocalTransform(Core::Uint32 Bone, const Core::FMatrix& Transform) {
+    bool USkeletalMeshComponent::SetBoneLocalTransform(Core::Index_t Bone, const Core::FMatrix& Transform) {
         if (mSkeletalMesh == nullptr || mSkeleton == nullptr || !mPose.SetLocalTransform(*mSkeletalMesh, *mSkeleton, Bone, Transform)) {
             return false;
         }

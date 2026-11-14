@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/UWorld.h"
 #include "Asset/FAssetManager.h"
 #include "Core/FilePath.h"
@@ -311,7 +312,7 @@ namespace Engine {
 
         const std::size_t Count{mDirtyComponents.size()};
 
-        for (std::size_t Index{}; Index < Count; ++Index) {
+        for (Core::Index_t Index{}; Index < Count; ++Index) {
             const CoreUObject::FObjectHandle Handle{mDirtyComponents[Index]};
 
             if (auto* Component{CoreUObject::Cast<Engine::UPrimitiveComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))}; Component != nullptr && Component->GetWorld() == this) {
@@ -733,8 +734,8 @@ namespace Engine {
 
         Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FObjectHandle>> Current{};
 
-        for (std::size_t First{}; First < Shapes.size(); ++First) {
-            for (std::size_t Second{First + 1}; Second < Shapes.size(); ++Second) {
+        for (Core::Index_t First{}; First < Shapes.size(); ++First) {
+            for (Core::Index_t Second{static_cast<Core::Index_t>(First + 1)}; Second < Shapes.size(); ++Second) {
                 if (Shapes[First]->GetOwner() != Shapes[Second]->GetOwner() && Shapes[First]->IsOverlapping(*Shapes[Second])) {
                     Current.emplace_back(Shapes[First]->GetHandle(), Shapes[Second]->GetHandle());
                 }

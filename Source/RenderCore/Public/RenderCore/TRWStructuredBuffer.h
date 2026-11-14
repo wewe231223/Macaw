@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "RenderCore/TStructuredBuffer.h"
 
 #include <utility>
@@ -25,10 +26,10 @@ namespace RenderCore {
          * @param[in] Context 바인딩할 장치 컨텍스트입니다.
          * @param[in] Slot 순서 없는 접근 슬롯(u 레지스터)입니다.
          */
-        void BindOutput(ID3D11DeviceContext* Context, Core::Uint32 Slot) const {
+        void BindOutput(ID3D11DeviceContext* Context, Core::Index_t Slot) const {
             ID3D11UnorderedAccessView* View{mUnorderedAccessView.Get()};
 
-            Context->CSSetUnorderedAccessViews(Slot, 1, &View, nullptr);
+            Context->CSSetUnorderedAccessViews(static_cast<UINT>(Slot), 1, &View, nullptr);
         }
 
         /**
@@ -36,10 +37,10 @@ namespace RenderCore {
          * @param[in] Context 바인딩할 장치 컨텍스트입니다.
          * @param[in] Slot 순서 없는 접근 슬롯(u 레지스터)입니다.
          */
-        void UnbindOutput(ID3D11DeviceContext* Context, Core::Uint32 Slot) const {
+        void UnbindOutput(ID3D11DeviceContext* Context, Core::Index_t Slot) const {
             ID3D11UnorderedAccessView* View{};
 
-            Context->CSSetUnorderedAccessViews(Slot, 1, &View, nullptr);
+            Context->CSSetUnorderedAccessViews(static_cast<UINT>(Slot), 1, &View, nullptr);
         }
 
     protected:

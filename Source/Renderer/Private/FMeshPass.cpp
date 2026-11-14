@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FMeshPass.h"
 
 #include "FScene.h"
@@ -41,7 +42,7 @@ namespace Renderer {
     bool Renderer::FMeshPass::IsVisible(const Core::FMatrix& ViewProjection, const Core::FBox& Bounds) {
         std::array<Core::Uint32, 6> Outside{};
 
-        for (Core::Int32 Index{}; Index < 8; ++Index) {
+        for (Core::Index_t Index{}; Index < 8; ++Index) {
             const Core::FVector Point{(Index & 1) ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Index & 2) ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Index & 4) ? Bounds.mMaximum.z : Bounds.mMinimum.z};
             const Core::FVector4 Clip{Core::FVector4{Point, 1.0f} * ViewProjection};
 
@@ -77,7 +78,7 @@ namespace Renderer {
                 continue;
             }
 
-            Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
+            Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mMeshes)[static_cast<Core::Index_t>(Primitive.mProxy.mPrimitive)].get()};
 
             if (Primitive.mProxy.mSkeletalMesh != nullptr && (!Primitive.mSkinBuffer.IsCreated() || !Primitive.mProxy.mSkeletalMesh->CreateResources(mDevice))) {
                 continue;

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Import/IMeshImporter.h"
 #include "Asset/Import/FFBXImageProcessor.h"
 
@@ -32,7 +33,7 @@ namespace Asset {
         /**
          * @brief FBX 재질과 임포트 결과 재질 목록 인덱스의 대응입니다.
          */
-        using FMaterialIndices = Core::TMap<fbxsdk::FbxSurfaceMaterial*, Core::Uint32>;
+        using FMaterialIndices = Core::TMap<fbxsdk::FbxSurfaceMaterial*, Core::Index_t>;
 
     public:
         /**
@@ -65,7 +66,7 @@ namespace Asset {
          * @return 값을 읽었거나 요소가 없으면 true이며 지원하지 않는 모드이거나 인덱스가 범위를 벗어나면 false입니다.
          */
         template <typename TValue>
-        bool ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, int ControlPoint, int Polygon, int PolygonVertex, TValue& Value) const;
+        bool ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, Core::Index_t ControlPoint, Core::Index_t Polygon, Core::Index_t PolygonVertex, TValue& Value) const;
 
         /**
          * @brief FBX 재질의 색상·불투명도·양면 여부·조명 속성과 텍스처를 읽어 결과 재질 목록 끝에 추가합니다.
@@ -81,7 +82,7 @@ namespace Asset {
          * @param[out] Index 결과 재질 목록에서의 인덱스를 기록할 대상입니다.
          * @return 인덱스를 구하면 true이며 새 재질을 읽지 못하면 false입니다.
          */
-        bool FindMaterialIndex(fbxsdk::FbxSurfaceMaterial* Material, Core::Uint32& Index);
+        bool FindMaterialIndex(fbxsdk::FbxSurfaceMaterial* Material, Core::Index_t& Index);
 
         /**
          * @brief 노드의 전역 변환과 mBasis를 적용해 FBX 메시의 정점·노멀·탄젠트·UV·본 가중치를 대상 메시에 추가하고 재질별 서브메시를 구성합니다.
@@ -108,7 +109,7 @@ namespace Asset {
          * @param[in] ParentBoneGlobal 가장 가까운 조상 본의 엔진 공간 전역 변환이며 없으면 항등 행렬입니다.
          * @return 모든 본을 읽으면 true이며 바인드 포즈를 변환할 수 없으면 false입니다.
          */
-        bool ReadSkeleton(fbxsdk::FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
+        bool ReadSkeleton(fbxsdk::FbxNode& Node, Core::Index_t ParentIndex, const Core::FMatrix& ParentBoneGlobal);
 
         /**
          * @brief 장면의 스킨 클러스터와 바인드 포즈 객체(FbxPose)에서 노드별 바인드 시점 전역 변환을 모읍니다.
@@ -184,7 +185,7 @@ namespace Asset {
         /**
          * @brief 본으로 읽은 FBX 노드별 결과 본 인덱스입니다.
          */
-        Core::TMap<fbxsdk::FbxNode*, Core::Int32> mBoneIndices{};
+        Core::TMap<fbxsdk::FbxNode*, Core::Index_t> mBoneIndices{};
 
         /**
          * @brief 결과 본 인덱스 순서의 원본 노드입니다. 애니메이션을 재샘플링할 때 본별 노드를 찾는 데 사용합니다.

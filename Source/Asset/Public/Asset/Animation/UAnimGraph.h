@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/FRevision.h"
 #include "Asset/Animation/FAnimStateMachineData.h"
 #include "CoreUObject/UObject.h"
@@ -110,7 +111,7 @@ namespace Asset {
         /**
          * @brief 받는 노드의 포즈 입력 핀 순서입니다.
          */
-        Core::Int32 mToPin{};
+        Core::Index_t mToPin{};
     };
 
     /**
@@ -299,7 +300,7 @@ namespace Asset {
          * @param[in] ToPin 입력 핀 순서입니다.
          * @return 노드가 있고 순환이 생기지 않으면 true입니다.
          */
-        bool Connect(Core::Int32 FromNode, Core::Int32 ToNode, Core::Int32 ToPin);
+        bool Connect(Core::Int32 FromNode, Core::Int32 ToNode, Core::Index_t ToPin);
 
         /**
          * @brief 입력 핀의 링크를 지웁니다.
@@ -307,7 +308,7 @@ namespace Asset {
          * @param[in] ToPin 입력 핀 순서입니다.
          * @return 지웠으면 true입니다.
          */
-        bool Disconnect(Core::Int32 ToNode, Core::Int32 ToPin);
+        bool Disconnect(Core::Int32 ToNode, Core::Index_t ToPin);
 
         /**
          * @brief 연결하면 순환이 생기는지 검사합니다.
@@ -323,7 +324,7 @@ namespace Asset {
          * @param[in] ToPin 입력 핀 순서입니다.
          * @return 연결된 노드 식별자이며 없으면 OutputNodeId입니다.
          */
-        Core::Int32 FindInput(Core::Int32 ToNode, Core::Int32 ToPin) const;
+        Core::Int32 FindInput(Core::Int32 ToNode, Core::Index_t ToPin) const;
 
         /**
          * @brief 노드의 위치를 바꿉니다.
@@ -358,14 +359,14 @@ namespace Asset {
          * @param[in] Variable 새 값이며 이름이 비어 있지 않고 다른 변수와 겹치지 않아야 합니다.
          * @return 적용했으면 true입니다.
          */
-        bool SetVariable(Core::Int32 Index, const Asset::FAnimGraphVariable& Variable);
+        bool SetVariable(Core::Index_t Index, const Asset::FAnimGraphVariable& Variable);
 
         /**
          * @brief 변수를 지우고, 그 변수를 묶은 파라미터의 바인딩을 해제합니다.
          * @param[in] Index 변수 순서입니다.
          * @return 지웠으면 true입니다.
          */
-        bool RemoveVariable(Core::Int32 Index);
+        bool RemoveVariable(Core::Index_t Index);
 
         /**
          * @brief 값 연결에 사용하는 변수 Getter 목록을 반환합니다.

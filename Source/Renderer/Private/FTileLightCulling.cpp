@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FTileLightCulling.h"
 #include "Core/Math/FVector4.h"
 
@@ -68,7 +69,7 @@ namespace Renderer {
     /**
      * @brief 타일별 광원 범위·인덱스 버퍼를 연속된 셰이더 슬롯에 연결합니다.
      */
-    void FTileLightCulling::Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 FirstSlot) const {
+    void FTileLightCulling::Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t FirstSlot) const {
         mTileRanges.Bind(Context, Stages, FirstSlot);
         mTileLightIndices.Bind(Context, Stages, FirstSlot + 1);
     }
@@ -76,7 +77,7 @@ namespace Renderer {
     /**
      * @brief 타일별 광원 범위·인덱스 버퍼의 셰이더 연결을 해제합니다.
      */
-    void FTileLightCulling::Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 FirstSlot) const {
+    void FTileLightCulling::Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t FirstSlot) const {
         mTileRanges.Unbind(Context, Stages, FirstSlot);
         mTileLightIndices.Unbind(Context, Stages, FirstSlot + 1);
     }

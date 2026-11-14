@@ -4,6 +4,7 @@
  * @ingroup Core
  */
 
+#include "Core/Types.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FRotator.h"
@@ -168,7 +169,7 @@ namespace Core {
     Core::FMatrix Core::FMatrix::operator+(const Core::FMatrix& Other) const {
         Core::FMatrix Result{};
 
-        for (Core::Int32 Row{}; Row < 4; ++Row) {
+        for (Core::Index_t Row{}; Row < 4; ++Row) {
             Result.mRows[Row] = _mm_add_ps(mRows[Row], Other.mRows[Row]);
         }
 
@@ -181,7 +182,7 @@ namespace Core {
     Core::FMatrix Core::FMatrix::operator-(const Core::FMatrix& Other) const {
         Core::FMatrix Result{};
 
-        for (Core::Int32 Row{}; Row < 4; ++Row) {
+        for (Core::Index_t Row{}; Row < 4; ++Row) {
             Result.mRows[Row] = _mm_sub_ps(mRows[Row], Other.mRows[Row]);
         }
 
@@ -198,7 +199,7 @@ namespace Core {
         const __m128 OtherW{Other.mRows[3]};
         Core::FMatrix Result{};
 
-        for (Core::Int32 Row{}; Row < 4; ++Row) {
+        for (Core::Index_t Row{}; Row < 4; ++Row) {
             const __m128 Value{mRows[Row]};
             const __m128 X{_mm_mul_ps(Core::Math::Simd::Splat<0>(Value), OtherX)};
             const __m128 Y{_mm_mul_ps(Core::Math::Simd::Splat<1>(Value), OtherY)};
@@ -218,7 +219,7 @@ namespace Core {
         const __m128 Scale{_mm_set1_ps(Value)};
         Core::FMatrix Result{};
 
-        for (Core::Int32 Row{}; Row < 4; ++Row) {
+        for (Core::Index_t Row{}; Row < 4; ++Row) {
             Result.mRows[Row] = _mm_mul_ps(mRows[Row], Scale);
         }
 
@@ -281,7 +282,7 @@ namespace Core {
      * @brief 모든 성분이 허용 오차 없이 정확히 같은지 검사합니다.
      */
     bool Core::FMatrix::operator==(const Core::FMatrix& Other) const {
-        for (Core::Int32 Row{}; Row < 4; ++Row) {
+        for (Core::Index_t Row{}; Row < 4; ++Row) {
             if (!Core::Math::Simd::Equal<4>(mRows[Row], Other.mRows[Row])) {
                 return false;
             }
@@ -310,7 +311,7 @@ namespace Core {
     /**
      * @brief 행렬에서 지정한 행의 XYZ 축 성분을 반환합니다.
      */
-    Core::FVector Core::FMatrix::GetAxis(Core::Int32 Index) const {
+    Core::FVector Core::FMatrix::GetAxis(Core::Index_t Index) const {
         return Core::FVector{mRows[Index]};
     }
 
@@ -328,7 +329,7 @@ namespace Core {
         Core::FMatrix Rotation{*this};
         std::array<float, 3> Scales{};
 
-        for (Core::Int32 Row{}; Row < 3; ++Row) {
+        for (Core::Index_t Row{}; Row < 3; ++Row) {
             const __m128 Axis{mRows[Row]};
             const __m128 SizeSquared{Core::Math::Simd::Dot<3>(Axis, Axis)};
 
@@ -350,7 +351,7 @@ namespace Core {
 
         if (Determinant < 0.0f) {
             const auto Largest{std::max_element(Scales.begin(), Scales.end())};
-            const auto Row{static_cast<std::size_t>(Largest - Scales.begin())};
+            const Core::Index_t Row{static_cast<Core::Index_t>(Largest - Scales.begin())};
 
             Rotation.mRows[Row] = _mm_xor_ps(Rotation.mRows[Row], _mm_set1_ps(-0.0f));
         }
@@ -387,15 +388,15 @@ namespace Core {
         std::array<float, 3> Scales{};
         std::array<__m128, 3> Axes{};
 
-        for (Core::Int32 Row{}; Row < 3; ++Row) {
+        for (Core::Index_t Row{}; Row < 3; ++Row) {
             const float Size{std::sqrt(_mm_cvtss_f32(Core::Math::Simd::Dot<3>(mRows[Row], mRows[Row])))};
 
             if (!std::isfinite(Size) || Size <= std::numeric_limits<float>::min()) {
                 return false;
             }
 
-            Scales[static_cast<std::size_t>(Row)] = Size;
-            Axes[static_cast<std::size_t>(Row)] = _mm_div_ps(mRows[Row], _mm_set1_ps(Size));
+            Scales[Row] = Size;
+            Axes[Row] = _mm_div_ps(mRows[Row], _mm_set1_ps(Size));
         }
 
         // 축을 정규화한 3×3 행렬의 행렬식이 ±1이 아니면 전단이 있어 위치·회전·스케일로 나타낼 수 없습니다.
@@ -428,10 +429,10 @@ namespace Core {
             return false;
         }
 
-        for (Core::Int32 Column{}; Column < 4; ++Column) {
-            Core::Int32 Pivot{Column};
+        for (Core::Index_t Column{}; Column < 4; ++Column) {
+            Core::Index_t Pivot{Column};
 
-            for (Core::Int32 Row{Column + 1}; Row < 4; ++Row) {
+            for (Core::Index_t Row{static_cast<Core::Index_t>(Column + 1)}; Row < 4; ++Row) {
                 if (std::abs(Working.mRows[Row].m128_f32[Column]) > std::abs(Working.mRows[Pivot].m128_f32[Column])) {
                     Pivot = Row;
                 }
@@ -460,7 +461,7 @@ namespace Core {
             Working.mRows[Column] = WorkingPivot;
             Inverse.mRows[Column] = InversePivot;
 
-            for (Core::Int32 Row{}; Row < 4; ++Row) {
+            for (Core::Index_t Row{}; Row < 4; ++Row) {
                 if (Row != Column) {
                     const __m128 Factor{_mm_set1_ps(Working.mRows[Row].m128_f32[Column])};
 
@@ -498,9 +499,9 @@ namespace Core {
         std::array<double, 6> Upper{};
         std::array<double, 6> Lower{};
 
-        for (std::size_t Index{}; Index < Columns.size(); ++Index) {
-            const Core::Int32 A{Columns[Index][0]};
-            const Core::Int32 B{Columns[Index][1]};
+        for (Core::Index_t Index{}; Index < Columns.size(); ++Index) {
+            const Core::Index_t A{static_cast<Core::Index_t>(Columns[Index][0])};
+            const Core::Index_t B{static_cast<Core::Index_t>(Columns[Index][1])};
 
             Upper[Index] = static_cast<double>(mRows[0].m128_f32[A]) * mRows[1].m128_f32[B] - static_cast<double>(mRows[0].m128_f32[B]) * mRows[1].m128_f32[A];
             Lower[Index] = static_cast<double>(mRows[2].m128_f32[A]) * mRows[3].m128_f32[B] - static_cast<double>(mRows[2].m128_f32[B]) * mRows[3].m128_f32[A];
@@ -520,7 +521,7 @@ namespace Core {
      * @brief 모든 유효 성분에 NaN이나 무한대가 없는지 검사합니다.
      */
     bool Core::FMatrix::IsFinite() const {
-        for (Core::Int32 Row{}; Row < 4; ++Row) {
+        for (Core::Index_t Row{}; Row < 4; ++Row) {
             if (!Core::Math::Simd::IsFinite<4>(mRows[Row])) {
                 return false;
             }
@@ -540,7 +541,7 @@ namespace Core {
      * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
      */
     bool Core::FMatrix::Equals(const Core::FMatrix& Other, float Tolerance) const {
-        for (Core::Int32 Row{}; Row < 4; ++Row) {
+        for (Core::Index_t Row{}; Row < 4; ++Row) {
             if (!Core::Math::Simd::NearEqual<4>(mRows[Row], Other.mRows[Row], Tolerance)) {
                 return false;
             }
@@ -559,14 +560,14 @@ namespace Core {
     /**
      * @brief 지정한 행과 열의 행렬 성분을 참조합니다.
      */
-    float& Core::FMatrix::operator()(Core::Int32 Row, Core::Int32 Column) {
+    float& Core::FMatrix::operator()(Core::Index_t Row, Core::Index_t Column) {
         return mRows[Row].m128_f32[Column];
     }
 
     /**
      * @brief 지정한 행과 열의 행렬 성분을 참조합니다.
      */
-    const float& Core::FMatrix::operator()(Core::Int32 Row, Core::Int32 Column) const {
+    const float& Core::FMatrix::operator()(Core::Index_t Row, Core::Index_t Column) const {
         return mRows[Row].m128_f32[Column];
     }
 

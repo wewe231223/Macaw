@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/MeshPicking.h"
 #include "Asset/FMeshData.h"
 #include "Core/Math.h"
@@ -34,7 +35,7 @@ namespace Engine {
         const Core::FRay Local{Inverse.TransformPosition(Ray.mOrigin), Inverse.TransformVector(Ray.mDirection)};
         bool Found{};
 
-        for (std::size_t Index{}; Index + 2 < Mesh->GetIndices().size(); Index += 3) {
+        for (Core::Index_t Index{}; Index + 2 < Mesh->GetIndices().size(); Index += 3) {
             const Core::FVector A{Mesh->GetPositions()[Mesh->GetIndices()[Index]]};
             const Core::FVector B{Mesh->GetPositions()[Mesh->GetIndices()[Index + 1]]};
             const Core::FVector C{Mesh->GetPositions()[Mesh->GetIndices()[Index + 2]]};

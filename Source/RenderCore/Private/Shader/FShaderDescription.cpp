@@ -4,6 +4,7 @@
  * @ingroup RenderCore
  */
 
+#include "Core/Types.h"
 #include "RenderCore/Shader/FShaderDescription.h"
 #include "Core/FilePath.h"
 #include "FShaderFile.h"
@@ -27,7 +28,7 @@ namespace RenderCore {
                 return false;
             }
 
-            for (std::size_t Index{}; Index < Name.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Name.size(); ++Index) {
                 const char Character{Name[Index]};
                 const bool Letter{(Character >= 'A' && Character <= 'Z') || (Character >= 'a' && Character <= 'z') || Character == '_'};
 
@@ -74,7 +75,7 @@ namespace RenderCore {
 
         std::sort(mMacros.begin(), mMacros.end(), MacroLess);
 
-        for (std::size_t Index{}; Index < mMacros.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mMacros.size(); ++Index) {
             const RenderCore::FShaderMacro& Macro{mMacros[Index]};
 
             if (!IsIdentifier(Macro.mName) || Macro.mValue.find('\0') != Core::FString::npos || (Index > 0 && mMacros[Index - 1].mName == Macro.mName)) {

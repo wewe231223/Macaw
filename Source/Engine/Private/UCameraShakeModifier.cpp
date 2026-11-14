@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/UCameraShakeModifier.h"
 #include "Engine/FMinimalViewInfo.h"
 #include "Core/Math/FQuat.h"
@@ -35,7 +36,7 @@ namespace Engine {
 
             float Wave[7]{};
 
-            for (int Axis{}; Axis < 7; ++Axis) {
+            for (Core::Index_t Axis{}; Axis < 7; ++Axis) {
                 Wave[Axis] = std::sin(TwoPi * Shake.mFrequency * Shake.mRate[Axis] * Shake.mElapsed + Shake.mPhase[Axis]) * Weight;
             }
 
@@ -78,7 +79,7 @@ namespace Engine {
         Shake.mBlendInTime = std::max(BlendInTime, 0.0f);
         Shake.mBlendOutTime = std::max(BlendOutTime, 0.0f);
 
-        for (int Axis{}; Axis < 7; ++Axis) {
+        for (Core::Index_t Axis{}; Axis < 7; ++Axis) {
             Shake.mPhase[Axis] = Phase(mRandom);
             Shake.mRate[Axis] = Rate(mRandom);
         }

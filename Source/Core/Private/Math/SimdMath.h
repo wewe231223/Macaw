@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include <cstddef>
 #include <emmintrin.h>
 #include <limits>
@@ -24,7 +25,7 @@ namespace Core {
          * @param[in] Value 연산할 SIMD 레지스터 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
-        template <std::size_t Index>
+        template <Core::Index_t Index>
         __m128 Splat(__m128 Value);
 
         /**
@@ -33,7 +34,7 @@ namespace Core {
          * @param[in] Value 연산할 SIMD 레지스터 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
-        template <std::size_t Index>
+        template <Core::Index_t Index>
         float Extract(__m128 Value);
 
         /**
@@ -119,10 +120,10 @@ namespace Core {
     }
 
     /**
-     * @fn template <std::size_t Index> __m128 Core::Math::Simd::Splat(__m128 Value)
+     * @fn template <Core::Index_t Index> __m128 Core::Math::Simd::Splat(__m128 Value)
      * @brief 지정한 SIMD 성분을 네 레인 전체에 복제합니다.
      */
-    template <std::size_t Index>
+    template <Core::Index_t Index>
     __m128 Core::Math::Simd::Splat(__m128 Value) {
         static_assert(Index < 4);
 
@@ -130,10 +131,10 @@ namespace Core {
     }
 
     /**
-     * @fn template <std::size_t Index> float Core::Math::Simd::Extract(__m128 Value)
+     * @fn template <Core::Index_t Index> float Core::Math::Simd::Extract(__m128 Value)
      * @brief 지정한 SIMD 레인을 스칼라 float로 추출합니다.
      */
-    template <std::size_t Index>
+    template <Core::Index_t Index>
     float Core::Math::Simd::Extract(__m128 Value) {
         return _mm_cvtss_f32(Core::Math::Simd::Splat<Index>(Value));
     }

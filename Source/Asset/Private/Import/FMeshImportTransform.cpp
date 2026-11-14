@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "FMeshImportTransform.h"
 
 #include <cmath>
@@ -27,7 +28,7 @@ namespace Asset {
             // 전치하면 이동 성분이 4번째 열로 옮겨 가므로 방향 변환에 섞이지 않도록 0으로 지웁니다.
             mNormalMatrix = Inverse.Transposed();
 
-            for (Core::Int32 Index{}; Index < 3; ++Index) {
+            for (Core::Index_t Index{}; Index < 3; ++Index) {
                 mNormalMatrix(Index, 3) = 0.0f;
                 mNormalMatrix(3, Index) = 0.0f;
             }

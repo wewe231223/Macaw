@@ -21,6 +21,11 @@ namespace Core {
     using Int32 = std::int32_t;
 
     /**
+     * @brief 배열과 컨테이너 접근에 사용하는 32비트 부호 있는 인덱스 타입입니다.
+     */
+    using Index_t = std::int32_t;
+
+    /**
      * @brief 8비트 부호 없는 정수 타입입니다.
      */
     using Uint8 = std::uint8_t;

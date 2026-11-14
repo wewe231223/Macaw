@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Import/FMeshImportBone.h"
 
 #include <utility>
@@ -13,7 +14,7 @@ namespace Asset {
     /**
      * @brief 본의 이름·부모·바인드 포즈를 지정해 생성합니다.
      */
-    Asset::FMeshImportBone::FMeshImportBone(Core::FString Name, Core::Int32 ParentIndex, const Core::FMatrix& BindPose)
+    Asset::FMeshImportBone::FMeshImportBone(Core::FString Name, Core::Index_t ParentIndex, const Core::FMatrix& BindPose)
 		: mName{std::move(Name)}, mParentIndex{ParentIndex}, mBindPose{BindPose} {
     }
 
@@ -27,7 +28,7 @@ namespace Asset {
     /**
      * @brief 부모 본 인덱스를 조회합니다.
      */
-    Core::Int32 Asset::FMeshImportBone::GetParentIndex() const {
+    Core::Index_t Asset::FMeshImportBone::GetParentIndex() const {
         return mParentIndex;
     }
 

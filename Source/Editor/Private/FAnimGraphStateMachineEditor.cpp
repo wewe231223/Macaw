@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "FAnimGraphEditor.h"
 #include "FAnimGraphNodeBuilder.h"
 #include "Asset/Animation/UAnimGraph.h"
@@ -118,11 +119,11 @@ namespace Editor {
     }
 
     void FAnimGraphEditor::DrawNavigation() {
-        Core::Int32 Destination{-1};
+        Core::Index_t Destination{-1};
         const float Height{ImGui::GetFrameHeight() + ImGui::GetStyle().ScrollbarSize + 4.0f};
 
         if (ImGui::BeginChild("GraphNavigation", {0.0f, Height}, ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar)) {
-            for (std::size_t Index{}; Index <= mNavigation.size(); ++Index) {
+            for (Core::Index_t Index{}; Index <= mNavigation.size(); ++Index) {
                 const bool Current{Index == mNavigation.size()};
                 const FGraphView& View{Current ? mView : mNavigation[Index]};
                 const Core::FString Label{GetViewLabel(View, Index > 0 ? &mNavigation[Index - 1] : nullptr)};
@@ -133,11 +134,11 @@ namespace Editor {
                     ImGui::SameLine();
                 }
 
-                ImGui::PushID(static_cast<int>(Index));
+                ImGui::PushID(Index);
                 ImGui::BeginDisabled(Current);
 
                 if (ImGui::Button(Label.c_str())) {
-                    Destination = static_cast<Core::Int32>(Index);
+                    Destination = Index;
                 }
 
                 ImGui::EndDisabled();
@@ -216,7 +217,7 @@ namespace Editor {
         return !mNavigation.empty() && NavigateTo(mNavigation.size() - 1);
     }
 
-    bool FAnimGraphEditor::NavigateTo(std::size_t Depth) {
+    bool FAnimGraphEditor::NavigateTo(Core::Index_t Depth) {
         if (Depth >= mNavigation.size()) {
             return false;
         }
@@ -578,7 +579,7 @@ namespace Editor {
             const ImVec4 InputColor{Asset::FAnimTransitionGraph::IsBoolInput(Node.mType) ? BoolColor : Editor::FAnimGraphNodeBuilder::FloatColor()};
             const Core::Int32 InputCount{Asset::FAnimTransitionGraph::GetInputCount(Node.mType)};
 
-            for (Core::Int32 Pin{}; Pin < InputCount; ++Pin) {
+            for (Core::Index_t Pin{}; Pin < InputCount; ++Pin) {
                 const Core::Int32 Input{Pin == 0 ? Node.mInputA : Node.mInputB};
 
                 if (Input >= 0) {
@@ -602,7 +603,7 @@ namespace Editor {
 
                 const Core::Int32 From{StateNodeId(A.Get())};
                 const Core::Int32 To{StateNodeId(B.Get())};
-                const Core::Int32 Pin{static_cast<Core::Int32>(B.Get() % 16) - 1};
+                const Core::Index_t Pin{static_cast<Core::Index_t>(static_cast<Core::Int32>(B.Get() % 16) - 1)};
                 auto Candidate{Graph};
                 const bool Valid{A.Get() % 16 == 3 && (B.Get() == 1 ? Candidate.SetResult(From) : Candidate.Connect(From, To, Pin))};
 
@@ -653,7 +654,7 @@ namespace Editor {
         }
 
         if (ImGui::BeginPopup("CreateRuleNode")) {
-            for (Core::Uint32 Index{}; Index < static_cast<Core::Uint32>(Asset::EAnimRuleNodeType::Count); ++Index) {
+            for (Core::Index_t Index{}; Index < static_cast<Core::Uint32>(Asset::EAnimRuleNodeType::Count); ++Index) {
                 const auto Type{static_cast<Asset::EAnimRuleNodeType>(Index)};
 
                 if (ImGui::MenuItem(Asset::FAnimTransitionGraph::GetTitle(Type))) {

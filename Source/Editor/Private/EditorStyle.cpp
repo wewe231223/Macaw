@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "EditorStyle.h"
 
 #include <imgui_internal.h>
@@ -85,7 +86,7 @@ namespace Editor {
         }
 
         case EIcon::Grid:
-            for (int Index{}; Index < 4; ++Index) {
+            for (Core::Index_t Index{}; Index < 4; ++Index) {
                 const float Offset{3.0f + static_cast<float>(Index) * 4.5f};
 
                 Line(Offset, 3.0f, Offset, 16.5f);

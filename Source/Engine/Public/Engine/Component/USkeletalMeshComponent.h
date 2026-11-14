@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/Animation/UAnimInstance.h"
 #include "Engine/FSkeletalMeshPose.h"
@@ -127,7 +128,7 @@ namespace Engine {
          * @param Transform 부모 기준 아핀 행렬입니다.
          * @return 유효한 포즈를 적용하면 true입니다.
          */
-        bool SetBoneLocalTransform(Core::Uint32 Bone, const Core::FMatrix& Transform);
+        bool SetBoneLocalTransform(Core::Index_t Bone, const Core::FMatrix& Transform);
 
         /**
          * @brief 전체 로컬 포즈를 변경합니다.

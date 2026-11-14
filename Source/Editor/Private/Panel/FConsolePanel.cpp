@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/Panel/FConsolePanel.h"
 #include "Editor/FEditorContext.h"
 
@@ -211,10 +212,10 @@ namespace Editor {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_PopupBg));
 
         if (ImGui::BeginChild("CommandSuggestions", {0.0f, Height}, ImGuiChildFlags_Borders, ImGuiWindowFlags_NoNav)) {
-            for (std::size_t Index{}; Index < mSuggestions.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < mSuggestions.size(); ++Index) {
                 const bool Selected{Index == mSelectedSuggestion};
 
-                ImGui::PushID(static_cast<int>(Index));
+                ImGui::PushID(Index);
                 ImGui::Selectable(mSuggestions[Index].c_str(), Selected);
 
                 if (ImGui::IsItemClicked()) {

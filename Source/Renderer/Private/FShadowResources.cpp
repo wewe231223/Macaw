@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FShadowResources.h"
 
 #include "FMeshPass.h"
@@ -99,7 +100,7 @@ namespace Renderer {
         float MaximumZ{LightCenter.z + Radius};
 
         for (const Core::FBox& Bounds : CasterBounds) {
-            for (Core::Uint32 Corner{}; Corner < 8; ++Corner) {
+            for (Core::Index_t Corner{}; Corner < 8; ++Corner) {
                 const Core::FVector Point{(Corner & 1) ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Corner & 2) ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Corner & 4) ? Bounds.mMaximum.z : Bounds.mMinimum.z};
                 const Core::FVector4 LightPoint{Core::FVector4{Point, 1.0f} * Rotation};
 
@@ -224,10 +225,10 @@ namespace Renderer {
             }
         }
 
-        Core::TArray<Core::Uint32> Order{};
+        Core::TArray<Core::Index_t> Order{};
         Order.resize(Scene.GetLights().size());
         std::iota(Order.begin(), Order.end(), 0u);
-        std::stable_sort(Order.begin(), Order.end(), [&Scene](Core::Uint32 First, Core::Uint32 Second) {
+        std::stable_sort(Order.begin(), Order.end(), [&Scene](Core::Index_t First, Core::Index_t Second) {
             const Engine::FLightSceneProxy& A{Scene.GetLights()[First]};
             const Engine::FLightSceneProxy& B{Scene.GetLights()[Second]};
             return A.mShadowResolution * A.mShadowResolutionScale > B.mShadowResolution * B.mShadowResolutionScale;
@@ -235,7 +236,7 @@ namespace Renderer {
 
         bool HasDirectional{};
 
-        for (Core::Uint32 LightIndex : Order) {
+        for (Core::Index_t LightIndex : Order) {
             const Engine::FLightSceneProxy& Light{Scene.GetLights()[LightIndex]};
 
             if (!Light.mVisible || Light.mIntensity <= 0.0f || !Light.mCastShadows || Light.mType == Engine::ELightType::Ambient) {
@@ -266,7 +267,7 @@ namespace Renderer {
 
                 Blocks.clear();
 
-                for (Core::Uint32 Face{}; Face < Count; ++Face) {
+                for (Core::Index_t Face{}; Face < Count; ++Face) {
                     const auto Block{mAllocator.Allocate(Size)};
 
                     if (!Block.has_value()) {
@@ -304,7 +305,7 @@ namespace Renderer {
             const Engine::EShadowBiasPreset BiasPreset{ValidBiasPreset(Light.mShadowBiasPreset)};
             const Engine::EShadowBiasPreset SlopeBiasPreset{ValidBiasPreset(Light.mShadowSlopeBiasPreset)};
 
-            for (Core::Uint32 Face{}; Face < Count; ++Face) {
+            for (Core::Index_t Face{}; Face < Count; ++Face) {
                 const Renderer::FShadowAtlasBlock& Block{Blocks[Face]};
                 const Core::Uint32 Resolution{Block.mSize - Guard * 2};
                 Renderer::FGpuShadow Map{};
@@ -450,7 +451,7 @@ namespace Renderer {
     /**
      * @brief 그림자 맵 하나의 깊이 내용을 결정하는 현재 입력 스탬프를 만듭니다.
      */
-    Renderer::FShadowTileStamp Renderer::FShadowResources::MakeTileStamp(Core::Uint32 Index, Core::Uint64 DepthShaderRevision) const {
+    Renderer::FShadowTileStamp Renderer::FShadowResources::MakeTileStamp(Core::Index_t Index, Core::Uint64 DepthShaderRevision) const {
         const FTileDepth& Tile{mTileDepths[Index]};
 
         return {Tile.mBlock, mMaps[Index].mViewProjection, mCasterRevision, mAtlasRevision, DepthShaderRevision, Tile.mBiasPreset, Tile.mSlopeBiasPreset};
@@ -459,14 +460,14 @@ namespace Renderer {
     /**
      * @brief 아틀라스 타일이 이미 같은 입력으로 그려져 있는지 검사합니다.
      */
-    bool Renderer::FShadowResources::IsTileCurrent(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
+    bool Renderer::FShadowResources::IsTileCurrent(Core::Index_t Index, const Renderer::FShadowTileStamp& Stamp) {
         return mSettings.mCacheWholeSceneShadows && mTileCache.Find(MakeTileKey(Index), Stamp) != nullptr;
     }
 
     /**
      * @brief 타일을 다시 그리는 데 성공했음을 기록하고, 같은 아틀라스 영역을 덮어쓰인 다른 항목을 무효화합니다.
      */
-    void Renderer::FShadowResources::CommitTile(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
+    void Renderer::FShadowResources::CommitTile(Core::Index_t Index, const Renderer::FShadowTileStamp& Stamp) {
         const Renderer::FShadowAtlasBlock& Block{Stamp.mBlock};
         mTileCache.InvalidateIf([&Block](const Renderer::FShadowTileKey&, const Renderer::FShadowTileStamp& Cached) {
             return Cached.mBlock.Overlaps(Block);
@@ -478,7 +479,7 @@ namespace Renderer {
     /**
      * @brief 그림자 맵 하나의 타일을 지울 아틀라스 영역을 반환합니다.
      */
-    Renderer::FPassTarget Renderer::FShadowResources::GetClearTarget(Core::Uint32 Index) const {
+    Renderer::FPassTarget Renderer::FShadowResources::GetClearTarget(Core::Index_t Index) const {
         const Renderer::FShadowAtlasBlock& Block{mTileDepths[Index].mBlock};
         Renderer::FPassTarget Target{};
         Target.mDepth = mAtlas->GetDepthStencilView();
@@ -491,7 +492,7 @@ namespace Renderer {
     /**
      * @brief 그림자 맵 하나를 타일 캐시에서 구분하는 키를 만듭니다.
      */
-    Renderer::FShadowTileKey Renderer::FShadowResources::MakeTileKey(Core::Uint32 Index) const {
+    Renderer::FShadowTileKey Renderer::FShadowResources::MakeTileKey(Core::Index_t Index) const {
         return {mSceneIdentity, mTiles[Index].mLightId, mTiles[Index].mFace};
     }
 
@@ -521,7 +522,7 @@ namespace Renderer {
     /**
      * @brief 그림자 맵 하나의 깊이를 기록할 아틀라스 타일 타깃을 반환합니다.
      */
-    Renderer::FPassTarget Renderer::FShadowResources::GetTarget(Core::Uint32 Index) const {
+    Renderer::FPassTarget Renderer::FShadowResources::GetTarget(Core::Index_t Index) const {
         const Core::FVector4& Rectangle{mMaps[Index].mAtlasRectangle};
         Renderer::FPassTarget Target{};
         Target.mDepth = mAtlas->GetDepthStencilView();

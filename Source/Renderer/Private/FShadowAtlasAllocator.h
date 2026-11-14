@@ -71,7 +71,7 @@ namespace Renderer {
             /**
              * @brief 사분할된 네 자식 노드의 배열 인덱스입니다.
              */
-            std::array<Core::Uint32, 4> mChildren{};
+            std::array<Core::Index_t, 4> mChildren{};
 
             /**
              * @brief 이 노드가 네 자식 영역으로 분할되었는지 나타냅니다.
@@ -111,7 +111,7 @@ namespace Renderer {
          * @param[in] Size 할당할 한 변의 픽셀 수이며 0이 아닌 2의 거듭제곱이어야 합니다.
          * @return 할당된 블록이며 해당 하위 트리에 공간이 없으면 std::nullopt입니다.
          */
-        std::optional<Renderer::FShadowAtlasBlock> AllocateNode(Core::Uint32 Index, Core::Uint32 Size);
+        std::optional<Renderer::FShadowAtlasBlock> AllocateNode(Core::Index_t Index, Core::Uint32 Size);
 
     private:
         /**

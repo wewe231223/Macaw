@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Animation/FAnimNode_BlendSpacePlayer.h"
 #include "Asset/Animation/UAnimSequence.h"
 #include "Engine/Animation/FAnimationRuntime.h"
@@ -52,11 +53,11 @@ namespace Engine {
         float Accumulated{};
 
         for (const Asset::FBlendSampleWeight& Weight : mSampleWeights) {
-            if (Weight.mSampleIndex < 0 || static_cast<std::size_t>(Weight.mSampleIndex) >= Samples.size() || Weight.mWeight <= 0.0f) {
+            if (Weight.mSampleIndex < 0 || static_cast<Core::Index_t>(Weight.mSampleIndex) >= Samples.size() || Weight.mWeight <= 0.0f) {
                 continue;
             }
 
-            const Asset::UAnimSequence* Sequence{Samples[static_cast<std::size_t>(Weight.mSampleIndex)].mAnimation};
+            const Asset::UAnimSequence* Sequence{Samples[static_cast<Core::Index_t>(Weight.mSampleIndex)].mAnimation};
 
             if (Sequence == nullptr) {
                 continue;
@@ -86,11 +87,11 @@ namespace Engine {
         // 샘플 포즈를 차례로 누적합니다. 지금까지의 누적 가중치와 새 샘플 가중치의 비율로 섞으면 전체가 가중 평균이 됩니다.
         for (const Asset::FBlendSampleWeight& Weight : mSampleWeights) {
             // 에디터에서 블렌드 스페이스를 저장하면 샘플 수가 바뀔 수 있으므로 지난 Update의 순서를 검사합니다.
-            if (Weight.mSampleIndex < 0 || static_cast<std::size_t>(Weight.mSampleIndex) >= Samples.size()) {
+            if (Weight.mSampleIndex < 0 || static_cast<Core::Index_t>(Weight.mSampleIndex) >= Samples.size()) {
                 continue;
             }
 
-            const Asset::UAnimSequence* Animation{Samples[static_cast<std::size_t>(Weight.mSampleIndex)].mAnimation};
+            const Asset::UAnimSequence* Animation{Samples[static_cast<Core::Index_t>(Weight.mSampleIndex)].mAnimation};
 
             if (Animation == nullptr || Weight.mWeight <= 0.0f) {
                 continue;

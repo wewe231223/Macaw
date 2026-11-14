@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "ViewportToolbar.h"
 #include "BufferVisualization.h"
 #include "EditorStyle.h"
@@ -123,17 +124,17 @@ namespace Editor {
             const std::array<Engine::EViewMode, 5> Modes{Engine::EViewMode::Lit_Gouraud, Engine::EViewMode::Lit_Lambert, Engine::EViewMode::Lit_Phong, Engine::EViewMode::Unlit, Engine::EViewMode::Wireframe};
             const std::array<const char*, 5> Names{"Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Unlit", "Wireframe"};
             const auto Current{std::find(Modes.begin(), Modes.end(), Client->GetColorViewMode())};
-            const std::size_t Index{Current != Modes.end() ? static_cast<std::size_t>(Current - Modes.begin()) : 2};
+            const Core::Index_t Index{static_cast<Core::Index_t>(Current != Modes.end() ? static_cast<std::size_t>(Current - Modes.begin()) : 2)};
             const auto& Buffers{Editor::BufferVisualization::Modes};
             const auto& BufferNames{Editor::BufferVisualization::Names};
             const auto SelectedBuffer{std::find(Buffers.begin(), Buffers.end(), Client->GetViewMode())};
-            const std::size_t BufferIndex{SelectedBuffer == Buffers.end() ? 0u : static_cast<std::size_t>(SelectedBuffer - Buffers.begin())};
+            const Core::Index_t BufferIndex{static_cast<Core::Index_t>(SelectedBuffer == Buffers.end() ? 0u : static_cast<std::size_t>(SelectedBuffer - Buffers.begin()))};
             const char* Preview{BufferIndex == 0 ? Names[Index] : BufferNames[BufferIndex]};
 
             ImGui::SetNextItemWidth(175.0f * Scale);
 
             if (ImGui::BeginCombo("##ViewMode", Preview)) {
-                for (std::size_t Mode{}; Mode < Modes.size(); ++Mode) {
+                for (Core::Index_t Mode{}; Mode < Modes.size(); ++Mode) {
                     if (ImGui::Selectable(Names[Mode], Client->GetViewMode() == Modes[Mode])) {
                         Client->SetViewMode(Modes[Mode]);
                     }
@@ -142,7 +143,7 @@ namespace Editor {
                 ImGui::Separator();
 
                 if (ImGui::BeginMenu("Buffer Visualization")) {
-                    for (std::size_t Buffer{}; Buffer < Buffers.size(); ++Buffer) {
+                    for (Core::Index_t Buffer{}; Buffer < Buffers.size(); ++Buffer) {
                         if (ImGui::MenuItem(BufferNames[Buffer], nullptr, Buffer == BufferIndex)) {
                             Client->SetViewMode(Buffer == 0 ? Client->GetColorViewMode() : Buffers[Buffer]);
                         }

@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Component/UMeshComponent.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/UMaterial.h"
@@ -93,7 +94,7 @@ namespace Engine {
         Proxy.mMaterial = mMaterial;
 
         if (Mesh != nullptr) {
-            for (Core::Uint32 Slot{}; Slot < Mesh->GetMeshData().GetMaterialSlots().size(); ++Slot) {
+            for (Core::Index_t Slot{}; Slot < Mesh->GetMeshData().GetMaterialSlots().size(); ++Slot) {
                 Proxy.mMaterials.push_back(GetSlotMaterial(Slot));
             }
         }
@@ -104,7 +105,7 @@ namespace Engine {
     /**
      * @brief 지정 슬롯의 덮어쓰기 머티리얼 경로를 반환합니다.
      */
-    const Core::FString& Engine::UMeshComponent::GetSlotMaterialPath(Core::Uint32 Slot) const {
+    const Core::FString& Engine::UMeshComponent::GetSlotMaterialPath(Core::Index_t Slot) const {
         static const Core::FString Empty{};
 
         return Slot < mMaterialOverrides.size() ? mMaterialOverrides[Slot] : Empty;
@@ -113,7 +114,7 @@ namespace Engine {
     /**
      * @brief 전체 덮어쓰기·슬롯 덮어쓰기·메시 기본값 순으로 슬롯 머티리얼을 구합니다.
      */
-    Asset::UMaterial* Engine::UMeshComponent::GetSlotMaterial(Core::Uint32 Slot) const {
+    Asset::UMaterial* Engine::UMeshComponent::GetSlotMaterial(Core::Index_t Slot) const {
         Asset::UStaticMesh* Mesh{GetStaticMesh()};
 
         if (mMaterial != nullptr) {
@@ -130,7 +131,7 @@ namespace Engine {
     /**
      * @brief 지정 슬롯의 머티리얼 경로를 검증해 덮어쓰기에 반영합니다.
      */
-    bool Engine::UMeshComponent::SetSlotMaterialPath(Core::Uint32 Slot, const Core::FString& Path) {
+    bool Engine::UMeshComponent::SetSlotMaterialPath(Core::Index_t Slot, const Core::FString& Path) {
         Asset::UStaticMesh* Mesh{GetStaticMesh()};
 
         if (Mesh == nullptr || Slot >= Mesh->GetMeshData().GetMaterialSlots().size()) {

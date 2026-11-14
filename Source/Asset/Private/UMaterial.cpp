@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/UMaterial.h"
 #include "Core/FilePath.h"
 #include "Asset/FAssetManager.h"
@@ -202,7 +203,7 @@ namespace Asset {
         const std::array<Asset::UTexture2D*, 3> Textures{mSpecularTexture, mEmissiveTexture, mReflectionTexture};
         const std::array<const Core::FString*, 3> Paths{&mSpecularTexturePath, &mEmissiveTexturePath, &mReflectionTexturePath};
 
-        for (std::size_t Index{}; Index < Textures.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Textures.size(); ++Index) {
             if ((!Paths[Index]->empty() && Textures[Index] == nullptr) || (Textures[Index] != nullptr && !Textures[Index]->CreateResources(Device))) {
                 return false;
             }
@@ -237,7 +238,7 @@ namespace Asset {
     /**
      * @brief GPU 상수 버퍼를 지정한 셰이더 단계에 연결합니다.
      */
-    void Asset::UMaterial::BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const {
+    void Asset::UMaterial::BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot) const {
         mConstantBuffer.Bind(Context, Stages, Slot);
     }
 

@@ -4,6 +4,7 @@
  * @ingroup Platform
  */
 
+#include "Core/Types.h"
 #include "FSplashCanvas.h"
 #include "Platform/WindowResources.h"
 
@@ -329,7 +330,7 @@ namespace Platform {
         mIconSize = Size;
         mIconPixels.resize(Raw.size() * 4);
 
-        for (std::size_t Index{}; Index < Raw.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Raw.size(); ++Index) {
             const FColor Color{Unpack(Raw[Index])};
             const float Alpha{static_cast<float>(Raw[Index] >> 24) / 255.0f};
 
@@ -357,7 +358,7 @@ namespace Platform {
         const float TY{Y - static_cast<float>(Y0)};
         std::array<float, 4> Result{};
 
-        for (Core::Int32 Channel{}; Channel < 4; ++Channel) {
+        for (Core::Index_t Channel{}; Channel < 4; ++Channel) {
             const auto At{[&](Core::Int32 PX, Core::Int32 PY) {
                 return mIconPixels[static_cast<std::size_t>((PY * mIconSize + PX) * 4 + Channel)];
             }};
@@ -365,7 +366,7 @@ namespace Platform {
             const float Top{At(X0, Y0) + (At(X1, Y0) - At(X0, Y0)) * TX};
             const float Bottom{At(X0, Y1) + (At(X1, Y1) - At(X0, Y1)) * TX};
 
-            Result[static_cast<std::size_t>(Channel)] = Top + (Bottom - Top) * TY;
+            Result[Channel] = Top + (Bottom - Top) * TY;
         }
 
         return Result;
@@ -386,10 +387,10 @@ namespace Platform {
         const Core::Int32 FooterTop{mHeight - Pixels(104.0f)};
         const Core::Int32 AccentHeight{std::max(Pixels(3.0f), 2)};
 
-        for (Core::Int32 Y{}; Y < mHeight; ++Y) {
+        for (Core::Index_t Y{}; Y < mHeight; ++Y) {
             const float FY{static_cast<float>(Y) + 0.5f};
 
-            for (Core::Int32 X{}; X < mWidth; ++X) {
+            for (Core::Index_t X{}; X < mWidth; ++X) {
                 const float FX{static_cast<float>(X) + 0.5f};
                 FColor Color{Lerp(TopBackground, BottomBackground, FY / Height)};
 
@@ -453,8 +454,8 @@ namespace Platform {
         const float ShimmerWidth{110.0f * mScale};
         const float ShimmerCenter{static_cast<float>(Left) - ShimmerWidth + std::fmod(Time * 320.0f * mScale, Span + ShimmerWidth * 2.0f)};
 
-        for (Core::Int32 Y{Top}; Y < Top + Thickness; ++Y) {
-            for (Core::Int32 X{Left}; X < Right; ++X) {
+        for (Core::Index_t Y{static_cast<Core::Index_t>(Top)}; Y < Top + Thickness; ++Y) {
+            for (Core::Index_t X{static_cast<Core::Index_t>(Left)}; X < Right; ++X) {
                 const float FX{static_cast<float>(X) + 0.5f};
                 Core::Uint32& Pixel{mBits[Y * mWidth + X]};
 

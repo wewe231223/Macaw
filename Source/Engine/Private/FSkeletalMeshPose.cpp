@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/FSkeletalMeshPose.h"
 #include "Asset/USkeletalMesh.h"
 #include "Asset/USkeleton.h"
@@ -62,10 +63,10 @@ namespace Engine {
 
         // 행 벡터 규약에서는 자식 로컬 변환을 부모 전역 변환의 왼쪽에 곱합니다.
         // 부모가 자식보다 앞에 있으므로 Globals[Parent]는 이 시점에 항상 계산되어 있습니다.
-        for (std::size_t Index{}; Index < LocalTransforms.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < LocalTransforms.size(); ++Index) {
             const Core::FMatrix& Local{LocalTransforms[Index]};
-            const Core::Int32 Parent{Skeleton.GetBones()[Index].GetParentIndex()};
-            const Core::FMatrix Global{Parent < 0 ? Local : Local * Globals[static_cast<std::size_t>(Parent)]};
+            const Core::Index_t Parent{static_cast<Core::Index_t>(Skeleton.GetBones()[Index].GetParentIndex())};
+            const Core::FMatrix Global{Parent < 0 ? Local : Local * Globals[Parent]};
 
             // 스키닝 행렬: 바인드 정점을 역바인드 행렬로 본 공간에 옮긴 뒤, 현재 전역 포즈로 다시 메시 공간에 옮깁니다.
             const Core::FMatrix Skin{Skeleton.GetInverseBindPoses()[Index] * Global};
@@ -89,13 +90,13 @@ namespace Engine {
 
         // GPU와 같은 가중합으로 위치를 계산하여 실제 변형된 표면을 선택할 수 있게 합니다.
         // 렌더링 자체는 GPU가 맡으므로 CPU 사본에서는 피킹과 경계 계산에 필요한 위치만 갱신합니다.
-        for (std::size_t Vertex{}; Vertex < Deformed.GetPositions().size(); ++Vertex) {
+        for (Core::Index_t Vertex{}; Vertex < Deformed.GetPositions().size(); ++Vertex) {
             const Core::FVector Position{Mesh.GetMeshData().GetPositions()[Vertex]};
             const Asset::FMeshImportSkinWeight& Influence{Mesh.GetSkinWeights()[Vertex]};
             Core::FVector Result{};
             float Total{};
 
-            for (std::size_t Slot{}; Slot < Asset::FMeshImportSkinWeight::MaxInfluences; ++Slot) {
+            for (Core::Index_t Slot{}; Slot < Asset::FMeshImportSkinWeight::MaxInfluences; ++Slot) {
                 // 쓰지 않는 칸은 본 인덱스 0, 가중치 0이므로 결과에 영향을 주지 않습니다.
                 const float Weight{Influence.GetWeights()[Slot]};
 
@@ -134,10 +135,10 @@ namespace Engine {
         mSkinMatrices.resize(std::max<std::size_t>(Bones.size(), Mesh.GetSkinMatrixCount()), Core::FMatrix::Identity());
 
         // 부모가 항상 자식보다 앞에 있으므로 한 번의 순회로 전역 행렬과 스키닝 행렬을 구합니다.
-        for (std::size_t Index{}; Index < Bones.size(); ++Index) {
-            const Core::Int32 Parent{Bones[Index].GetParentIndex()};
+        for (Core::Index_t Index{}; Index < Bones.size(); ++Index) {
+            const Core::Index_t Parent{static_cast<Core::Index_t>(Bones[Index].GetParentIndex())};
 
-            mGlobalTransforms[Index] = Parent < 0 ? LocalTransforms[Index] : LocalTransforms[Index] * mGlobalTransforms[static_cast<std::size_t>(Parent)];
+            mGlobalTransforms[Index] = Parent < 0 ? LocalTransforms[Index] : LocalTransforms[Index] * mGlobalTransforms[Parent];
             mSkinMatrices[Index] = Skeleton.GetInverseBindPoses()[Index] * mGlobalTransforms[Index];
         }
 
@@ -169,7 +170,7 @@ namespace Engine {
     /**
      * @brief 본 하나의 로컬 변환을 교체합니다.
      */
-    bool FSkeletalMeshPose::SetLocalTransform(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton, Core::Uint32 Bone, const Core::FMatrix& Transform) {
+    bool FSkeletalMeshPose::SetLocalTransform(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton, Core::Index_t Bone, const Core::FMatrix& Transform) {
         if (Bone >= mLocalTransforms.size()) {
             return false;
         }

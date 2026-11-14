@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Import/FFBXImageProcessor.h"
 #include "Core/FilePath.h"
 
@@ -47,7 +48,7 @@ namespace Asset {
         // Import가 끝나면 텍스처와 FbxVideo의 연결, FbxVideo 속성, 내장 바이트를 모두 알 수 있으므로 파일 텍스처마다 한 번씩 판별합니다.
         // 판별 실패는 바로 임포트를 실패시키지 않고 mTextureErrors에 기록해 두며, 재질 속성에서 그 텍스처를 실제로 읽을 때 ReadTexture가 보고합니다.
         // 그래서 어느 재질에서도 쓰지 않는 깨진 텍스처는 임포트를 막지 않습니다.
-        for (int Index{}; Index < Scene.GetSrcObjectCount<FbxFileTexture>(); ++Index) {
+        for (Core::Index_t Index{}; Index < Scene.GetSrcObjectCount<FbxFileTexture>(); ++Index) {
             auto* Texture{Scene.GetSrcObject<FbxFileTexture>(Index)};
             Asset::FMeshImportTexture Resolved{};
             Core::FString Error{};
@@ -459,7 +460,7 @@ namespace Asset {
      */
     bool Asset::FFBXImageProcessor::IsImageSequence(const FbxFileTexture& Texture) const {
         // 시퀀스 여부는 이미지 바이트가 아니라 텍스처에 연결된 FbxVideo의 속성입니다.
-        for (int Index{}; Index < Texture.GetSrcObjectCount<FbxVideo>(); ++Index) {
+        for (Core::Index_t Index{}; Index < Texture.GetSrcObjectCount<FbxVideo>(); ++Index) {
             if (Texture.GetSrcObject<FbxVideo>(Index)->GetImageSequence()) {
                 return true;
             }

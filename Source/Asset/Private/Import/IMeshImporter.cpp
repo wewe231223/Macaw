@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Import/IMeshImporter.h"
 #include "Asset/Import/FAssimpMeshImporter.h"
 #include "Asset/Import/FFBXImporter.h"
@@ -64,7 +65,7 @@ namespace Asset {
             return false;
         }
 
-        for (Core::Uint32 Index : MeshData.GetIndices()) {
+        for (Core::Index_t Index : MeshData.GetIndices()) {
             if (Index >= VertexCount) {
                 return false;
             }
@@ -121,7 +122,7 @@ namespace Asset {
             MeshData.GetSubMeshes().emplace_back(0, static_cast<Core::Uint32>(MeshData.GetIndices().size()), 0);
         }
 
-        Core::Uint32 NextIndex{};
+        Core::Index_t NextIndex{};
 
         for (const Asset::FSubMesh& SubMesh : MeshData.GetSubMeshes()) {
             if (SubMesh.GetFirstIndex() != NextIndex || SubMesh.GetIndexCount() == 0 || SubMesh.GetIndexCount() % 3 != 0 || SubMesh.GetIndexCount() > MeshData.GetIndices().size() - NextIndex || SubMesh.GetMaterialIndex() >= MeshData.GetMaterialSlots().size()) {

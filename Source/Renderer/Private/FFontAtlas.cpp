@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FFontAtlas.h"
 
 #include <rapidjson/document.h>
@@ -178,7 +179,7 @@ namespace Renderer {
     Core::TArray<Core::Uint32> Renderer::FFontAtlas::Decode(const Core::FString& Text) {
         Core::TArray<Core::Uint32> Result{};
 
-        for (std::size_t Index{}; Index < Text.size();) {
+        for (Core::Index_t Index{}; Index < Text.size();) {
             const Core::Uint8 First{static_cast<Core::Uint8>(Text[Index])};
             const std::size_t Length{First < 0x80 ? 1u : First >= 0xC2 && First <= 0xDF ? 2u : First >= 0xE0 && First <= 0xEF ? 3u : First >= 0xF0 && First <= 0xF4 ? 4u : 0u};
 
@@ -193,7 +194,7 @@ namespace Renderer {
             Core::Uint32 CodePoint{static_cast<Core::Uint32>(First & (Length == 1 ? 0x7F : (0x7F >> Length)))};
             bool Valid{true};
 
-            for (std::size_t Offset{1}; Offset < Length; ++Offset) {
+            for (Core::Index_t Offset{1}; Offset < Length; ++Offset) {
                 const Core::Uint8 Byte{static_cast<Core::Uint8>(Text[Index + Offset])};
 
                 Valid = Valid && (Byte & 0xC0) == 0x80;
@@ -246,8 +247,8 @@ namespace Renderer {
 
         float Baseline{};
 
-        for (std::size_t Start{}; Start < CodePoints.size();) {
-            std::size_t End{Start};
+        for (Core::Index_t Start{}; Start < CodePoints.size();) {
+            Core::Index_t End{Start};
 
             while (End < CodePoints.size() && CodePoints[End] != '\n' && CodePoints[End] != '\r') {
                 ++End;
@@ -255,7 +256,7 @@ namespace Renderer {
 
             float Width{};
 
-            for (std::size_t Index{Start}; Index < End; ++Index) {
+            for (Core::Index_t Index{Start}; Index < End; ++Index) {
                 const auto* Glyph{FindGlyph(CodePoints[Index] == '\t' ? ' ' : CodePoints[Index])};
 
                 Width += Glyph != nullptr ? Glyph->mAdvance * (CodePoints[Index] == '\t' ? 4.0f : 1.0f) : 0.0f;
@@ -264,7 +265,7 @@ namespace Renderer {
 
             float Pen{-Width * 0.5f};
 
-            for (std::size_t Index{Start}; Index < End; ++Index) {
+            for (Core::Index_t Index{Start}; Index < End; ++Index) {
                 const auto* Glyph{FindGlyph(CodePoints[Index] == '\t' ? ' ' : CodePoints[Index])};
 
                 if (Glyph == nullptr) {

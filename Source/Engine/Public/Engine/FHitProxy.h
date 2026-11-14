@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
@@ -54,7 +55,7 @@ namespace Engine {
         /**
          * @brief 기즈모 핸들을 X/Y/Z=0/1/2, XY/XZ/YZ=3/4/5, 화면=6, 균일 스케일=7로 나타내며 객체 피킹에서는 -1입니다.
          */
-        Core::Int32 mAxis{-1};
+        Core::Index_t mAxis{-1};
     };
 
 }

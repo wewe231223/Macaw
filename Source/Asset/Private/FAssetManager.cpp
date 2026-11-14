@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/AssetStats.h"
 #include "Core/FilePath.h"
@@ -123,7 +124,7 @@ namespace Asset {
 
             std::error_code Code{};
 
-            for (Core::Uint32 Index{1}; std::filesystem::exists(Target, Code) && !Code; ++Index) {
+            for (Core::Index_t Index{1}; std::filesystem::exists(Target, Code) && !Code; ++Index) {
                 Target = Directory / (Base.wstring() + L"_" + std::to_wstring(Index) + L".masset");
             }
 
@@ -256,7 +257,7 @@ namespace Asset {
                 Mesh.GetMaterialSlots().clear();
             }
 
-            for (Core::Uint32 Index{}; Index < SlotCount && !Archive.HasError(); ++Index) {
+            for (Core::Index_t Index{}; Index < SlotCount && !Archive.HasError(); ++Index) {
                 Core::FString Name{Archive.IsLoading() ? Core::FString{} : Mesh.GetMaterialSlots()[Index].GetName()};
                 Core::FString Path{Archive.IsLoading() ? Core::FString{} : Mesh.GetMaterialSlots()[Index].GetMaterialPath()};
 
@@ -282,10 +283,10 @@ namespace Asset {
                 Mesh.GetSubMeshes().clear();
             }
 
-            for (Core::Uint32 Index{}; Index < SectionCount && !Archive.HasError(); ++Index) {
-                Core::Uint32 First{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetFirstIndex()};
+            for (Core::Index_t Index{}; Index < SectionCount && !Archive.HasError(); ++Index) {
+                Core::Index_t First{static_cast<Core::Index_t>(Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetFirstIndex())};
                 Core::Uint32 Count{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetIndexCount()};
-                Core::Uint32 Slot{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetMaterialIndex()};
+                Core::Index_t Slot{static_cast<Core::Index_t>(Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetMaterialIndex())};
 
                 Archive.Serialize("FirstIndex", First);
                 Archive.Serialize("IndexCount", Count);
@@ -318,9 +319,9 @@ namespace Asset {
                 Bones.reserve(BoneCount);
             }
 
-            for (Core::Uint32 Index{}; Index < BoneCount && !Archive.HasError(); ++Index) {
+            for (Core::Index_t Index{}; Index < BoneCount && !Archive.HasError(); ++Index) {
                 Core::FString Name{Archive.IsLoading() ? Core::FString{} : Bones[Index].GetName()};
-                Core::Int32 Parent{Archive.IsLoading() ? -1 : Bones[Index].GetParentIndex()};
+                Core::Index_t Parent{static_cast<Core::Index_t>(Archive.IsLoading() ? -1 : Bones[Index].GetParentIndex())};
                 Core::FMatrix BindPose{Archive.IsLoading() ? Core::FMatrix{} : Bones[Index].GetBindPose()};
 
                 Archive.Serialize("Name", Name);
@@ -506,11 +507,11 @@ namespace Asset {
                 SkinWeights.reserve(VertexCount);
             }
 
-            for (Core::Uint32 Vertex{}; Vertex < VertexCount && !Archive.HasError(); ++Vertex) {
-                std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences> BoneIndices{Archive.IsLoading() ? std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetBoneIndices()};
+            for (Core::Index_t Vertex{}; Vertex < VertexCount && !Archive.HasError(); ++Vertex) {
+                std::array<Core::Index_t, Asset::FMeshImportSkinWeight::MaxInfluences> BoneIndices{Archive.IsLoading() ? std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetBoneIndices()};
                 std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences> Weights{Archive.IsLoading() ? std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetWeights()};
 
-                for (std::size_t Influence{}; Influence < Asset::FMeshImportSkinWeight::MaxInfluences; ++Influence) {
+                for (Core::Index_t Influence{}; Influence < Asset::FMeshImportSkinWeight::MaxInfluences; ++Influence) {
                     Archive.Serialize("BoneIndex", BoneIndices[Influence]);
                     Archive.Serialize("Weight", Weights[Influence]);
                 }
@@ -1207,7 +1208,7 @@ namespace Asset {
 
         auto Folder{Parent / Base};
 
-        for (Core::Uint32 Index{}; !std::filesystem::create_directory(Folder, Code); ++Index) {
+        for (Core::Index_t Index{}; !std::filesystem::create_directory(Folder, Code); ++Index) {
             if (Code && Code != std::errc::file_exists) {
                 Error = "Cannot create the import folder: " + Code.message();
 
@@ -1345,9 +1346,9 @@ namespace Asset {
         Core::TMap<Core::FString, Core::FString> Textures{};
 
         // 결과 재질별로 저장한 머티리얼 에셋 경로입니다. 여러 메시가 같은 재질을 쓰면 한 번만 저장하고, 쓰이지 않는 재질은 저장하지 않습니다.
-        Core::TMap<Core::Uint32, Core::FString> MaterialPaths{};
+        Core::TMap<Core::Index_t, Core::FString> MaterialPaths{};
 
-        const auto ImportMaterial{[&](Core::Uint32 Index, Core::FString& MaterialPath) {
+        const auto ImportMaterial{[&](Core::Index_t Index, Core::FString& MaterialPath) {
             const Asset::FMeshImportMaterial& SourceMaterial{Materials[Index]};
             auto Material{CoreUObject::NewObject<Asset::UMaterial>()};
             Material->SetName(SourceMaterial.GetName());
@@ -1410,7 +1411,7 @@ namespace Asset {
 
         auto& Meshes{Imported.GetMeshes()};
 
-        for (std::size_t MeshIndex{}; MeshIndex < Meshes.size(); ++MeshIndex) {
+        for (Core::Index_t MeshIndex{}; MeshIndex < Meshes.size(); ++MeshIndex) {
             Asset::FMeshImportMesh& ImportedMesh{Meshes[MeshIndex]};
             Asset::FMeshData& Data{ImportedMesh.GetMeshData()};
             const auto& MaterialIndices{ImportedMesh.GetMaterialIndices()};
@@ -1421,8 +1422,8 @@ namespace Asset {
                 return false;
             }
 
-            for (std::size_t Slot{}; Slot < MaterialIndices.size(); ++Slot) {
-                const Core::Uint32 MaterialIndex{MaterialIndices[Slot]};
+            for (Core::Index_t Slot{}; Slot < MaterialIndices.size(); ++Slot) {
+                const Core::Index_t MaterialIndex{static_cast<Core::Index_t>(MaterialIndices[Slot])};
 
                 if (MaterialIndex >= Materials.size()) {
                     Error = "An imported mesh slot references an invalid material";

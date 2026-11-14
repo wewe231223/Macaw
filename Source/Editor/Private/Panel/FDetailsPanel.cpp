@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FAssetDragDrop.h"
@@ -65,7 +66,7 @@ namespace Editor {
         Core::FString DisplayName(std::string_view Name) {
             Core::FString Label{};
 
-            for (std::size_t Index{}; Index < Name.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Name.size(); ++Index) {
                 const auto Character{static_cast<unsigned char>(Name[Index])};
 
                 if (Index > 0 && std::isupper(Character) && (std::islower(static_cast<unsigned char>(Name[Index - 1])) || (Index + 1 < Name.size() && std::islower(static_cast<unsigned char>(Name[Index + 1]))))) {
@@ -1030,7 +1031,7 @@ namespace Editor {
             auto* Mesh{CategoryName == "Materials" && Targets.size() == 1 ? CoreUObject::Cast<Engine::UMeshComponent>(Context->ResolveObject(Targets.front())) : nullptr};
             const auto* Geometry{Mesh != nullptr ? Mesh->GetStaticMesh() : nullptr};
             const bool MaterialRows{Geometry != nullptr && std::any_of(Geometry->GetMeshData().GetMaterialSlots().begin(), Geometry->GetMeshData().GetMaterialSlots().end(), [this, Mesh, Geometry](const Asset::FMeshMaterialSlot& Slot) {
-                const auto Index{static_cast<Core::Uint32>(&Slot - Geometry->GetMeshData().GetMaterialSlots().data())};
+                const Core::Index_t Index{static_cast<Core::Index_t>(&Slot - Geometry->GetMeshData().GetMaterialSlots().data())};
 
                 return MatchesSearch("Materials", Slot.GetName(), "Material Slots") && (!mOnlyModified || !Mesh->GetSlotMaterialPath(Index).empty());
             })};
@@ -1110,7 +1111,7 @@ namespace Editor {
         const Asset::FMeshData& Data{Component->GetStaticMesh()->GetMeshData()};
         const auto& Slots{Data.GetMaterialSlots()};
 
-        for (Core::Uint32 Slot{}; Slot < Slots.size(); ++Slot) {
+        for (Core::Index_t Slot{}; Slot < Slots.size(); ++Slot) {
             const auto& SubMeshes{Data.GetSubMeshes()};
 
             if (std::none_of(SubMeshes.begin(), SubMeshes.end(), [Slot](const Asset::FSubMesh& SubMesh) {
@@ -1126,7 +1127,7 @@ namespace Editor {
                 continue;
             }
 
-            ImGui::PushID(static_cast<int>(Slot));
+            ImGui::PushID(Slot);
             BeginPropertyRow(Label.c_str());
             ImGui::TableSetColumnIndex(1);
             ImGui::BeginDisabled(!Context->CanEditWorld() || !Override.empty());
@@ -1379,7 +1380,7 @@ namespace Editor {
         constexpr std::array Labels{"Location", "Rotation", "Scale"};
         constexpr std::array Axes{"X %.3f", "Y %.3f", "Z %.3f"};
         constexpr std::array AxisIds{"X", "Y", "Z"};
-        const auto ReadPart{[](const Core::FTransform& Transform, std::size_t Part) {
+        const auto ReadPart{[](const Core::FTransform& Transform, Core::Index_t Part) {
             if (Part == 1) {
                 const Core::FRotator Rotation{Transform.GetRotator()};
 
@@ -1392,7 +1393,7 @@ namespace Editor {
         ImGui::PushID(Object);
         ImGui::BeginDisabled(!Editable);
 
-        for (std::size_t Part{}; Part < Labels.size(); ++Part) {
+        for (Core::Index_t Part{}; Part < Labels.size(); ++Part) {
             if (!MatchesSearch("Transform", Labels[Part])) {
                 continue;
             }
@@ -1410,7 +1411,7 @@ namespace Editor {
 
                 const auto Values{ReadPart(std::get<Core::FTransform>(Row.mProperty->ReadValue(Current)), Part)};
 
-                for (std::size_t Axis{}; Axis < Axes.size(); ++Axis) {
+                for (Core::Index_t Axis{}; Axis < Axes.size(); ++Axis) {
                     Mixed[Axis] = Mixed[Axis] || Values[Axis] != First[Axis];
                 }
 
@@ -1432,7 +1433,7 @@ namespace Editor {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {2.0f, ImGui::GetStyle().ItemSpacing.y});
             const float Width{std::max(1.0f, (ImGui::GetContentRegionAvail().x - 4.0f) / 3.0f)};
 
-            for (std::size_t Axis{}; Axis < Axes.size(); ++Axis) {
+            for (Core::Index_t Axis{}; Axis < Axes.size(); ++Axis) {
                 if (Axis > 0) {
                     ImGui::SameLine();
                 }
@@ -1476,7 +1477,7 @@ namespace Editor {
 
                         NewPart = ReadPart(std::get<Core::FTransform>(*Default), Part);
                     } else {
-                        for (std::size_t Axis{}; Axis < Axes.size(); ++Axis) {
+                        for (Core::Index_t Axis{}; Axis < Axes.size(); ++Axis) {
                             if (Changed[Axis]) {
                                 NewPart[Axis] = Values[Axis];
                             }
@@ -1569,12 +1570,12 @@ namespace Editor {
             bool Changed{};
 
             if (ImGui::TreeNodeEx(Label, ImGuiTreeNodeFlags_DefaultOpen)) {
-                for (Core::Int32 Row{}; Row < 4; ++Row) {
+                for (Core::Index_t Row{}; Row < 4; ++Row) {
                     std::array<float, 4> Values{(*Matrix)(Row, 0), (*Matrix)(Row, 1), (*Matrix)(Row, 2), (*Matrix)(Row, 3)};
 
                     if (ImGui::DragFloat4(DrawFieldLabel(std::to_string(Row).c_str()).c_str(), Values.data(), 0.025f)) {
-                        for (Core::Int32 Column{}; Column < 4; ++Column) {
-                            (*Matrix)(Row, Column) = Values[static_cast<std::size_t>(Column)];
+                        for (Core::Index_t Column{}; Column < 4; ++Column) {
+                            (*Matrix)(Row, Column) = Values[Column];
                         }
 
                         Changed = true;

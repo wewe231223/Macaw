@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "FGpuLight.h"
 #include "Engine/FSceneView.h"
@@ -72,7 +73,7 @@ namespace Renderer {
          * @param[in] Stages 연결하거나 해제할 셰이더 단계입니다.
          * @param[in] FirstSlot 타일 범위 버퍼를 연결할 첫 SRV 슬롯입니다.
          */
-        void Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 FirstSlot) const;
+        void Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t FirstSlot) const;
 
         /**
          * @brief 타일별 광원 범위·인덱스 버퍼의 셰이더 연결을 해제합니다.
@@ -80,7 +81,7 @@ namespace Renderer {
          * @param[in] Stages 연결하거나 해제할 셰이더 단계입니다.
          * @param[in] FirstSlot 타일 범위 버퍼를 연결할 첫 SRV 슬롯입니다.
          */
-        void Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 FirstSlot) const;
+        void Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t FirstSlot) const;
 
     private:
         /**

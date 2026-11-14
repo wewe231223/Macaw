@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FEditorAssetCatalog.h"
 #include "Core/FilePath.h"
 #include "Asset/FAssetManager.h"
@@ -109,7 +110,7 @@ namespace Editor {
 
         mIndices.clear();
 
-        for (std::size_t Index{}; Index < mEntries.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mEntries.size(); ++Index) {
             mIndices.emplace(MakeKey(mEntries[Index].GetPath()), Index);
         }
 

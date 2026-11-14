@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FGizmoCore.h"
 #include "Engine/EditorMesh.h"
 #include "Engine/MeshPicking.h"
@@ -52,7 +53,7 @@ namespace Editor {
             Core::FMatrix Result{Core::FMatrix::Identity()};
             const std::array<Core::FVector, 4> Rows{X, Y, Z, Position};
 
-            for (Core::Int32 Index{}; Index < 4; ++Index) {
+            for (Core::Index_t Index{}; Index < 4; ++Index) {
                 Result(Index, 0) = Rows[Index].x;
                 Result(Index, 1) = Rows[Index].y;
                 Result(Index, 2) = Rows[Index].z;
@@ -86,7 +87,7 @@ namespace Editor {
     /**
      * @brief 기즈모 핸들이 주어진 로컬 축에 영향을 주는지 검사합니다.
      */
-    bool Editor::FGizmoCore::Affects(Core::Int32 Handle, Core::Int32 Axis) {
+    bool Editor::FGizmoCore::Affects(Core::Int32 Handle, Core::Index_t Axis) {
         return Handle == Axis || (Handle == 3 && Axis != 2) || (Handle == 4 && Axis != 1) || (Handle == 5 && Axis != 0);
     }
 
@@ -142,7 +143,7 @@ namespace Editor {
     /**
      * @brief 선택 축의 시작 상태를 저장하고 드래그 평면을 구성합니다.
      */
-    bool Editor::FGizmoCore::BeginDrag(Core::Int32 Axis, const Core::FVector2& Mouse, const Engine::FSceneView& View, const Editor::FGizmoPlacement& Placement) {
+    bool Editor::FGizmoCore::BeginDrag(Core::Index_t Axis, const Core::FVector2& Mouse, const Engine::FSceneView& View, const Editor::FGizmoPlacement& Placement) {
         if (Axis < 0 || Axis > 7) {
             return false;
         }
@@ -165,7 +166,7 @@ namespace Editor {
             mPlaneNormal = Axis == 3 ? mDragAxes[0].Cross(mDragAxes[1]) : Axis == 4 ? mDragAxes[0].Cross(mDragAxes[2]) : mDragAxes[1].Cross(mDragAxes[2]);
             mAxis = {};
 
-            for (Core::Int32 Index{}; Index < 3; ++Index) {
+            for (Core::Index_t Index{}; Index < 3; ++Index) {
                 if (Affects(Axis, Index)) {
                     mAxis += mDragAxes[Index];
                 }
@@ -301,7 +302,7 @@ namespace Editor {
             Movement = Intersection - mStartIntersection;
         }
 
-        for (Core::Int32 Index{}; Index < 3; ++Index) {
+        for (Core::Index_t Index{}; Index < 3; ++Index) {
             const Core::FVector Axis{mActiveAxis == 6 ? GetUnitAxes()[Index] : mDragAxes[Index]};
 
             if (mActiveAxis == 6 || Affects(mActiveAxis, Index)) {
@@ -362,7 +363,7 @@ namespace Editor {
         }};
 
         if (Mode == Editor::EGizmoMode::Rotate) {
-            for (Core::Int32 Index{}; Index < 4; ++Index) {
+            for (Core::Index_t Index{}; Index < 4; ++Index) {
                 const Core::Int32 Handle{Index < 3 ? Index : 6};
 
                 if (IsDragging() && Handle != mActiveAxis) {
@@ -394,7 +395,7 @@ namespace Editor {
             return;
         }
 
-        for (Core::Int32 Index{}; Index < 3; ++Index) {
+        for (Core::Index_t Index{}; Index < 3; ++Index) {
             if (std::abs(Axes[Index].Dot(View.mForward)) < 0.995f && (!IsDragging() || mActiveAxis == Index)) {
                 Add(Mode == Editor::EGizmoMode::Scale ? Engine::EEditorMesh::Hammer : Engine::EEditorMesh::Arrow, Basis(Axes[(Index + 1) % 3] * Unit, Axes[(Index + 2) % 3] * Unit, Axes[Index] * Unit, Pivot), Index, 2, Color(Index));
             }
@@ -402,7 +403,7 @@ namespace Editor {
 
         const std::array<std::array<Core::Int32, 2>, 3> Pairs{{{0, 1}, {0, 2}, {1, 2}}};
 
-        for (Core::Int32 Index{}; Index < 3; ++Index) {
+        for (Core::Index_t Index{}; Index < 3; ++Index) {
             const Core::FVector First{Axes[Pairs[Index][0]]};
             const Core::FVector Second{Axes[Pairs[Index][1]]};
 
@@ -442,7 +443,7 @@ namespace Editor {
             DrawInterface.DrawLine(mStartPivot, mStartPivot + mStartDirection * Radius, {0.8f, 0.8f, 0.8f});
             DrawInterface.DrawLine(mStartPivot, mStartPivot + Core::FQuat{mPlaneNormal, Angle} * mStartDirection * Radius, Color);
 
-            for (Core::Int32 Index{}; Index < 64; ++Index) {
+            for (Core::Index_t Index{}; Index < 64; ++Index) {
                 DrawInterface.DrawLine(mStartPivot + Core::FQuat{mPlaneNormal, Angle * Index / 64.0f} * mStartDirection * Radius, mStartPivot + Core::FQuat{mPlaneNormal, Angle * (Index + 1) / 64.0f} * mStartDirection * Radius, Color);
             }
         } else if (mDragMode == Editor::EGizmoMode::Translate) {
@@ -460,21 +461,21 @@ namespace Editor {
     /**
      * @brief 드래그 중인 핸들 인덱스를 반환합니다.
      */
-    Core::Int32 Editor::FGizmoCore::GetActiveAxis() const {
+    Core::Index_t Editor::FGizmoCore::GetActiveAxis() const {
         return mActiveAxis;
     }
 
     /**
      * @brief 마우스가 가리키는 핸들 인덱스를 반환합니다.
      */
-    Core::Int32 Editor::FGizmoCore::GetHoveredAxis() const {
+    Core::Index_t Editor::FGizmoCore::GetHoveredAxis() const {
         return mHoveredAxis;
     }
 
     /**
      * @brief 강조할 호버 핸들을 지정합니다.
      */
-    void Editor::FGizmoCore::SetHoveredAxis(Core::Int32 Axis) {
+    void Editor::FGizmoCore::SetHoveredAxis(Core::Index_t Axis) {
         mHoveredAxis = Axis;
     }
 

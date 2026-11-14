@@ -4,6 +4,7 @@
  * @ingroup Core
  */
 
+#include "Core/Types.h"
 #include "Core/Archive.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FRotator.h"
@@ -218,8 +219,8 @@ namespace Core {
      */
     void Core::FArchive::Serialize(std::string_view Name, Core::FMatrix& Value) {
         if (BeginObject(Name)) {
-            for (Core::Int32 Row{}; Row < 4; ++Row) {
-                for (Core::Int32 Column{}; Column < 4; ++Column) {
+            for (Core::Index_t Row{}; Row < 4; ++Row) {
+                for (Core::Index_t Column{}; Column < 4; ++Column) {
                     Serialize("M" + std::to_string(Row) + std::to_string(Column), Value(Row, Column));
                 }
             }

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Engine/Component/UActorComponent.h"
 #include "USubUVComponent.generated.h"
 
@@ -132,7 +133,7 @@ namespace Engine {
          * @brief 현재 0 기반 프레임 번호를 반환합니다.
          * @return 계산하거나 조회한 값입니다.
          */
-        Core::Uint32 GetCurrentFrame() const;
+        Core::Index_t GetCurrentFrame() const;
 
         /**
          * @brief 완료된 애니메이션을 되감고 현재 위치부터 SubUV 재생을 시작합니다.

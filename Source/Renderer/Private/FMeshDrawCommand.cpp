@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FMeshDrawCommand.h"
 
 namespace Renderer {
@@ -11,7 +12,7 @@ namespace Renderer {
     /**
      * @brief 전달된 설정과 기본값으로 FMeshDrawCommand 객체를 생성합니다.
      */
-    Renderer::FMeshDrawCommand::FMeshDrawCommand(Renderer::FMaterialPipeline* Pipeline, Asset::UMaterial* Material, Asset::UStaticMesh* Mesh, const Renderer::FScenePrimitive* Primitive, Core::Uint32 FirstIndex, Core::Uint32 IndexCount)
+    Renderer::FMeshDrawCommand::FMeshDrawCommand(Renderer::FMaterialPipeline* Pipeline, Asset::UMaterial* Material, Asset::UStaticMesh* Mesh, const Renderer::FScenePrimitive* Primitive, Core::Index_t FirstIndex, Core::Uint32 IndexCount)
 		: mPipeline{Pipeline},
 		  mMaterial{Material},
 		  mMesh{Mesh},

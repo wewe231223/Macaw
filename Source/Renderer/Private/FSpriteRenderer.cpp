@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FSpriteRenderer.h"
 #include "RendererStats.h"
 #include "Engine/FPrimitiveSceneProxy.h"
@@ -45,9 +46,9 @@ namespace Renderer {
         Core::TArray<Core::Uint8> Pixels{};
         Pixels.resize(128 * 128 * 4);
 
-        for (Core::Uint32 Y{}; Y < 128; ++Y) {
-            for (Core::Uint32 X{}; X < 128; ++X) {
-                const Core::Uint32 Frame{(Y / 32) * 4 + X / 32};
+        for (Core::Index_t Y{}; Y < 128; ++Y) {
+            for (Core::Index_t X{}; X < 128; ++X) {
+                const Core::Index_t Frame{(Y / 32) * 4 + X / 32};
                 const float Horizontal{(static_cast<float>(X % 32) + 0.5f) / 16.0f - 1.0f};
                 const float Vertical{(static_cast<float>(Y % 32) + 0.5f) / 16.0f - 1.0f};
                 const float Radius{0.25f + 0.6f * (static_cast<float>(Frame) / 15.0f)};

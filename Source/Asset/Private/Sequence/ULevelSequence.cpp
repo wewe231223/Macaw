@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Sequence/ULevelSequence.h"
 #include "Core/Archive.h"
 
@@ -205,7 +206,7 @@ namespace Asset {
             mBindings.clear();
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -237,7 +238,7 @@ namespace Asset {
             mCameraCuts.clear();
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }

@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Import/FMeshImportMesh.h"
 
 #include <algorithm>
@@ -43,24 +44,24 @@ namespace Asset {
     /**
      * @brief 재질 슬롯별 결과 재질 인덱스를 조회합니다.
      */
-    const Core::TArray<Core::Uint32>& Asset::FMeshImportMesh::GetMaterialIndices() const {
+    const Core::TArray<Core::Index_t>& Asset::FMeshImportMesh::GetMaterialIndices() const {
         return mMaterialIndices;
     }
 
     /**
      * @brief 결과 재질을 가리키는 재질 슬롯을 찾고 없으면 새로 추가합니다.
      */
-    Core::Uint32 Asset::FMeshImportMesh::FindOrAddMaterialSlot(Core::Uint32 MaterialIndex, const Core::FString& Name) {
+    Core::Index_t Asset::FMeshImportMesh::FindOrAddMaterialSlot(Core::Index_t MaterialIndex, const Core::FString& Name) {
         const auto Existing{std::find(mMaterialIndices.begin(), mMaterialIndices.end(), MaterialIndex)};
 
         if (Existing != mMaterialIndices.end()) {
-            return static_cast<Core::Uint32>(Existing - mMaterialIndices.begin());
+            return static_cast<Core::Index_t>(Existing - mMaterialIndices.begin());
         }
 
         mMaterialIndices.push_back(MaterialIndex);
         mMeshData.GetMaterialSlots().emplace_back(Name, Core::FString{});
 
-        return static_cast<Core::Uint32>(mMaterialIndices.size() - 1);
+        return static_cast<Core::Index_t>(mMaterialIndices.size() - 1);
     }
 
     /**
@@ -73,9 +74,9 @@ namespace Asset {
     /**
      * @brief 정점 FirstVertex부터의 본 가중치를 추가합니다. 앞선 스킨 없는 정점 몫은 영향 없는 가중치로 채웁니다.
      */
-    void Asset::FMeshImportMesh::AddSkinWeights(std::size_t FirstVertex, Core::TArray<Asset::FMeshImportSkinWeight> Weights) {
+    void Asset::FMeshImportMesh::AddSkinWeights(Core::Index_t FirstVertex, Core::TArray<Asset::FMeshImportSkinWeight> Weights) {
         // 메시를 병합하면 스킨 없는 메시 뒤에 스킨 메시가 올 수 있으므로, 그 사이 정점 몫을 영향 없는 가중치로 채웁니다.
-        mSkinWeights.resize(std::max(mSkinWeights.size(), FirstVertex));
+        mSkinWeights.resize(std::max(mSkinWeights.size(), static_cast<std::size_t>(FirstVertex)));
         mSkinWeights.insert(mSkinWeights.end(), std::make_move_iterator(Weights.begin()), std::make_move_iterator(Weights.end()));
     }
 

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Animation/FAnimStateMachineData.h"
 #include "Engine/Animation/FAnimNode_Base.h"
 
@@ -103,7 +104,7 @@ namespace Engine {
          * @param Id 조회 또는 변경할 항목 ID입니다.
          * @return 상태 인덱스이며 없으면 -1입니다.
          */
-        Core::Int32 FindStateIndex(Core::Int32 Id) const;
+        Core::Index_t FindStateIndex(Core::Int32 Id) const;
 
     private:
 
@@ -130,12 +131,12 @@ namespace Engine {
         /**
          * @brief 현재 상태의 실행 배열 인덱스이며 미지정 시 -1입니다.
          */
-        Core::Int32 mCurrent{-1};
+        Core::Index_t mCurrent{-1};
 
         /**
          * @brief 전이 대상 상태의 실행 배열 인덱스이며 전이하지 않을 때 -1입니다.
          */
-        Core::Int32 mTarget{-1};
+        Core::Index_t mTarget{-1};
 
         /**
          * @brief 진행 중인 전이의 경과 시간(초)입니다.

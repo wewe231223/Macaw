@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "FImGuiThemeCatalog.h"
 #include "Core/FilePath.h"
 
@@ -159,7 +160,7 @@ namespace Editor {
                     throw std::runtime_error{"ImThemes color is out of range"};
                 }
 
-                for (int Index{}; Index < ImGuiCol_COUNT; ++Index) {
+                for (Core::Index_t Index{}; Index < ImGuiCol_COUNT; ++Index) {
                     if (Name == ImGui::GetStyleColorName(Index)) {
                         Style.Colors[Index] = ImVec4{Channels[0] / 255.0f, Channels[1] / 255.0f, Channels[2] / 255.0f, Channels[3]};
 
@@ -252,7 +253,7 @@ namespace Editor {
                 ReadStyle(*StyleTable, Style);
 
                 const auto Found{std::find(Candidate.mNames.begin(), Candidate.mNames.end(), Name)};
-                const size_t Index{static_cast<size_t>(Found - Candidate.mNames.begin())};
+                const Core::Index_t Index{static_cast<Core::Index_t>(static_cast<size_t>(Found - Candidate.mNames.begin()))};
 
                 if (Found == Candidate.mNames.end()) {
                     Candidate.mNames.push_back(Name);
@@ -286,37 +287,37 @@ namespace Editor {
     /**
      * @brief 이름이 정확히 일치하는 테마 인덱스를 찾습니다.
      */
-    Core::Uint32 Editor::FImGuiThemeCatalog::Find(const Core::FString& Name) const {
+    Core::Index_t Editor::FImGuiThemeCatalog::Find(const Core::FString& Name) const {
         const auto Found{std::find(mNames.begin(), mNames.end(), Name)};
 
-        return Found == mNames.end() ? 0 : static_cast<Core::Uint32>(Found - mNames.begin());
+        return Found == mNames.end() ? 0 : static_cast<Core::Index_t>(Found - mNames.begin());
     }
 
     /**
      * @brief 인덱스에 해당하는 테마 이름을 반환합니다.
      */
-    const Core::FString& Editor::FImGuiThemeCatalog::GetName(Core::Uint32 Index) const {
+    const Core::FString& Editor::FImGuiThemeCatalog::GetName(Core::Index_t Index) const {
         return mNames.at(Index);
     }
 
     /**
      * @brief 인덱스에 해당하는 테마 작성자를 반환합니다.
      */
-    const Core::FString& Editor::FImGuiThemeCatalog::GetAuthor(Core::Uint32 Index) const {
+    const Core::FString& Editor::FImGuiThemeCatalog::GetAuthor(Core::Index_t Index) const {
         return mAuthors.at(Index);
     }
 
     /**
      * @brief 인덱스에 해당하는 테마 설명을 반환합니다.
      */
-    const Core::FString& Editor::FImGuiThemeCatalog::GetDescription(Core::Uint32 Index) const {
+    const Core::FString& Editor::FImGuiThemeCatalog::GetDescription(Core::Index_t Index) const {
         return mDescriptions.at(Index);
     }
 
     /**
      * @brief 인덱스에 해당하는 배율 적용 전 테마 스타일을 반환합니다.
      */
-    const ImGuiStyle& Editor::FImGuiThemeCatalog::GetStyle(Core::Uint32 Index) const {
+    const ImGuiStyle& Editor::FImGuiThemeCatalog::GetStyle(Core::Index_t Index) const {
         return mStyles.at(Index);
     }
 

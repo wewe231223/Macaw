@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FViewportStatistics.h"
 #include "Core/Math/FVector2.h"
 #include "Core/Stats.h"
@@ -249,7 +250,7 @@ namespace Editor {
                         Clipper.Begin(static_cast<int>(Visible.size()));
 
                         while (Clipper.Step()) {
-                            for (int Index{Clipper.DisplayStart}; Index < Clipper.DisplayEnd; ++Index) {
+                            for (Core::Index_t Index{static_cast<Core::Index_t>(Clipper.DisplayStart)}; Index < Clipper.DisplayEnd; ++Index) {
                                 DrawHistory(*Visible[Index]);
                             }
                         }
@@ -355,7 +356,7 @@ namespace Editor {
 
         const std::array<Core::FString, 10> Names{"fps", "scene", "memory", "render", "shadow", "unit", "game", "world", "script", "assets"};
 
-        for (std::size_t Index{}; Index < Names.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Names.size(); ++Index) {
             if ((Mask & (1u << Index)) != 0 && !IsEnabled(Names[Index])) {
                 return false;
             }
@@ -429,7 +430,7 @@ namespace Editor {
                     ImGui::TableNextColumn();
                     ImGui::TextUnformatted(Stat.GetName().c_str());
 
-                    std::size_t ValueIndex{};
+                    Core::Index_t ValueIndex{};
 
                     for (const double Value : {Stat.GetValue(), Stat.GetAverage(), Stat.GetMinimum(), Stat.GetMaximum()}) {
                         ImGui::TableNextColumn();

@@ -111,7 +111,7 @@ namespace Editor {
          * @param[in] Index 0 기반 뷰포트 슬롯입니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Editor::FEditorViewport* GetViewport(Core::Uint32 Index) const;
+        Editor::FEditorViewport* GetViewport(Core::Index_t Index) const;
 
         /**
          * @brief 분할 비율을 반환합니다.
@@ -146,7 +146,7 @@ namespace Editor {
          * @param[in,out] CapturedViewport 입력을 캡처한 뷰포트의 비소유 주소입니다.
          * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        void DrawViewport(Core::Uint32 Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport);
+        void DrawViewport(Core::Index_t Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport);
 
         /**
          * @brief INI 레이아웃 섹션을 엽니다.
@@ -203,12 +203,12 @@ namespace Editor {
         /**
          * @brief 마지막 입력을 받은 활성 뷰포트입니다.
          */
-        Core::Uint32 mActiveViewport{};
+        Core::Index_t mActiveViewport{};
 
         /**
          * @brief 단일 레이아웃에 표시할 뷰포트입니다.
          */
-        Core::Uint32 mSingleViewport{};
+        Core::Index_t mSingleViewport{};
 
         /**
          * @brief 4분할 레이아웃 여부입니다.

@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Component/UShapeComponent.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/EPrimitiveType.h"
@@ -54,7 +55,7 @@ namespace Engine {
 
             Core::FVector Prev{C + U * (Core::Math::Cos(StartAngle) * R) + V * (Core::Math::Sin(StartAngle) * R)};
 
-            for (Core::Int32 Index{1}; Index <= Segments; ++Index) {
+            for (Core::Index_t Index{1}; Index <= Segments; ++Index) {
                 const Core::FAngle Angle{StartAngle + Step * Index};
                 const Core::FVector Point{C + U * (Core::Math::Cos(Angle) * R) + V * (Core::Math::Sin(Angle) * R)};
 

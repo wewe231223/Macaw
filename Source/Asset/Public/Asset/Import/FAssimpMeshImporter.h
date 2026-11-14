@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Import/IMeshImporter.h"
 #include "Core/Math/FMatrix.h"
 
@@ -86,7 +87,7 @@ namespace Asset {
          * @param[in] ParentBoneGlobal 가장 가까운 조상 본의 엔진 공간 전역 변환이며 없으면 항등 행렬입니다.
          * @return 모든 본을 읽으면 true이며 바인드 포즈를 변환할 수 없으면 false입니다.
          */
-        bool ReadSkeleton(const aiNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
+        bool ReadSkeleton(const aiNode& Node, Core::Index_t ParentIndex, const Core::FMatrix& ParentBoneGlobal);
 
         /**
          * @brief 장면의 Assimp 재질마다 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 목록에 추가합니다.
@@ -118,7 +119,7 @@ namespace Asset {
         /**
          * @brief 본으로 읽은 노드 이름별 결과 본 인덱스입니다.
          */
-        Core::TMap<Core::FString, Core::Int32> mBoneIndices{};
+        Core::TMap<Core::FString, Core::Index_t> mBoneIndices{};
     };
 
 }

@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FEditorViewportClient.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/UHeightFogComponent.h"
@@ -502,12 +503,12 @@ namespace Editor {
                         const Core::FVector Color{1.0f, 0.65f, 0.15f};
                         std::array<Core::FVector, 8> Corners{};
 
-                        for (std::size_t Corner{}; Corner < Corners.size(); ++Corner) {
+                        for (Core::Index_t Corner{}; Corner < Corners.size(); ++Corner) {
                             Corners[Corner] = DecalToWorld.TransformPosition({(Corner & 1u) != 0 ? 1.0f : -1.0f, (Corner & 2u) != 0 ? 1.0f : -1.0f, (Corner & 4u) != 0 ? 1.0f : -1.0f});
                         }
 
-                        for (std::size_t Corner{}; Corner < Corners.size(); ++Corner) {
-                            for (std::size_t Axis{1}; Axis < Corners.size(); Axis <<= 1) {
+                        for (Core::Index_t Corner{}; Corner < Corners.size(); ++Corner) {
+                            for (Core::Index_t Axis{1}; Axis < Corners.size(); Axis <<= 1) {
                                 if ((Corner & Axis) == 0) {
                                     mDrawInterface.DrawLine(Corners[Corner], Corners[Corner | Axis], Color, true, mLineThickness);
                                 }

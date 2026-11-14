@@ -1,3 +1,4 @@
+#include "Core/Types.h"
 #include "Asset/FAssetFile.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/USkeletalMesh.h"
@@ -82,7 +83,7 @@ namespace {
         Root.mName = "Root";
         Root.mInternalTrack.mScaleKeys.push_back({1.0f, 1.0f, 1.0f});
 
-        for (Core::Uint32 Key{}; Key <= Frames; ++Key) {
+        for (Core::Index_t Key{}; Key <= Frames; ++Key) {
             const float Phase{static_cast<float>(Key) / static_cast<float>(Frames)};
 
             Root.mInternalTrack.mPosKeys.push_back({3.0f + Phase * Distance, 0.0f, 0.0f});

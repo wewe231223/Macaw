@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FDecalPass.h"
 
 #include "Core/Math/FBox.h"
@@ -200,7 +201,7 @@ namespace Renderer {
         float Right{};
         float Bottom{};
 
-        for (Core::Uint32 Corner{}; Corner < 8; ++Corner) {
+        for (Core::Index_t Corner{}; Corner < 8; ++Corner) {
             const Core::FVector4 Local{(Corner & 1u) != 0 ? 1.0f : -1.0f, (Corner & 2u) != 0 ? 1.0f : -1.0f, (Corner & 4u) != 0 ? 1.0f : -1.0f, 1.0f};
             const Core::FVector4 Clip{Local * DecalToClip};
 

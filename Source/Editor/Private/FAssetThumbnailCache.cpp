@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FAssetThumbnailCache.h"
 #include "Viewer/FMeshViewerContent.h"
 #include "Viewer/FAnimationViewerContent.h"
@@ -257,7 +258,7 @@ void FAssetThumbnailCache::LoadPreviewSettings() {
         return;
     }
 
-    for (Core::Uint32 Index{}; Index < Count; ++Index) {
+    for (Core::Index_t Index{}; Index < Count; ++Index) {
         if (Archive.BeginObject(std::to_string(Index))) {
             Core::FString AssetPath{};
             Core::FString MeshPath{};
@@ -284,7 +285,7 @@ bool FAssetThumbnailCache::SavePreviewSettings() {
     Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
     Core::Uint32 Count{static_cast<Core::Uint32>(mAnimationPreviews.size())};
     Archive.BeginArray("Animations", Count);
-    Core::Uint32 Index{};
+    Core::Index_t Index{};
 
     for (const auto& [Key, Preview] : mAnimationPreviews) {
         Archive.BeginObject(std::to_string(Index++));

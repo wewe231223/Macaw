@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FTextRenderer.h"
 #include "RendererStats.h"
 #include "Engine/FDrawText.h"
@@ -98,7 +99,7 @@ namespace Renderer {
         } else {
             Core::FMatrix World{};
 
-            for (Core::Int32 Column{}; Column < 3; ++Column) {
+            for (Core::Index_t Column{}; Column < 3; ++Column) {
                 World(0, Column) = View.mView(Column, 0) * Text.mSize * Text.mScale.x;
                 World(1, Column) = View.mView(Column, 1) * Text.mSize * Text.mScale.y;
             }

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Animation/FAnimDataModel.h"
 #include "Asset/Animation/UAnimSequenceBase.h"
 #include "Core/Math/FTransform.h"
@@ -134,7 +135,7 @@ namespace Asset {
          * @param Time 시퀀스 또는 콘텐츠 시각(초)입니다.
          * @return 해당 시각의 루트 변환입니다.
          */
-        Core::FTransform GetRootTrackTransform(Core::Int32 TrackIndex, double Time) const;
+        Core::FTransform GetRootTrackTransform(Core::Index_t TrackIndex, double Time) const;
 
         /**
          * @brief 루트 고정 방식에 맞는 기준 포즈를 계산합니다.
@@ -142,7 +143,7 @@ namespace Asset {
          * @param ReferencePose 기준 포즈 방식에서 사용할 로컬 변환입니다.
          * @return 기준 포즈, 첫 프레임 또는 항등 변환입니다.
          */
-        Core::FTransform GetRootLockTransform(Core::Int32 TrackIndex, const Core::FTransform& ReferencePose) const;
+        Core::FTransform GetRootLockTransform(Core::Index_t TrackIndex, const Core::FTransform& ReferencePose) const;
 
         /**
          * @brief 반복하지 않는 두 시각 사이에서 루트 트랙 변환의 차이를 추출합니다.
@@ -151,7 +152,7 @@ namespace Asset {
          * @param EndTime 구간 종료 시각(초)입니다.
          * @return 구간의 루트 이동·회전 증분입니다.
          */
-        Core::FTransform ExtractRootMotionFromRange(Core::Int32 TrackIndex, double StartTime, double EndTime) const;
+        Core::FTransform ExtractRootMotionFromRange(Core::Index_t TrackIndex, double StartTime, double EndTime) const;
 
         /**
          * @brief 반복 경계와 재생 방향을 고려하여 루트 트랙의 이동 증분을 추출합니다.
@@ -161,7 +162,7 @@ namespace Asset {
          * @param Looping 끝점을 넘어 반복할지 여부입니다.
          * @return 지정 시간 구간의 루트 변환이며 유효한 트랙이 없으면 항등 변환입니다.
          */
-        Core::FTransform ExtractRootMotion(Core::Int32 TrackIndex, double StartTime, double DeltaTime, bool Looping) const;
+        Core::FTransform ExtractRootMotion(Core::Index_t TrackIndex, double StartTime, double DeltaTime, bool Looping) const;
 
 
         /**
@@ -193,7 +194,7 @@ namespace Asset {
          * @param Time 시퀀스 또는 콘텐츠 시각(초)입니다.
          * @return 보간한 트랙의 로컬 변환입니다.
          */
-        Core::FTransform SampleTrackTransform(std::size_t TrackIndex, double Time) const;
+        Core::FTransform SampleTrackTransform(Core::Index_t TrackIndex, double Time) const;
 
     private:
 

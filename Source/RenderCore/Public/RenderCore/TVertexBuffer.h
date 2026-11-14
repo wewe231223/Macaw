@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "RenderCore/FGpuBuffer.h"
 
 #include <algorithm>
@@ -58,12 +59,12 @@ namespace RenderCore {
          * @param[in] Slot 입력 슬롯입니다.
          * @param[in] ElementsPerVertex 정점 하나가 차지하는 T의 개수입니다.
          */
-        void Bind(ID3D11DeviceContext* Context, Core::Uint32 Slot, Core::Uint32 ElementsPerVertex = 1) const {
+        void Bind(ID3D11DeviceContext* Context, Core::Index_t Slot, Core::Uint32 ElementsPerVertex = 1) const {
             ID3D11Buffer* Buffer{GetBuffer()};
             const UINT Stride{GetStride() * ElementsPerVertex};
             const UINT Offset{};
 
-            Context->IASetVertexBuffers(Slot, 1, &Buffer, &Stride, &Offset);
+            Context->IASetVertexBuffers(static_cast<UINT>(Slot), 1, &Buffer, &Stride, &Offset);
         }
 
         /**
@@ -71,12 +72,12 @@ namespace RenderCore {
          * @param[in] Context 바인딩할 장치 컨텍스트입니다.
          * @param[in] Slot 입력 슬롯입니다.
          */
-        static void Unbind(ID3D11DeviceContext* Context, Core::Uint32 Slot) {
+        static void Unbind(ID3D11DeviceContext* Context, Core::Index_t Slot) {
             ID3D11Buffer* Buffer{};
             const UINT Stride{};
             const UINT Offset{};
 
-            Context->IASetVertexBuffers(Slot, 1, &Buffer, &Stride, &Offset);
+            Context->IASetVertexBuffers(static_cast<UINT>(Slot), 1, &Buffer, &Stride, &Offset);
         }
 
     protected:

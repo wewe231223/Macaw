@@ -44,7 +44,7 @@ namespace Editor {
          * @param[in] Name 조회하거나 지정할 이름입니다.
          * @return 일치하는 테마의 0 기반 인덱스이며 없으면 기본 테마 인덱스 0입니다.
          */
-        Core::Uint32 Find(const Core::FString& Name) const;
+        Core::Index_t Find(const Core::FString& Name) const;
 
         /**
          * @brief 인덱스에 해당하는 테마 이름을 반환합니다.
@@ -52,7 +52,7 @@ namespace Editor {
          * @return 소유 객체가 보관하는 이름의 읽기 전용 문자열 참조입니다.
          * @note Index가 테마 개수 이상이면 std::out_of_range가 발생합니다.
          */
-        const Core::FString& GetName(Core::Uint32 Index) const;
+        const Core::FString& GetName(Core::Index_t Index) const;
 
         /**
          * @brief 인덱스에 해당하는 테마 작성자를 반환합니다.
@@ -60,7 +60,7 @@ namespace Editor {
          * @return 카탈로그가 보관하는 작성자 문자열의 읽기 전용 참조입니다.
          * @note Index가 테마 개수 이상이면 std::out_of_range가 발생합니다.
          */
-        const Core::FString& GetAuthor(Core::Uint32 Index) const;
+        const Core::FString& GetAuthor(Core::Index_t Index) const;
 
         /**
          * @brief 인덱스에 해당하는 테마 설명을 반환합니다.
@@ -68,7 +68,7 @@ namespace Editor {
          * @return 카탈로그가 보관하는 설명 문자열의 읽기 전용 참조입니다.
          * @note Index가 테마 개수 이상이면 std::out_of_range가 발생합니다.
          */
-        const Core::FString& GetDescription(Core::Uint32 Index) const;
+        const Core::FString& GetDescription(Core::Index_t Index) const;
 
         /**
          * @brief 인덱스에 해당하는 배율 적용 전 테마 스타일을 반환합니다.
@@ -76,7 +76,7 @@ namespace Editor {
          * @return 카탈로그가 소유하는 ImGui 스타일의 읽기 전용 참조입니다.
          * @note Index가 테마 개수 이상이면 std::out_of_range가 발생합니다.
          */
-        const ImGuiStyle& GetStyle(Core::Uint32 Index) const;
+        const ImGuiStyle& GetStyle(Core::Index_t Index) const;
 
     private:
         /**

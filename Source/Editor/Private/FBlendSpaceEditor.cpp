@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "FBlendSpaceEditor.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/Animation/UAnimSequence.h"
@@ -191,7 +192,7 @@ namespace Editor {
     void FBlendSpaceEditor::AddSampleAt(const Core::FString& AnimationPath, float Value) {
         Core::FString Error{};
         const Asset::UAnimSequence* Animation{AnimationPath.empty() || mAssets == nullptr ? nullptr : mAssets->LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), Error)};
-        const Core::Int32 Index{mEditing->AddSample(Animation, {Value, 0.0f, 0.0f})};
+        const Core::Index_t Index{mEditing->AddSample(Animation, {Value, 0.0f, 0.0f})};
 
         if (Index < 0) {
             mError = "샘플 수가 한도에 도달했습니다.";
@@ -312,7 +313,7 @@ namespace Editor {
         const auto& Samples{mEditing->GetSamples()};
         const std::size_t CommonPrefix{CommonNamePrefix(Samples)};
         const float RowHeight{ImGui::GetFrameHeight() + 2.0f * ImGui::GetStyle().CellPadding.y};
-        Core::Int32 Remove{-1};
+        Core::Index_t Remove{-1};
 
         if (ImGui::BeginTable("SampleList", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY, ImGui::GetContentRegionAvail())) {
             ImGui::TableSetupColumn("Animation", ImGuiTableColumnFlags_WidthStretch, 3.0f);
@@ -321,11 +322,11 @@ namespace Editor {
             ImGui::TableSetupScrollFreeze(0, 1);
             ImGui::TableHeadersRow();
 
-            for (std::size_t Index{}; Index < Samples.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Samples.size(); ++Index) {
                 const Asset::FBlendSample& Sample{Samples[Index]};
-                const bool Selected{mSelectedSample == static_cast<Core::Int32>(Index)};
+                const bool Selected{mSelectedSample == Index};
 
-                ImGui::PushID(static_cast<int>(Index));
+                ImGui::PushID(Index);
                 ImGui::TableNextRow(ImGuiTableRowFlags_None, RowHeight);
 
                 if (Selected) {
@@ -341,14 +342,14 @@ namespace Editor {
                             Core::FString Error{};
                             const Asset::UAnimSequence* Animation{AnimationPath.empty() ? nullptr : mAssets->LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), Error)};
 
-                            mEditing->SetSampleAnimation(static_cast<Core::Int32>(Index), Animation);
-                            mSelectedSample = static_cast<Core::Int32>(Index);
+                            mEditing->SetSampleAnimation(Index, Animation);
+                            mSelectedSample = Index;
                             mDirty = true;
                             mError = Error;
                         }
 
                         if (ImGui::IsItemClicked()) {
-                            mSelectedSample = static_cast<Core::Int32>(Index);
+                            mSelectedSample = Index;
                         }
                     } else {
                         ImGui::TextUnformatted(Name.c_str());
@@ -361,14 +362,14 @@ namespace Editor {
                     ImGui::SetNextItemWidth(-1.0f);
 
                     if (ImGui::DragFloat("##Value", &Value, 0.01f, Parameter.mMin, Parameter.mMax, "%.4g")) {
-                        mEditing->SetSampleValue(static_cast<Core::Int32>(Index), {std::clamp(Value, Parameter.mMin, Parameter.mMax), 0.0f, 0.0f});
-                        mSelectedSample = static_cast<Core::Int32>(Index);
+                        mEditing->SetSampleValue(Index, {std::clamp(Value, Parameter.mMin, Parameter.mMax), 0.0f, 0.0f});
+                        mSelectedSample = Index;
                         mDirty = true;
                     }
                 }
 
                 if (ImGui::TableSetColumnIndex(2) && ImGui::Button("×")) {
-                    Remove = static_cast<Core::Int32>(Index);
+                    Remove = Index;
                 }
 
                 if (Selected && mRevealSample) {
@@ -436,16 +437,16 @@ namespace Editor {
         }
 
         // 마우스 아래 샘플을 찾습니다. 축 근처에서 가장 가까운 마름모를 고릅니다.
-        Core::Int32 Hovered{-1};
+        Core::Index_t Hovered{-1};
         float HoveredDistance{TextHeight * 0.75f};
 
         if (CanvasHovered && std::abs(Mouse.y - AxisY) < TextHeight) {
-            for (std::size_t Index{}; Index < Samples.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Samples.size(); ++Index) {
                 const float Distance{std::abs(Mouse.x - ToScreen(Samples[Index].mSampleValue.x))};
 
-                if (Distance < HoveredDistance || (Distance == HoveredDistance && static_cast<Core::Int32>(Index) == mSelectedSample)) {
+                if (Distance < HoveredDistance || (Distance == HoveredDistance && Index == mSelectedSample)) {
                     HoveredDistance = Distance;
-                    Hovered = static_cast<Core::Int32>(Index);
+                    Hovered = Index;
                 }
             }
         }
@@ -466,10 +467,10 @@ namespace Editor {
             mDraggingPreview = false;
         }
 
-        if (mDraggingSample >= 0 && static_cast<std::size_t>(mDraggingSample) < Samples.size()) {
+        if (mDraggingSample >= 0 && static_cast<Core::Index_t>(mDraggingSample) < Samples.size()) {
             const float Value{Snap(ToValue(Mouse.x), IO.KeyCtrl)};
 
-            if (Value != Samples[static_cast<std::size_t>(mDraggingSample)].mSampleValue.x) {
+            if (Value != Samples[static_cast<Core::Index_t>(mDraggingSample)].mSampleValue.x) {
                 mEditing->SetSampleValue(mDraggingSample, {Value, 0.0f, 0.0f});
                 mDirty = true;
             }
@@ -549,29 +550,29 @@ namespace Editor {
         DrawList->AddText({PreviewLabelX, LabelY}, PreviewColor, PreviewLabel.c_str());
         DrawList->AddText({Origin.x + Margin, End.y - 1.15f * TextHeight}, TextColor, Parameter.mDisplayName.c_str());
 
-        Core::TArray<Core::Int32> Order(Samples.size());
+        Core::TArray<Core::Index_t> Order(Samples.size());
         std::array<float, Asset::UBlendSpace::MaxSamples> SampleWeights{};
 
         for (const Asset::FBlendSampleWeight& Weight : Weights) {
-            SampleWeights[static_cast<std::size_t>(Weight.mSampleIndex)] = Weight.mWeight;
+            SampleWeights[static_cast<Core::Index_t>(Weight.mSampleIndex)] = Weight.mWeight;
         }
 
-        for (std::size_t Index{}; Index < Samples.size(); ++Index) {
-            Order[Index] = static_cast<Core::Int32>(Index);
+        for (Core::Index_t Index{}; Index < Samples.size(); ++Index) {
+            Order[Index] = Index;
         }
 
-        const auto Priority{[&](Core::Int32 Index) {
-            return Index == Hovered || Index == mSelectedSample ? 2 : SampleWeights[static_cast<std::size_t>(Index)] > 0.0f ? 1 : 0;
+        const auto Priority{[&](Core::Index_t Index) {
+            return Index == Hovered || Index == mSelectedSample ? 2 : SampleWeights[Index] > 0.0f ? 1 : 0;
         }};
-        std::stable_sort(Order.begin(), Order.end(), [&Priority](Core::Int32 Left, Core::Int32 Right) {
+        std::stable_sort(Order.begin(), Order.end(), [&Priority](Core::Index_t Left, Core::Index_t Right) {
             return Priority(Left) > Priority(Right);
         });
 
         const std::size_t CommonPrefix{CommonNamePrefix(Samples)};
         std::array<Core::TArray<ImVec2>, 2> LabelBounds{};
 
-        for (const Core::Int32 Index : Order) {
-            const auto SampleIndex{static_cast<std::size_t>(Index)};
+        for (const Core::Index_t Index : Order) {
+            const auto SampleIndex{Index};
             const Asset::FBlendSample& Sample{Samples[SampleIndex]};
             const float X{ToScreen(Sample.mSampleValue.x)};
             const float Weight{SampleWeights[SampleIndex]};
@@ -591,7 +592,7 @@ namespace Editor {
                 const float Left{std::clamp(X - NameWidth * 0.5f, Origin.x + 6.0f, std::max(Origin.x + 6.0f, End.x - NameWidth - 6.0f))};
                 const ImVec2 Bounds{Left - 5.0f, Left + NameWidth + 5.0f};
 
-                for (std::size_t Lane{}; Lane < LabelBounds.size(); ++Lane) {
+                for (Core::Index_t Lane{}; Lane < LabelBounds.size(); ++Lane) {
                     const auto& Placed{LabelBounds[Lane]};
 
                     if (Bounds.y > End.x || std::any_of(Placed.begin(), Placed.end(), [Bounds](const ImVec2& Other) {
@@ -617,8 +618,8 @@ namespace Editor {
 
         DrawList->PopClipRect();
 
-        if (mDraggingSample >= 0 && static_cast<std::size_t>(mDraggingSample) < Samples.size()) {
-            ImGui::SetTooltip("%s = %.4g", Parameter.mDisplayName.c_str(), Samples[static_cast<std::size_t>(mDraggingSample)].mSampleValue.x);
+        if (mDraggingSample >= 0 && static_cast<Core::Index_t>(mDraggingSample) < Samples.size()) {
+            ImGui::SetTooltip("%s = %.4g", Parameter.mDisplayName.c_str(), Samples[static_cast<Core::Index_t>(mDraggingSample)].mSampleValue.x);
         }
 
         ImGui::Spacing();
@@ -632,13 +633,13 @@ namespace Editor {
             ImGui::TableSetupColumn("Percent", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("100.0%").x);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ActiveColor);
 
-            for (std::size_t Index{}; Index < 2; ++Index) {
+            for (Core::Index_t Index{}; Index < 2; ++Index) {
                 ImGui::TableNextRow(ImGuiTableRowFlags_None, TextHeight + 2.0f * ImGui::GetStyle().CellPadding.y);
                 ImGui::TableSetColumnIndex(0);
 
                 if (Index < Weights.size()) {
                     const Asset::FBlendSampleWeight& Weight{Weights[Index]};
-                    const Asset::FBlendSample& Sample{Samples[static_cast<std::size_t>(Weight.mSampleIndex)]};
+                    const Asset::FBlendSample& Sample{Samples[static_cast<Core::Index_t>(Weight.mSampleIndex)]};
 
                     ImGui::TextUnformatted(SampleName(Sample, CommonPrefix).c_str());
                     ImGui::SetItemTooltip("%s", SampleName(Sample).c_str());
@@ -660,10 +661,10 @@ namespace Editor {
 
     void FBlendSpaceEditor::DrawSampleMenus() {
         if (ImGui::BeginPopup("BlendSampleMenu")) {
-            const bool Valid{mSelectedSample >= 0 && static_cast<std::size_t>(mSelectedSample) < mEditing->GetSamples().size()};
+            const bool Valid{mSelectedSample >= 0 && static_cast<Core::Index_t>(mSelectedSample) < mEditing->GetSamples().size()};
 
             if (ImGui::MenuItem("미리보기를 이 샘플로", nullptr, false, Valid)) {
-                mPreviewInput = mEditing->GetSamples()[static_cast<std::size_t>(mSelectedSample)].mSampleValue.x;
+                mPreviewInput = mEditing->GetSamples()[static_cast<Core::Index_t>(mSelectedSample)].mSampleValue.x;
             }
 
             if (ImGui::MenuItem("샘플 삭제", nullptr, false, Valid)) {

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "Editor/Panel/FEditorPanel.h"
 
@@ -105,7 +106,7 @@ namespace Editor {
         /**
          * @brief 현재 탐색하는 명령 기록 위치입니다.
          */
-        std::size_t mHistoryPosition{};
+        Core::Index_t mHistoryPosition{};
 
         /**
          * @brief 현재 입력과 일치하는 자동 완성 목록입니다.
@@ -115,7 +116,7 @@ namespace Editor {
         /**
          * @brief 선택한 자동 완성 후보 인덱스입니다.
          */
-        std::size_t mSelectedSuggestion{};
+        Core::Index_t mSelectedSuggestion{};
 
         /**
          * @brief 선택한 후보가 보이도록 스크롤할지 나타냅니다.

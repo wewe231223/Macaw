@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/USkeleton.h"
 
 #include <utility>
@@ -21,15 +22,15 @@ namespace Asset {
         GlobalBindPoses.reserve(Bones.size());
         InverseBindPoses.reserve(Bones.size());
 
-        for (std::size_t Index{}; Index < Bones.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Bones.size(); ++Index) {
             const Asset::FMeshImportBone& Bone{Bones[Index]};
-            const Core::Int32 Parent{Bone.GetParentIndex()};
+            const Core::Index_t Parent{static_cast<Core::Index_t>(Bone.GetParentIndex())};
 
-            if (Parent < -1 || Parent >= static_cast<Core::Int32>(Index) || Bone.GetName().find('\0') != Core::FString::npos || !Bone.GetBindPose().IsFinite()) {
+            if (Parent < -1 || Parent >= Index || Bone.GetName().find('\0') != Core::FString::npos || !Bone.GetBindPose().IsFinite()) {
                 return false;
             }
 
-            const Core::FMatrix Global{Parent < 0 ? Bone.GetBindPose() : Bone.GetBindPose() * GlobalBindPoses[static_cast<std::size_t>(Parent)]};
+            const Core::FMatrix Global{Parent < 0 ? Bone.GetBindPose() : Bone.GetBindPose() * GlobalBindPoses[Parent]};
             Core::FMatrix Inverse{};
 
             if (!Global.IsFinite() || !Global.TryInverse(Inverse) || !Inverse.IsFinite()) {

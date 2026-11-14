@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/Reflection/UClass.h"
@@ -114,7 +115,7 @@ namespace CoreUObject {
         /**
          * @brief 소멸한 객체를 건너뛴 현재 위치입니다.
          */
-        mutable std::size_t mIndex{};
+        mutable Core::Index_t mIndex{};
     };
 
     /**

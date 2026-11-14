@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FProjectBrowser.h"
 #include "Core/FilePath.h"
 #include "Editor/FProjectDialog.h"
@@ -254,7 +255,7 @@ namespace Editor {
             ImGui::TextWrapped("Use Browse to select an existing .mproject file, or create a new project.");
         }
 
-        for (std::size_t Index{}; Index < mRecentProjects.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mRecentProjects.size(); ++Index) {
             const auto& Path{mRecentProjects[Index]};
             const Core::FString Label{Core::FilePath::ToUtf8(Path.stem()) + "##" + std::to_string(Index)};
 
@@ -412,7 +413,7 @@ namespace Editor {
 
         std::ofstream Output{File, std::ios::binary | std::ios::trunc};
 
-        for (std::size_t Index{}; Index < std::min<std::size_t>(12, Browser.mRecentProjects.size()); ++Index) {
+        for (Core::Index_t Index{}; Index < std::min<std::size_t>(12, Browser.mRecentProjects.size()); ++Index) {
             Output << Core::FilePath::ToUtf8(Browser.mRecentProjects[Index]) << '\n';
         }
     }

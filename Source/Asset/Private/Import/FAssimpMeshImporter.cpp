@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Import/FAssimpMeshImporter.h"
 #include "Asset/Import/FMeshImportResult.h"
 #include "Core/FilePath.h"
@@ -47,9 +48,9 @@ namespace Asset {
             // Assimp 행렬은 열 벡터 규약(이동이 4번째 열)이므로 전치해서 행 벡터 규약의 행렬로 만듭니다.
             Core::FMatrix Result{};
 
-            for (Core::Int32 Row{}; Row < 4; ++Row) {
-                for (Core::Int32 Column{}; Column < 4; ++Column) {
-                    Result(Row, Column) = Matrix[static_cast<unsigned int>(Column)][static_cast<unsigned int>(Row)];
+            for (Core::Index_t Row{}; Row < 4; ++Row) {
+                for (Core::Index_t Column{}; Column < 4; ++Column) {
+                    Result(Row, Column) = Matrix[Column][Row];
                 }
             }
 
@@ -100,13 +101,13 @@ namespace Asset {
 
         constexpr std::size_t MaximumBytes{std::numeric_limits<Core::Uint32>::max()};
         const std::size_t MaximumVertices{MaximumBytes / sizeof(std::array<float, 7>)};
-        constexpr std::size_t MaximumIndices{MaximumBytes / sizeof(Core::Uint32)};
+        constexpr Core::Index_t MaximumIndices{static_cast<Core::Index_t>(MaximumBytes / sizeof(Core::Uint32))};
         Core::TArray<Core::FVector>& Positions{MeshData.GetPositions()};
         Core::TArray<Core::FVector>& Normals{MeshData.GetNormals()};
         Core::TArray<Core::FVector4>& Tangents{MeshData.GetTangents()};
         Core::TArray<Core::TArray<Core::FVector2>>& UVChannels{MeshData.GetUVChannels()};
         Core::TArray<Core::FVector4>& Colors{MeshData.GetColors()};
-        Core::TArray<Core::Uint32>& Indices{MeshData.GetIndices()};
+        Core::TArray<Core::Index_t>& Indices{MeshData.GetIndices()};
         const std::size_t VertexCount{Positions.size()};
 
         if (!Source.HasPositions() || !Source.HasFaces() || Source.mNumVertices > MaximumVertices - VertexCount || Source.mNumFaces > (MaximumIndices - Indices.size()) / 3 || Source.mMaterialIndex >= mScene->mNumMaterials) {
@@ -118,7 +119,7 @@ namespace Asset {
         // UV 채널 수는 메시마다 다를 수 있으므로, 지금까지의 채널 수와 이 메시가 사용하는 가장 높은 채널 번호 + 1 중 큰 값으로 맞춥니다.
         std::size_t UVChannelCount{UVChannels.size()};
 
-        for (Core::Uint32 Channel{}; Channel < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++Channel) {
+        for (Core::Index_t Channel{}; Channel < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++Channel) {
             if (Source.HasTextureCoords(Channel)) {
                 UVChannelCount = std::max<std::size_t>(UVChannelCount, Channel + 1);
             }
@@ -146,11 +147,11 @@ namespace Asset {
         Colors.reserve(VertexCount + Source.mNumVertices);
         Indices.reserve(Indices.size() + static_cast<std::size_t>(Source.mNumFaces) * 3);
 
-        const Core::Uint32 BaseVertex{static_cast<Core::Uint32>(VertexCount)};
-        const Core::Uint32 FirstIndex{static_cast<Core::Uint32>(Indices.size())};
-        const Core::Uint32 Slot{Target.FindOrAddMaterialSlot(Source.mMaterialIndex, GetResult().GetMaterials()[Source.mMaterialIndex].GetName())};
+        const Core::Index_t BaseVertex{static_cast<Core::Index_t>(static_cast<Core::Uint32>(VertexCount))};
+        const Core::Index_t FirstIndex{static_cast<Core::Index_t>(static_cast<Core::Uint32>(Indices.size()))};
+        const Core::Index_t Slot{static_cast<Core::Index_t>(Target.FindOrAddMaterialSlot(Source.mMaterialIndex, GetResult().GetMaterials()[Source.mMaterialIndex].GetName()))};
 
-        for (Core::Uint32 VertexIndex{}; VertexIndex < Source.mNumVertices; ++VertexIndex) {
+        for (Core::Index_t VertexIndex{}; VertexIndex < Source.mNumVertices; ++VertexIndex) {
             const Core::FVector Position{Transform.TransformPosition(ToVector(Source.mVertices[VertexIndex]))};
             Core::FVector Normal{Transform.TransformNormal(Source.HasNormals() ? ToVector(Source.mNormals[VertexIndex]) : Core::FVector{0.0f, 1.0f, 0.0f})};
 
@@ -185,10 +186,10 @@ namespace Asset {
             Tangents.push_back(Tangent);
             Colors.push_back(Color);
 
-            for (std::size_t Channel{}; Channel < UVChannelCount; ++Channel) {
+            for (Core::Index_t Channel{}; Channel < UVChannelCount; ++Channel) {
                 // Assimp UV는 왼쪽 아래가 원점이고 D3D 텍스처 좌표는 왼쪽 위가 원점이므로 V를 1 - V로 뒤집습니다.
                 // 이 메시에 없는 채널은 (0, 0)을 넣습니다.
-                const bool HasChannel{Channel < AI_MAX_NUMBER_OF_TEXTURECOORDS && Source.HasTextureCoords(static_cast<Core::Uint32>(Channel))};
+                const bool HasChannel{Channel < AI_MAX_NUMBER_OF_TEXTURECOORDS && Source.HasTextureCoords(Channel)};
                 const Core::FVector2 UV{HasChannel ? Core::FVector2{Source.mTextureCoords[Channel][VertexIndex].x, 1.0f - Source.mTextureCoords[Channel][VertexIndex].y} : Core::FVector2{}};
 
                 if (!UV.IsFinite()) {
@@ -201,7 +202,7 @@ namespace Asset {
             }
         }
 
-        for (Core::Uint32 FaceIndex{}; FaceIndex < Source.mNumFaces; ++FaceIndex) {
+        for (Core::Index_t FaceIndex{}; FaceIndex < Source.mNumFaces; ++FaceIndex) {
             const aiFace& Face{Source.mFaces[FaceIndex]};
 
             if (Face.mNumIndices != 3) {
@@ -210,9 +211,9 @@ namespace Asset {
                 return false;
             }
 
-            for (Core::Uint32 Corner{}; Corner < 3; ++Corner) {
+            for (Core::Index_t Corner{}; Corner < 3; ++Corner) {
                 // 원본의 CCW 앞면은 손 방향이 바뀌는 변환 뒤에도 화면에서 CCW로 보이므로, 엔진의 CW 앞면에 맞게 꼭짓점을 역순으로 읽습니다.
-                const Core::Uint32 SourceCorner{Transform.ReversesWinding() ? 2 - Corner : Corner};
+                const Core::Index_t SourceCorner{static_cast<Core::Index_t>(Transform.ReversesWinding() ? 2 - Corner : Corner)};
 
                 if (Face.mIndices[SourceCorner] >= Source.mNumVertices) {
                     Error = "The source contains an invalid vertex index";
@@ -228,17 +229,17 @@ namespace Asset {
 
         // 스켈레톤을 읽었고 메시에 본이 있으면 정점별로 (결과 본 인덱스, 가중치)를 모아 정리합니다.
         if (GetOption().mImportSkeleton && Source.HasBones()) {
-            Core::TArray<Core::TArray<std::pair<Core::Uint32, float>>> Influences(Source.mNumVertices);
+            Core::TArray<Core::TArray<std::pair<Core::Index_t, float>>> Influences(Source.mNumVertices);
 
-            for (Core::Uint32 BoneIndex{}; BoneIndex < Source.mNumBones; ++BoneIndex) {
+            for (Core::Index_t BoneIndex{}; BoneIndex < Source.mNumBones; ++BoneIndex) {
                 const aiBone& Bone{*Source.mBones[BoneIndex]};
                 const auto Found{mBoneIndices.find(Core::FString{Bone.mName.C_Str()})};
 
-                for (Core::Uint32 WeightIndex{}; Found != mBoneIndices.end() && WeightIndex < Bone.mNumWeights; ++WeightIndex) {
+                for (Core::Index_t WeightIndex{}; Found != mBoneIndices.end() && WeightIndex < Bone.mNumWeights; ++WeightIndex) {
                     const aiVertexWeight& Weight{Bone.mWeights[WeightIndex]};
 
                     if (Weight.mVertexId < Source.mNumVertices) {
-                        Influences[Weight.mVertexId].emplace_back(static_cast<Core::Uint32>(Found->second), Weight.mWeight);
+                        Influences[Weight.mVertexId].emplace_back(Found->second, Weight.mWeight);
                     }
                 }
             }
@@ -280,7 +281,7 @@ namespace Asset {
                 Meshes.emplace_back(Node.mName.length == 0 ? "Mesh_" + std::to_string(Meshes.size()) : Core::FString{Node.mName.C_Str()});
             }
 
-            for (Core::Uint32 Index{}; Index < Node.mNumMeshes; ++Index) {
+            for (Core::Index_t Index{}; Index < Node.mNumMeshes; ++Index) {
                 if (Node.mMeshes[Index] >= mScene->mNumMeshes) {
                     GetError() = "The source node references an invalid mesh";
 
@@ -293,7 +294,7 @@ namespace Asset {
             }
         }
 
-        for (Core::Uint32 Index{}; Index < Node.mNumChildren; ++Index) {
+        for (Core::Index_t Index{}; Index < Node.mNumChildren; ++Index) {
             if (!ReadNode(*Node.mChildren[Index], Global)) {
                 return false;
             }
@@ -308,14 +309,14 @@ namespace Asset {
     bool Asset::FAssimpMeshImporter::CollectBindPoses(const aiNode& Node, const Core::FMatrix& ParentTransform) {
         const Core::FMatrix Global{ToMatrix(Node.mTransformation) * ParentTransform};
 
-        for (Core::Uint32 Index{}; Index < Node.mNumMeshes; ++Index) {
+        for (Core::Index_t Index{}; Index < Node.mNumMeshes; ++Index) {
             if (Node.mMeshes[Index] >= mScene->mNumMeshes) {
                 continue;
             }
 
             const aiMesh& Mesh{*mScene->mMeshes[Node.mMeshes[Index]]};
 
-            for (Core::Uint32 BoneIndex{}; BoneIndex < Mesh.mNumBones; ++BoneIndex) {
+            for (Core::Index_t BoneIndex{}; BoneIndex < Mesh.mNumBones; ++BoneIndex) {
                 const aiBone& Bone{*Mesh.mBones[BoneIndex]};
                 const Core::FString Name{Bone.mName.C_Str()};
                 Core::FMatrix InverseOffset{};
@@ -337,7 +338,7 @@ namespace Asset {
             }
         }
 
-        for (Core::Uint32 Child{}; Child < Node.mNumChildren; ++Child) {
+        for (Core::Index_t Child{}; Child < Node.mNumChildren; ++Child) {
             if (!CollectBindPoses(*Node.mChildren[Child], Global)) {
                 return false;
             }
@@ -349,9 +350,9 @@ namespace Asset {
     /**
      * @brief 메시가 참조하는 본 이름과 같은 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
      */
-    bool Asset::FAssimpMeshImporter::ReadSkeleton(const aiNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
+    bool Asset::FAssimpMeshImporter::ReadSkeleton(const aiNode& Node, Core::Index_t ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
         const Core::FString Name{Node.mName.C_Str()};
-        Core::Int32 Index{ParentIndex};
+        Core::Index_t Index{ParentIndex};
         Core::FMatrix BoneGlobal{ParentBoneGlobal};
 
         // 메시의 본이 참조하는 노드만 본으로 추가합니다. 사이에 끼인 일반 노드는 건너뛰고 가장 가까운 조상 본을 부모로 연결합니다.
@@ -373,7 +374,7 @@ namespace Asset {
             Bones.emplace_back(Name, ParentIndex, BoneGlobal * ParentInverse);
         }
 
-        for (Core::Uint32 Child{}; Child < Node.mNumChildren; ++Child) {
+        for (Core::Index_t Child{}; Child < Node.mNumChildren; ++Child) {
             if (!ReadSkeleton(*Node.mChildren[Child], Index, BoneGlobal)) {
                 return false;
             }
@@ -442,7 +443,7 @@ namespace Asset {
         Core::TArray<Asset::FMeshImportMaterial>& Materials{GetResult().GetMaterials()};
         Materials.reserve(mScene->mNumMaterials);
 
-        for (Core::Uint32 Index{}; Index < mScene->mNumMaterials; ++Index) {
+        for (Core::Index_t Index{}; Index < mScene->mNumMaterials; ++Index) {
             const aiMaterial& Material{*mScene->mMaterials[Index]};
             aiString MaterialName{};
 
@@ -464,7 +465,7 @@ namespace Asset {
             Asset::FMeshImportTexture SpecularTexture{ReadTexture(Material, aiTextureType_SPECULAR, aiTextureType_SPECULAR)};
             Asset::FMeshImportTexture EmissiveTexture{ReadTexture(Material, aiTextureType_EMISSIVE, aiTextureType_EMISSION_COLOR)};
             Asset::FMeshImportTexture ReflectionTexture{ReadTexture(Material, aiTextureType_REFLECTION, aiTextureType_REFLECTION)};
-            const auto ReadColor{[&](const char* Key, Core::Uint32 Type, Core::Uint32 PropertyIndex, const Core::FVector4& Default) {
+            const auto ReadColor{[&](const char* Key, Core::Uint32 Type, Core::Index_t PropertyIndex, const Core::FVector4& Default) {
                 aiColor4D Value{Default.x, Default.y, Default.z, Default.w};
 
                 aiGetMaterialColor(&Material, Key, Type, PropertyIndex, &Value);

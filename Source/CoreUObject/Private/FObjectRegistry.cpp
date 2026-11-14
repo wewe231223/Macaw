@@ -4,6 +4,7 @@
  * @ingroup CoreUObject
  */
 
+#include "Core/Types.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/UObject.h"
@@ -37,10 +38,10 @@ namespace CoreUObject {
             return false;
         }
 
-        Core::Uint32 Index{};
+        Core::Index_t Index{};
 
         if (mFreeSlots.empty()) {
-            Index = static_cast<Core::Uint32>(mSlots.size());
+            Index = static_cast<Core::Index_t>(mSlots.size());
 
             mSlots.push_back(FSlot{});
         } else {
@@ -86,7 +87,7 @@ namespace CoreUObject {
      * @brief 핸들의 슬롯 범위와 세대가 일치하는 객체를 조회합니다.
      */
     CoreUObject::UObject* CoreUObject::FObjectRegistry::Resolve(CoreUObject::FObjectHandle Handle) const {
-        return Handle.mIndex < mSlots.size() && mSlots[Handle.mIndex].mGeneration == Handle.mGeneration ? mSlots[Handle.mIndex].mObject : nullptr;
+        return Handle.mIndex >= 0 && Handle.mIndex < mSlots.size() && mSlots[Handle.mIndex].mGeneration == Handle.mGeneration ? mSlots[Handle.mIndex].mObject : nullptr;
     }
 
     /**

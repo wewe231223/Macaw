@@ -54,7 +54,7 @@ namespace Asset {
          * @brief 재질 슬롯별 결과 재질 인덱스를 조회합니다.
          * @return 재질 슬롯과 같은 길이의 인덱스 목록입니다.
          */
-        const Core::TArray<Core::Uint32>& GetMaterialIndices() const;
+        const Core::TArray<Core::Index_t>& GetMaterialIndices() const;
 
         /**
          * @brief 결과 재질을 가리키는 재질 슬롯을 찾고 없으면 새로 추가합니다.
@@ -62,7 +62,7 @@ namespace Asset {
          * @param[in] Name 새 슬롯에 기록할 재질 이름입니다.
          * @return 이 메시에서의 재질 슬롯 인덱스입니다.
          */
-        Core::Uint32 FindOrAddMaterialSlot(Core::Uint32 MaterialIndex, const Core::FString& Name);
+        Core::Index_t FindOrAddMaterialSlot(Core::Index_t MaterialIndex, const Core::FString& Name);
 
         /**
          * @brief 정점별 본 가중치를 조회합니다.
@@ -75,7 +75,7 @@ namespace Asset {
          * @param[in] FirstVertex Weights[0]이 대응하는 정점 인덱스이며 지금까지의 가중치 수 이상이어야 합니다.
          * @param[in] Weights 이어서 추가할 정점별 가중치입니다.
          */
-        void AddSkinWeights(std::size_t FirstVertex, Core::TArray<Asset::FMeshImportSkinWeight> Weights);
+        void AddSkinWeights(Core::Index_t FirstVertex, Core::TArray<Asset::FMeshImportSkinWeight> Weights);
 
         /**
          * @brief 스킨 정점이 하나라도 있으면 가중치 목록 길이를 정점 수와 맞춥니다. 뒤쪽 스킨 없는 정점은 영향 없는 가중치입니다.
@@ -96,7 +96,7 @@ namespace Asset {
         /**
          * @brief 재질 슬롯별 결과 재질 인덱스입니다.
          */
-        Core::TArray<Core::Uint32> mMaterialIndices{};
+        Core::TArray<Core::Index_t> mMaterialIndices{};
 
         /**
          * @brief 정점별 본 가중치이며 스킨이 없는 메시이면 비어 있습니다.

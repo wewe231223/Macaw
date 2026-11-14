@@ -4,13 +4,14 @@
  * @ingroup Viewer
  */
 
+#include "Core/Types.h"
 #include "Viewer/FBonePreview.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace Viewer {
-    FBoneShape::FBoneShape(Engine::EEditorMesh Mesh, const Core::FMatrix& World, Core::Uint32 Bone)
+    FBoneShape::FBoneShape(Engine::EEditorMesh Mesh, const Core::FMatrix& World, Core::Index_t Bone)
 		: mMesh{Mesh},
 		  mWorld{World},
 		  mBone{Bone} {
@@ -24,7 +25,7 @@ namespace Viewer {
         return mWorld;
     }
 
-    Core::Uint32 FBoneShape::GetBone() const {
+    Core::Index_t FBoneShape::GetBone() const {
         return mBone;
     }
 
@@ -45,14 +46,14 @@ namespace Viewer {
         Core::TArray<Viewer::FBoneShape> Shapes{};
         Shapes.reserve(Bones.size() * 2);
 
-        for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
-            const Core::Int32 ParentIndex{Bones[Bone].GetParentIndex()};
+        for (Core::Index_t Bone{}; Bone < Bones.size(); ++Bone) {
+            const Core::Index_t ParentIndex{static_cast<Core::Index_t>(Bones[Bone].GetParentIndex())};
 
             if (ParentIndex < 0) {
                 continue;
             }
 
-            const Core::Uint32 Parent{static_cast<Core::Uint32>(ParentIndex)};
+            const Core::Index_t Parent{ParentIndex};
             const Core::FVector Start{Transforms[Parent].TransformPosition({})};
             const Core::FVector Offset{Transforms[Bone].TransformPosition({}) - Start};
             const float Length{Offset.Length()};
@@ -74,7 +75,7 @@ namespace Viewer {
             Shapes.push_back({Engine::EEditorMesh::BoneOctahedron, World, Parent});
         }
 
-        for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
+        for (Core::Index_t Bone{}; Bone < Bones.size(); ++Bone) {
             const Core::FVector Joint{Transforms[Bone].TransformPosition({})};
             const float Diameter{JointRadii[Bone] * 2.0f};
             const Core::FMatrix World{Core::FMatrix::Scale({Diameter, Diameter, Diameter}) * Core::FMatrix::Translation(Joint)};

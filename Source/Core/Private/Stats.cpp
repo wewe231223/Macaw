@@ -4,6 +4,7 @@
  * @ingroup Core
  */
 
+#include "Core/Types.h"
 #include "Core/Stats.h"
 #include "Core/Memory.h"
 
@@ -326,11 +327,11 @@ namespace Core {
 
         const Core::FStat& Stat{**Found};
         const std::size_t Capacity{Stat.mHistory.size()};
-        const std::size_t Oldest{(Stat.mHistoryIndex + Capacity - Stat.mHistoryCount) % Capacity};
+        const Core::Index_t Oldest{static_cast<Core::Index_t>((Stat.mHistoryIndex + Capacity - Stat.mHistoryCount) % Capacity)};
         Core::TArray<double> Values{};
         Values.reserve(Stat.mHistoryCount);
 
-        for (std::size_t Index{}; Index < Stat.mHistoryCount; ++Index) {
+        for (Core::Index_t Index{}; Index < Stat.mHistoryCount; ++Index) {
             Values.push_back(Stat.mHistory[(Oldest + Index) % Capacity]);
         }
 
@@ -399,7 +400,7 @@ namespace Core {
             Snapshot.mMinimum = Stat.mHistory[0];
             Snapshot.mMaximum = Stat.mHistory[0];
 
-            for (std::size_t Index{}; Index < Stat.mHistoryCount; ++Index) {
+            for (Core::Index_t Index{}; Index < Stat.mHistoryCount; ++Index) {
                 const double Value{Stat.mHistory[Index]};
 
                 Snapshot.mAverage += Value / static_cast<double>(Stat.mHistoryCount);

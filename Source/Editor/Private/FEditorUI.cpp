@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "FEditorUI.h"
 #include "Viewer/FAssetViewer.h"
 #include "Core/Stats.h"
@@ -1177,7 +1178,7 @@ namespace Editor {
 
         ImGui::TextUnformatted(Sources.size() == 1 ? "Importing 1 file:" : ("Importing " + std::to_string(Sources.size()) + " files:").c_str());
 
-        for (std::size_t Index{}; Index < std::min(Sources.size(), ListedSources); ++Index) {
+        for (Core::Index_t Index{}; Index < std::min(Sources.size(), ListedSources); ++Index) {
             ImGui::BulletText("%s", Core::FilePath::ToUtf8(Sources[Index].filename()).c_str());
         }
 
@@ -1378,7 +1379,7 @@ namespace Editor {
         ImGuiWindow* Browser{ImGui::FindWindowByName("Content")};
         ImGuiWindow* Hovered{};
 
-        for (int Index{Context->Windows.Size}; Index > 0; --Index) {
+        for (Core::Index_t Index{static_cast<Core::Index_t>(Context->Windows.Size)}; Index > 0; --Index) {
             ImGuiWindow* Window{Context->Windows[Index - 1]};
 
             if (Window->WasActive && !Window->Hidden && (Window->Flags & ImGuiWindowFlags_NoMouseInputs) == 0 && Window->OuterRectClipped.Contains(Position)) {
@@ -1397,7 +1398,7 @@ namespace Editor {
         std::filesystem::path Directory{};
         bool Found{};
 
-        for (std::size_t Index{mContentDropBounds.size()}; Index > 0; --Index) {
+        for (Core::Index_t Index{static_cast<Core::Index_t>(mContentDropBounds.size())}; Index > 0; --Index) {
             const Core::FVector4& Bounds{mContentDropBounds[Index - 1]};
 
             if (Position.x >= Bounds.x && Position.y >= Bounds.y && Position.x < Bounds.z && Position.y < Bounds.w) {
@@ -1446,7 +1447,7 @@ namespace Editor {
         mDroppedFiles.clear();
         mDropDirectories.clear();
 
-        for (std::size_t Index{}; Index < Files.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Files.size(); ++Index) {
             RequestImport(std::move(Files[Index]), Directories[Index]);
         }
     }
@@ -1709,7 +1710,7 @@ namespace Editor {
             ImGui::Spacing();
             ImGui::TextColored({1.0f, 0.75f, 0.3f, 1.0f}, mContentActionScript ? "다음 씬이 이 스크립트 클래스를 씁니다. 연결이 끊어집니다." : "다음 에셋이 이 경로를 참조합니다. 참조가 끊어집니다.");
 
-            for (std::size_t Index{}; Index < std::min<std::size_t>(mContentActionReferences.size(), 6); ++Index) {
+            for (Core::Index_t Index{}; Index < std::min<std::size_t>(mContentActionReferences.size(), 6); ++Index) {
                 ImGui::BulletText("%s", Core::FilePath::ToGenericUtf8(mContentActionReferences[Index]).c_str());
             }
 
@@ -1964,7 +1965,7 @@ namespace Editor {
         std::filesystem::path Path{mContentDirectory / "NewFolder"};
         std::error_code Code{};
 
-        for (Core::Uint32 Index{1}; std::filesystem::exists(Root / Path, Code) && !Code; ++Index) {
+        for (Core::Index_t Index{1}; std::filesystem::exists(Root / Path, Code) && !Code; ++Index) {
             Path = mContentDirectory / ("NewFolder_" + std::to_string(Index));
         }
 
@@ -2338,7 +2339,7 @@ namespace Editor {
         std::filesystem::path Requested{};
 
         if (ImGui::BeginTable("ContentGrid", Columns, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX)) {
-            for (int Column{}; Column < Columns; ++Column) {
+            for (Core::Index_t Column{}; Column < Columns; ++Column) {
                 ImGui::TableSetupColumn("##AssetColumn", ImGuiTableColumnFlags_WidthFixed, TileWidth);
             }
 
@@ -2346,11 +2347,11 @@ namespace Editor {
             Clipper.Begin((Count + Columns - 1) / Columns, TileHeight);
 
             while (Clipper.Step()) {
-                for (int Row{Clipper.DisplayStart}; Row < Clipper.DisplayEnd; ++Row) {
+                for (Core::Index_t Row{static_cast<Core::Index_t>(Clipper.DisplayStart)}; Row < Clipper.DisplayEnd; ++Row) {
                     ImGui::TableNextRow(ImGuiTableRowFlags_None, TileHeight);
 
-                    for (int Column{}; Column < Columns; ++Column) {
-                        const int Index{Row * Columns + Column};
+                    for (Core::Index_t Column{}; Column < Columns; ++Column) {
+                        const Core::Index_t Index{static_cast<Core::Index_t>(Row * Columns + Column)};
 
                         if (Index >= Count) {
                             break;
@@ -2358,7 +2359,7 @@ namespace Editor {
 
                         ImGui::TableSetColumnIndex(Column);
 
-                        const bool Directory{static_cast<std::size_t>(Index) < Folders.size()};
+                        const bool Directory{Index < Folders.size()};
                         const auto& Path{Directory ? Folders[Index] : Assets[Index - Folders.size()]};
                         const auto Type{mAssetTypes.find(Path)};
                         const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && Viewer::FAssetViewer::Supports(Type->second)};
@@ -2537,7 +2538,7 @@ namespace Editor {
         std::filesystem::path Path{mContentDirectory / "Material.masset"};
         std::error_code Code{};
 
-        for (Core::Uint32 Index{1}; std::filesystem::exists(Assets->GetContentRoot() / Path, Code) && !Code; ++Index) {
+        for (Core::Index_t Index{1}; std::filesystem::exists(Assets->GetContentRoot() / Path, Code) && !Code; ++Index) {
             Path = mContentDirectory / ("Material_" + std::to_string(Index) + ".masset");
         }
 

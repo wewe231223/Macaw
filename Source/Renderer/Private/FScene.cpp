@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FScene.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FBox.h"
@@ -181,7 +182,7 @@ namespace Renderer {
             return;
         }
 
-        const std::size_t Index{Position->second};
+        const Core::Index_t Index{static_cast<Core::Index_t>(Position->second)};
 
         if (IsShadowCaster(mPrimitives[Index].mProxy)) {
             mCasterRevision = Core::FRevision::Next();
@@ -358,7 +359,7 @@ namespace Renderer {
             return;
         }
 
-        const std::size_t Index{Position->second};
+        const Core::Index_t Index{static_cast<Core::Index_t>(Position->second)};
 
         if (Index + 1 != mLights.size()) {
             mLights[Index] = mLights.back();

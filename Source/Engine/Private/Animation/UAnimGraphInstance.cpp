@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Animation/UAnimGraphInstance.h"
 #include "Asset/FAssetManager.h"
 #include "Core/FilePath.h"
@@ -195,7 +196,7 @@ namespace Engine {
             return nullptr;
         }
 
-        const std::size_t Index{static_cast<std::size_t>(Found - mValueNodes.begin())};
+        const Core::Index_t Index{static_cast<Core::Index_t>(static_cast<std::size_t>(Found - mValueNodes.begin()))};
         return Index < mGetterSources.size() ? mGetterSources[Index] : nullptr;
     }
 
@@ -287,7 +288,7 @@ namespace Engine {
         Core::TArray<Engine::FAnimNode_Base*> LocalNodes{};
         LocalNodes.resize(SourceNodes.size());
 
-        for (std::size_t Index{}; Index < SourceNodes.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < SourceNodes.size(); ++Index) {
             const Asset::FAnimGraphNode& Data{SourceNodes[Index]};
             const Engine::FAnimGraphNodeType* Type{Engine::FAnimGraphNodeRegistry::Find(Data.mType)};
 
@@ -329,7 +330,7 @@ namespace Engine {
         // 링크대로 포즈 입력을 연결합니다. 에셋은 순환 연결과 핀 중복을 허용하지 않습니다.
         Core::TMap<Core::FString, Engine::FAnimValueNode_Base*> ImplicitGetters{};
 
-        for (std::size_t Index{}; Index < LocalNodes.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < LocalNodes.size(); ++Index) {
             if (LocalNodes[Index] == nullptr) {
                 continue;
             }
@@ -349,7 +350,7 @@ namespace Engine {
                 const Asset::FAnimGraphVariableGetter* SourceGetter{Graph->FindBoundGetter(SourceNodes[Index], Input.mName)};
 
                 if (SourceGetter != nullptr) {
-                    const std::size_t GetterIndex{static_cast<std::size_t>(SourceGetter - Getters.data())};
+                    const Core::Index_t GetterIndex{static_cast<Core::Index_t>(static_cast<std::size_t>(SourceGetter - Getters.data()))};
                     Input.mLink->SetLinkedNode(mValueNodes[GetterOffset + GetterIndex].get());
                     continue;
                 }
@@ -392,7 +393,7 @@ namespace Engine {
             To->second->GetPoseInputs(Inputs);
 
             if (Link.mToPin >= 0 && static_cast<std::size_t>(Link.mToPin) < Inputs.size()) {
-                Inputs[static_cast<std::size_t>(Link.mToPin)].mLink->mLinkedNode = From->second;
+                Inputs[static_cast<Core::Index_t>(Link.mToPin)].mLink->mLinkedNode = From->second;
             }
         }
         return Root;

@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Sequence/FSequenceChannel.h"
 #include "Core/Archive.h"
 
@@ -66,7 +67,7 @@ namespace Asset {
          * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
          * @return 인접 키의 값 변화량을 틱 간격으로 나눈 접선입니다.
          */
-        double GetAutoTangent(const Core::TArray<Asset::FSequenceKey>& Keys, std::size_t Index) {
+        double GetAutoTangent(const Core::TArray<Asset::FSequenceKey>& Keys, Core::Index_t Index) {
             if (Index == 0 || Index + 1 >= Keys.size()) {
                 return 0.0;
             }
@@ -163,7 +164,7 @@ namespace Asset {
             return Time < Key.mTick;
         })};
 
-        const std::size_t Index{static_cast<std::size_t>(Next - mKeys.begin()) - 1};
+        const Core::Index_t Index{static_cast<Core::Index_t>(Next - mKeys.begin()) - 1};
         const Asset::FSequenceKey& From{mKeys[Index]};
         const Asset::FSequenceKey& To{*Next};
         const double Span{static_cast<double>(To.mTick) - From.mTick};
@@ -209,7 +210,7 @@ namespace Asset {
             mKeys.clear();
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }

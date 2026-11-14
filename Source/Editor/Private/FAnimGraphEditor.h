@@ -184,7 +184,7 @@ namespace Editor {
          * @param Depth 탐색할 상위 보기의 깊이 또는 노드 배치 깊이입니다.
          * @return 깊이가 유효하여 보기를 전환했으면 true입니다.
          */
-        bool NavigateTo(std::size_t Depth);
+        bool NavigateTo(Core::Index_t Depth);
 
     private:
 
@@ -211,7 +211,7 @@ namespace Editor {
          * @param SaveRequested 현재 프레임에 저장 단축키를 요청했는지 여부입니다.
          * @return 이 변수의 삭제 버튼을 눌렀으면 true입니다.
          */
-        bool DrawVariable(std::size_t Index, bool SaveRequested);
+        bool DrawVariable(Core::Index_t Index, bool SaveRequested);
 
         /**
          * @brief 노드 에디터 캔버스를 그리고 생성·연결·삭제를 처리합니다.
@@ -233,7 +233,7 @@ namespace Editor {
          * @param Name 찾을 그래프 변수 이름입니다.
          * @return 변수 인덱스이며 없으면 -1입니다.
          */
-        Core::Int32 FindVariableIndex(const Core::FString& Name) const;
+        Core::Index_t FindVariableIndex(const Core::FString& Name) const;
 
         /**
          * @brief 선택한 노드의 이름과 파라미터를 그립니다.

@@ -4,6 +4,7 @@
  * @ingroup Game
  */
 
+#include "Core/Types.h"
 #include "FGameApplication.h"
 #include "Core/Base/ErrorHandler.h"
 
@@ -44,7 +45,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         return 1;
     }
 
-    for (int Index{1}; Index < ArgumentCount; ++Index) {
+    for (Core::Index_t Index{1}; Index < ArgumentCount; ++Index) {
         const std::wstring_view Argument{Arguments[Index]};
 
         if (Argument == L"--project" && Index + 1 < ArgumentCount) {

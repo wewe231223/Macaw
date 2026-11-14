@@ -3,6 +3,7 @@
  * @brief 리플렉션 함수·열거형에서 네이티브 ABI와 C# 호출 래퍼를 생성합니다.
  */
 
+#include "Core/Types.h"
 #include "CodeGenerator.h"
 
 #include <algorithm>
@@ -30,6 +31,7 @@ namespace HeaderTool {
             {"float", "float"},
             {"int", "int"},
             {"Core::Int32", "int"},
+            {"Core::Index_t", "int"},
             {"Core::Uint32", "uint"},
             {"Core::Uint64", "ulong"},
         };
@@ -180,7 +182,7 @@ namespace HeaderTool {
         std::string Join(const std::vector<std::string>& Parts, const std::string& Separator) {
             std::string Result;
 
-            for (std::size_t Index{}; Index < Parts.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Parts.size(); ++Index) {
                 Result += (Index == 0 ? "" : Separator) + Parts[Index];
             }
 
@@ -268,7 +270,7 @@ namespace HeaderTool {
                     return Left->Owner->ShortName + Left->Name + std::to_string(Left->Parameters.size()) < Right->Owner->ShortName + Right->Name + std::to_string(Right->Parameters.size());
                 });
 
-                for (std::size_t Index{}; Index < Functions.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < Functions.size(); ++Index) {
                     WriteFunction(*Functions[Index], Index + 1);
                 }
 
@@ -404,7 +406,7 @@ namespace HeaderTool {
              * @param[in] Function 바인딩을 생성할 함수 메타데이터입니다.
              * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
              */
-            void WriteFunction(const FFunction& Function, std::size_t Index) {
+            void WriteFunction(const FFunction& Function, Core::Index_t Index) {
                 const FType& Owner{*Function.Owner};
                 const std::string Native{Owner.Namespace + "::" + Owner.Name};
                 const FType* OwnerClass{FindClass(Owner.ShortName)};
@@ -438,7 +440,7 @@ namespace HeaderTool {
                     Setup.push_back("        if (Self == nullptr) { return 0; }");
                 }
 
-                for (std::size_t ParameterIndex{}; ParameterIndex < Function.Parameters.size(); ++ParameterIndex) {
+                for (Core::Index_t ParameterIndex{}; ParameterIndex < Function.Parameters.size(); ++ParameterIndex) {
                     const FParameter& Parameter{Function.Parameters[ParameterIndex]};
                     const FBindingType Type{Resolve(Parameter.Type, Function)};
                     const std::string Argument{"Arg" + std::to_string(ParameterIndex + 1)};

@@ -213,7 +213,7 @@ namespace Asset {
          * @param Pin 대상 입력 핀 번호이며 첫 입력은 0입니다.
          * @return 연결 가능한 노드·핀 조합이면 true입니다.
          */
-        bool Connect(Core::Int32 From, Core::Int32 To, Core::Int32 Pin);
+        bool Connect(Core::Int32 From, Core::Int32 To, Core::Index_t Pin);
 
         /**
          * @brief 대상 노드의 지정 입력 연결을 해제합니다.
@@ -221,7 +221,7 @@ namespace Asset {
          * @param Pin 대상 입력 핀 번호이며 첫 입력은 0입니다.
          * @return 실제로 연결을 해제했으면 true입니다.
          */
-        bool Disconnect(Core::Int32 To, Core::Int32 Pin);
+        bool Disconnect(Core::Int32 To, Core::Index_t Pin);
 
         /**
          * @brief Bool 노드를 전이 조건 출력으로 지정하거나 -1로 출력을 해제합니다.

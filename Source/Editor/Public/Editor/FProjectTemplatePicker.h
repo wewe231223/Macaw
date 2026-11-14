@@ -157,7 +157,7 @@ namespace Editor {
         /**
          * @brief 현재 선택한 템플릿의 목록 인덱스입니다.
          */
-        std::size_t mSelectedIndex{};
+        Core::Index_t mSelectedIndex{};
     };
 
 }

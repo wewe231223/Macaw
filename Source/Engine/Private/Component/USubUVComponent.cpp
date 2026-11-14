@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Component/USubUVComponent.h"
 #include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
@@ -190,8 +191,8 @@ namespace Engine {
     /**
      * @brief 현재 0 기반 프레임 번호를 반환합니다.
      */
-    Core::Uint32 Engine::USubUVComponent::GetCurrentFrame() const {
-        return std::min(static_cast<Core::Uint32>(mFramePosition), GetEffectiveFrameCount() - 1);
+    Core::Index_t Engine::USubUVComponent::GetCurrentFrame() const {
+        return std::min(static_cast<Core::Index_t>(mFramePosition), static_cast<Core::Index_t>(GetEffectiveFrameCount()) - 1);
     }
 
     /**
@@ -302,7 +303,7 @@ namespace Engine {
         }
 
         if (Target != nullptr) {
-            const Core::Uint32 Frame{GetCurrentFrame()};
+            const Core::Index_t Frame{GetCurrentFrame()};
 
             Target->SetUVTransform({1.0f / mColumns, 1.0f / mRows}, {static_cast<float>(Frame % mColumns) / mColumns, static_cast<float>(Frame / mColumns) / mRows}, GetHandle());
         }

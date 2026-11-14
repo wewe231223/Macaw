@@ -236,7 +236,7 @@ namespace Script::Abi {
     const CoreUObject::FObjectHandle* StoreObjects(const Core::TArray<T*>& Objects, Core::Int32& Count) {
         CoreUObject::FObjectHandle* Buffer{Script::Abi::ResizeObjectBuffer(Objects.size())};
 
-        for (std::size_t Index{}; Index < Objects.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Objects.size(); ++Index) {
             Buffer[Index] = Script::Abi::ToHandle(Objects[Index]);
         }
 

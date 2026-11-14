@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "CoreUObject/UObject.h"
 #include "Asset/FMeshData.h"
 #include "RenderCore/TIndexBuffer.h"
@@ -173,7 +174,7 @@ namespace Asset {
         /**
          * @brief 삼각형 인덱스를 보관하는 소유 GPU 버퍼입니다.
          */
-        RenderCore::TIndexBuffer<Core::Uint32> mIndexBuffer{};
+        RenderCore::TIndexBuffer<Core::Index_t> mIndexBuffer{};
     };
 
 }

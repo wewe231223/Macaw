@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Import/FFBXImporter.h"
 
 namespace Asset {
@@ -14,12 +15,12 @@ namespace Asset {
      * @brief 레이어 요소의 매핑·참조 모드에 따라 다각형 정점의 값을 읽습니다.
      */
     template <typename TValue>
-    bool Asset::FFBXImporter::ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, int ControlPoint, int Polygon, int PolygonVertex, TValue& Value) const {
+    bool Asset::FFBXImporter::ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, Core::Index_t ControlPoint, Core::Index_t Polygon, Core::Index_t PolygonVertex, TValue& Value) const {
         if (Element == nullptr) {
             return true;
         }
 
-        int Index{};
+        Core::Index_t Index{};
 
         // 매핑 모드는 값이 무엇을 단위로 저장되었는지를 나타내므로, 현재 꼭짓점에 맞는 인덱스를 고릅니다.
         // eAllSame은 모든 꼭짓점이 같은 값을 쓰므로 인덱스 0을 그대로 둡니다.

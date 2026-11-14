@@ -74,6 +74,7 @@ end
 
 Configure("MacawHeaderTool", "ConsoleApp")
     files { "Source/Programs/MacawHeaderTool/**.h", "Source/Programs/MacawHeaderTool/**.cpp" }
+    includedirs { "Source/Core/Public" }
     -- 빌드마다 모듈 수만큼 실행되므로 Debug 구성에서도 최적화합니다. 디버그 CRT로는 열 배 가까이 느립니다.
     optimize "Speed"
     runtime "Release"

@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/UStaticMesh.h"
 #include "Core/FilePath.h"
 #include "Asset/Import/IMeshImporter.h"
@@ -149,7 +150,7 @@ namespace Asset {
         UVs.reserve(VertexCount * ChannelCount);
         Colors.reserve(VertexCount);
 
-        for (std::size_t Index{}; Index < VertexCount; ++Index) {
+        for (Core::Index_t Index{}; Index < VertexCount; ++Index) {
             Positions.push_back(mMeshData.GetPositions()[Index].ToArray());
 
             const Core::FVector Normal{mMeshData.GetNormals().empty() ? Core::FVector{0.0f, 0.0f, 1.0f} : mMeshData.GetNormals()[Index]};
@@ -163,7 +164,7 @@ namespace Asset {
 
             Colors.push_back({Color.x, Color.y, Color.z, Color.w});
 
-            for (std::size_t Channel{}; Channel < ChannelCount; ++Channel) {
+            for (Core::Index_t Channel{}; Channel < ChannelCount; ++Channel) {
                 const Core::FVector2 UV{GetUVChannelCount() == 0 ? Core::FVector2{} : mMeshData.GetUVChannels()[Channel][Index]};
 
                 UVs.push_back({UV.x, UV.y});
@@ -175,7 +176,7 @@ namespace Asset {
         TMeshVertexBuffer<std::array<float, 7>> TangentBuffer{};
         TMeshVertexBuffer<std::array<float, 2>> UVBuffer{};
         TMeshVertexBuffer<std::array<float, 4>> ColorBuffer{};
-        RenderCore::TIndexBuffer<Core::Uint32> IndexBuffer{};
+        RenderCore::TIndexBuffer<Core::Index_t> IndexBuffer{};
         Core::FString Error{};
 
         if (!PositionBuffer.Create(Device, Positions, Error) || !TangentBuffer.Create(Device, Tangents, Error) || !UVBuffer.Create(Device, UVs, Error) || !ColorBuffer.Create(Device, Colors, Error) || !IndexBuffer.Create(Device, mMeshData.GetIndices(), Error)) {

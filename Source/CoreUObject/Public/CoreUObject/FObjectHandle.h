@@ -9,8 +9,6 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 
-#include <limits>
-
 namespace CoreUObject {
 
     /**
@@ -38,7 +36,7 @@ namespace CoreUObject {
         /**
          * @brief 레지스트리 슬롯 인덱스입니다.
          */
-        Core::Uint32 mIndex{std::numeric_limits<Core::Uint32>::max()};
+        Core::Index_t mIndex{-1};
 
         /**
          * @brief 슬롯 재사용을 구분하는 세대입니다.

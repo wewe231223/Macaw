@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "FShadowAtlasAllocator.h"
 
 #include <bit>
@@ -47,7 +48,7 @@ namespace Renderer {
     /**
      * @brief 지정한 노드에서 빈 영역을 찾고 필요하면 사분할하여 할당합니다.
      */
-    std::optional<Renderer::FShadowAtlasBlock> Renderer::FShadowAtlasAllocator::AllocateNode(Core::Uint32 Index, Core::Uint32 Size) {
+    std::optional<Renderer::FShadowAtlasBlock> Renderer::FShadowAtlasAllocator::AllocateNode(Core::Index_t Index, Core::Uint32 Size) {
         const FNode Node{mNodes[Index]};
 
         if (Node.mOccupied || Node.mBlock.mSize < Size) {
@@ -55,7 +56,7 @@ namespace Renderer {
         }
 
         if (Node.mSplit) {
-            for (Core::Uint32 Child : Node.mChildren) {
+            for (Core::Index_t Child : Node.mChildren) {
                 const auto Block{AllocateNode(Child, Size)};
 
                 if (Block.has_value()) {
@@ -73,12 +74,12 @@ namespace Renderer {
         }
 
         const Core::Uint32 Half{Node.mBlock.mSize / 2};
-        const Core::Uint32 First{static_cast<Core::Uint32>(mNodes.size())};
+        const Core::Index_t First{static_cast<Core::Index_t>(mNodes.size())};
 
         mNodes[Index].mChildren = {First, First + 1, First + 2, First + 3};
         mNodes[Index].mSplit = true;
 
-        for (Core::Uint32 Child{}; Child < 4; ++Child) {
+        for (Core::Index_t Child{}; Child < 4; ++Child) {
             mNodes.push_back({{Node.mBlock.mX + (Child & 1) * Half, Node.mBlock.mY + (Child >> 1) * Half, Half}});
         }
 

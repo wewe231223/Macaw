@@ -4,6 +4,7 @@
  * @ingroup Core
  */
 
+#include "Core/Types.h"
 #include "Core/Guid.h"
 #include "Core/Base/ErrorHandler.h"
 
@@ -44,7 +45,7 @@ namespace Core {
         }
 
         std::array<Core::Uint8, 16> Bytes{};
-        std::size_t ByteIndex{};
+        Core::Index_t ByteIndex{};
         Core::Int32 High{-1};
 
         for (char Character : Text) {
@@ -79,7 +80,7 @@ namespace Core {
         Core::FString Result{};
         Result.reserve(36);
 
-        for (std::size_t Index{}; Index < mBytes.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mBytes.size(); ++Index) {
             if (Index == 4 || Index == 6 || Index == 8 || Index == 10) {
                 Result.push_back('-');
             }

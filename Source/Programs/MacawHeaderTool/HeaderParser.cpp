@@ -3,6 +3,7 @@
  * @brief 리플렉션 표시를 파싱하고 선언·포함 순서 규칙을 검사합니다.
  */
 
+#include "Core/Types.h"
 #include "HeaderParser.h"
 
 #include <algorithm>
@@ -61,12 +62,12 @@ namespace HeaderTool {
             /**
              * @brief 네임스페이스 본문의 여는 중괄호 토큰 위치입니다.
              */
-            std::size_t Opening{};
+            Core::Index_t Opening{};
 
             /**
              * @brief 본문 또는 인자의 닫는 토큰 위치입니다.
              */
-            std::size_t Closing{};
+            Core::Index_t Closing{};
         };
 
         /**
@@ -96,12 +97,12 @@ namespace HeaderTool {
             /**
              * @brief 표시 이름의 토큰 위치입니다.
              */
-            std::size_t Token{};
+            Core::Index_t Token{};
 
             /**
              * @brief 본문 또는 인자의 닫는 토큰 위치입니다.
              */
-            std::size_t Closing{};
+            Core::Index_t Closing{};
 
             /**
              * @brief 표시의 괄호 안에서 분리한 원문 인자입니다.
@@ -115,7 +116,7 @@ namespace HeaderTool {
          * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
          * @return 범위 안의 토큰이 식별자이면 true입니다.
          */
-        bool IsIdentifier(const FSourceFile& Source, std::size_t Index) {
+        bool IsIdentifier(const FSourceFile& Source, Core::Index_t Index) {
             return Index < Source.Tokens.size() && Source.Tokens[Index].Kind == ETokenKind::Identifier;
         }
 
@@ -128,12 +129,12 @@ namespace HeaderTool {
          * @param[in] Closing 닫는 괄호 토큰 위치입니다.
          * @return 공백을 정리한 원문 인자 목록입니다.
          */
-        std::vector<std::string> ReadArguments(const FSourceFile& Source, std::size_t Opening, std::size_t Closing) {
+        std::vector<std::string> ReadArguments(const FSourceFile& Source, Core::Index_t Opening, Core::Index_t Closing) {
             std::vector<std::string> Arguments;
-            std::size_t First{Opening + 1};
+            Core::Index_t First{static_cast<Core::Index_t>(Opening + 1)};
             int Depth{};
 
-            for (std::size_t Index{Opening + 1}; Index <= Closing; ++Index) {
+            for (Core::Index_t Index{static_cast<Core::Index_t>(Opening + 1)}; Index <= Closing; ++Index) {
                 const std::string& Text{Source.Tokens[Index].Text};
 
                 if (Text == "(" || Text == "{" || Text == "[") {
@@ -218,7 +219,7 @@ namespace HeaderTool {
             std::size_t Position{};
 
             while ((Position = Text.find("UMETA", Position)) != std::string::npos) {
-                std::size_t Last{Text.find('(', Position)};
+                Core::Index_t Last{static_cast<Core::Index_t>(Text.find('(', Position))};
                 int Depth{};
 
                 while (Last < Text.size()) {
@@ -334,13 +335,13 @@ namespace HeaderTool {
              * @brief 이름이 있는 네임스페이스와 토큰 범위를 수집합니다.
              */
             void ReadNamespaces() {
-                for (std::size_t Index{}; Index < mSource.Tokens.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < mSource.Tokens.size(); ++Index) {
                     if (!mSource.Is(Index, "namespace") || !IsIdentifier(mSource, Index + 1)) {
                         continue;
                     }
 
                     std::string Name{mSource.Tokens[Index + 1].Text};
-                    std::size_t Opening{Index + 2};
+                    Core::Index_t Opening{static_cast<Core::Index_t>(Index + 2)};
 
                     while (mSource.Is(Opening, "::") && IsIdentifier(mSource, Opening + 1)) {
                         Name += "::" + mSource.Tokens[Opening + 1].Text;
@@ -358,7 +359,7 @@ namespace HeaderTool {
              * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
              * @return 해석·변환한 문자열입니다.
              */
-            std::string NamespaceAt(std::size_t Index) const {
+            std::string NamespaceAt(Core::Index_t Index) const {
                 std::string Result;
 
                 for (const FNamespace& Namespace : mNamespaces) {
@@ -375,14 +376,14 @@ namespace HeaderTool {
              * @param[in] Keyword 템플릿 여부를 검사할 타입 키워드 위치입니다.
              * @return 템플릿 매개변수 목록이 앞에 있으면 true입니다.
              */
-            bool IsTemplateHead(std::size_t Keyword) const {
+            bool IsTemplateHead(Core::Index_t Keyword) const {
                 if (Keyword == 0 || !mSource.Is(Keyword - 1, ">")) {
                     return false;
                 }
 
                 int Depth{};
 
-                for (std::size_t Index{Keyword - 1}; Index > 0; --Index) {
+                for (Core::Index_t Index{static_cast<Core::Index_t>(Keyword - 1)}; Index > 0; --Index) {
                     if (mSource.Is(Index, ">")) {
                         ++Depth;
                     } else if (mSource.Is(Index, "<") && --Depth == 0) {
@@ -399,12 +400,12 @@ namespace HeaderTool {
             void ReadDefinitions() {
                 const std::vector<FToken>& Tokens{mSource.Tokens};
 
-                for (std::size_t Index{}; Index < Tokens.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < Tokens.size(); ++Index) {
                     if ((!mSource.Is(Index, "class") && !mSource.Is(Index, "struct")) || (Index > 0 && mSource.Is(Index - 1, "enum"))) {
                         continue;
                     }
 
-                    std::size_t NameIndex{Index + 1};
+                    Core::Index_t NameIndex{static_cast<Core::Index_t>(Index + 1)};
 
                     if (mSource.Is(NameIndex, "alignas") && mSource.Is(NameIndex + 1, "(")) {
                         NameIndex = mSource.FindClosing(NameIndex + 1) + 1;
@@ -414,7 +415,7 @@ namespace HeaderTool {
                         continue;
                     }
 
-                    std::size_t Opening{NameIndex + 1};
+                    Core::Index_t Opening{static_cast<Core::Index_t>(NameIndex + 1)};
 
                     while (Opening < Tokens.size() && !mSource.Is(Opening, "{") && !mSource.Is(Opening, ";")) {
                         ++Opening;
@@ -433,13 +434,13 @@ namespace HeaderTool {
                     Type.File = mSource.Path;
                     Type.SourceModule = mSource.Module;
 
-                    for (std::size_t Outer{}; Outer < mHeader.Types.size(); ++Outer) {
+                    for (Core::Index_t Outer{}; Outer < mHeader.Types.size(); ++Outer) {
                         if (Opening > mHeader.Types[Outer].Opening && Opening < mHeader.Types[Outer].Closing) {
-                            Type.Outer = static_cast<int>(Outer);
+                            Type.Outer = Outer;
                         }
                     }
 
-                    const FType* Outer{Type.Outer >= 0 ? &mHeader.Types[static_cast<std::size_t>(Type.Outer)] : nullptr};
+                    const FType* Outer{Type.Outer >= 0 ? &mHeader.Types[static_cast<Core::Index_t>(Type.Outer)] : nullptr};
 
                     Type.Name = Outer != nullptr ? Outer->Name + "::" + Type.ShortName : Type.ShortName;
                     Type.Template = IsTemplateHead(Index) || (Outer != nullptr && Outer->Template);
@@ -456,7 +457,7 @@ namespace HeaderTool {
              * @param[in] Opening 여는 괄호 토큰 위치입니다.
              * @return 정규화한 기반 클래스 이름이며 상속이 없으면 빈 문자열입니다.
              */
-            std::string ReadSuper(std::size_t Index, std::size_t Opening) const {
+            std::string ReadSuper(Core::Index_t Index, Core::Index_t Opening) const {
                 if (mSource.Is(Index, "final")) {
                     ++Index;
                 }
@@ -471,7 +472,7 @@ namespace HeaderTool {
                     ++Index;
                 }
 
-                std::size_t Last{Index};
+                Core::Index_t Last{Index};
                 int Depth{};
 
                 for (; Last < Opening; ++Last) {
@@ -494,7 +495,7 @@ namespace HeaderTool {
             std::vector<FAnnotation> ReadAnnotations() const {
                 std::vector<FAnnotation> Annotations;
 
-                for (std::size_t Index{}; Index < mSource.Tokens.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < mSource.Tokens.size(); ++Index) {
                     const FToken& Token{mSource.Tokens[Index]};
 
                     if (Token.Kind != ETokenKind::Identifier || !mSource.Is(Index + 1, "(")) {
@@ -506,7 +507,7 @@ namespace HeaderTool {
                     }
 
                     if (Contains(sAnnotations, Token.Text)) {
-                        const std::size_t Closing{mSource.FindClosing(Index + 1)};
+                        const Core::Index_t Closing{static_cast<Core::Index_t>(mSource.FindClosing(Index + 1))};
 
                         Annotations.push_back({Token.Text, Index, Closing, ReadArguments(mSource, Index + 1, Closing)});
 
@@ -522,7 +523,7 @@ namespace HeaderTool {
              * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
              * @return 위치를 포함하는 가장 안쪽 타입이며 없으면 nullptr입니다.
              */
-            FType* OwnerAt(std::size_t Index) {
+            FType* OwnerAt(Core::Index_t Index) {
                 FType* Owner{};
 
                 for (FType& Type : mHeader.Types) {
@@ -617,8 +618,8 @@ namespace HeaderTool {
              */
             void ReadProperty(const FAnnotation& Annotation) {
                 FType& Owner{ReflectedOwner(Annotation)};
-                const std::size_t First{Annotation.Closing + 1};
-                std::size_t Index{First};
+                const Core::Index_t First{static_cast<Core::Index_t>(Annotation.Closing + 1)};
+                Core::Index_t Index{First};
                 int Angles{};
 
                 for (; Index < mSource.Tokens.size(); ++Index) {
@@ -704,8 +705,8 @@ namespace HeaderTool {
                     mSource.Fail(Annotation.Token, "Template types cannot use reflection");
                 }
 
-                const std::size_t First{Annotation.Closing + 1};
-                std::size_t Opening{First};
+                const Core::Index_t First{static_cast<Core::Index_t>(Annotation.Closing + 1)};
+                Core::Index_t Opening{First};
                 int Angles{};
 
                 for (; Opening < mSource.Tokens.size(); ++Opening) {
@@ -750,7 +751,7 @@ namespace HeaderTool {
 
                 Function.Return = NormalizeType(Return);
 
-                const std::size_t Closing{mSource.FindClosing(Opening)};
+                const Core::Index_t Closing{static_cast<Core::Index_t>(mSource.FindClosing(Opening))};
                 const std::size_t Begin{mSource.Tokens[Opening].Offset + 1};
                 const std::string Parameters{mSource.Mask.substr(Begin, mSource.Tokens[Closing].Offset - Begin)};
 
@@ -806,7 +807,7 @@ namespace HeaderTool {
                     NoteReflected(Annotation);
                 }
 
-                std::size_t Index{Annotation.Closing + 1};
+                Core::Index_t Index{static_cast<Core::Index_t>(Annotation.Closing + 1)};
 
                 if (!mSource.Is(Index, "enum")) {
                     mSource.Fail(Annotation.Token, "UENUM() must be followed by an enum definition");
@@ -822,7 +823,7 @@ namespace HeaderTool {
 
                 Enum.Name = mSource.Tokens[Index].Text;
 
-                std::size_t Opening{Index + 1};
+                Core::Index_t Opening{static_cast<Core::Index_t>(Index + 1)};
 
                 if (mSource.Is(Opening, ":")) {
                     while (Opening < mSource.Tokens.size() && !mSource.Is(Opening, "{") && !mSource.Is(Opening, ";")) {
@@ -840,12 +841,12 @@ namespace HeaderTool {
                     mSource.Fail(Annotation.Token, "Reflected unscoped enums need an underlying type so they can be forward declared");
                 }
 
-                const std::size_t Closing{mSource.FindClosing(Opening)};
+                const Core::Index_t Closing{static_cast<Core::Index_t>(mSource.FindClosing(Opening))};
                 std::set<std::string> Seen;
-                std::size_t First{Opening + 1};
+                Core::Index_t First{static_cast<Core::Index_t>(Opening + 1)};
                 int Depth{};
 
-                for (std::size_t Entry{Opening + 1}; Entry <= Closing; ++Entry) {
+                for (Core::Index_t Entry{static_cast<Core::Index_t>(Opening + 1)}; Entry <= Closing; ++Entry) {
                     const std::string& Text{mSource.Tokens[Entry].Text};
 
                     Depth += Text == "(" ? 1 : (Text == ")" ? -1 : 0);
@@ -861,9 +862,9 @@ namespace HeaderTool {
 
                         bool Hidden{};
 
-                        for (std::size_t Meta{First}; Meta < Entry; ++Meta) {
+                        for (Core::Index_t Meta{First}; Meta < Entry; ++Meta) {
                             if (mSource.Is(Meta, "UMETA") && mSource.Is(Meta + 1, "(")) {
-                                const std::size_t MetaClosing{mSource.FindClosing(Meta + 1)};
+                                const Core::Index_t MetaClosing{static_cast<Core::Index_t>(mSource.FindClosing(Meta + 1))};
 
                                 for (const std::string& Argument : ReadArguments(mSource, Meta + 1, MetaClosing)) {
                                     if (Argument != "Hidden") {
@@ -971,7 +972,7 @@ namespace HeaderTool {
             /**
              * @brief 클래스·구조체 시작 키워드의 토큰 위치입니다.
              */
-            std::vector<std::size_t> mKeywords;
+            std::vector<Core::Index_t> mKeywords;
 
             /**
              * @brief 첫 리플렉션 표시의 줄 번호입니다.
@@ -997,7 +998,7 @@ namespace HeaderTool {
      * @brief 소스 파일에 리플렉션 어노테이션이 없는지 검사합니다.
      */
     void CheckSourceFile(const FSourceFile& Source) {
-        for (std::size_t Index{}; Index < Source.Tokens.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Source.Tokens.size(); ++Index) {
             const FToken& Token{Source.Tokens[Index]};
 
             if (Token.Kind != ETokenKind::Identifier || !Source.Is(Index + 1, "(")) {

@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "FAnimGraphEditor.h"
 #include "FAnimGraphNodeBuilder.h"
 #include "Asset/FAssetManager.h"
@@ -107,7 +108,7 @@ namespace Editor {
          * @param Pin 대상 입력 핀 번호이며 첫 입력은 0입니다.
          * @return 입력 핀을 식별하는 키입니다.
          */
-        std::uintptr_t InputPinKey(Core::Int32 Node, Core::Int32 Pin) {
+        std::uintptr_t InputPinKey(Core::Int32 Node, Core::Index_t Pin) {
             return Node == Asset::UAnimGraph::OutputNodeId ? OutputInputPin : NodeKey(Node) | static_cast<std::uintptr_t>(Pin + 1);
         }
 
@@ -126,7 +127,7 @@ namespace Editor {
          * @param Parameter 조회하거나 연결할 파라미터 이름 또는 인덱스입니다.
          * @return 다른 노드·핀 종류와 구분되는 편집기 키입니다.
          */
-        std::uintptr_t FloatInputKey(Core::Int32 Node, std::size_t Parameter) {
+        std::uintptr_t FloatInputKey(Core::Int32 Node, Core::Index_t Parameter) {
             return FloatInputBit | InputPinKey(Node, static_cast<Core::Int32>(Parameter));
         }
 
@@ -145,14 +146,14 @@ namespace Editor {
          * @param Parameter 조회하거나 연결할 파라미터 이름 또는 인덱스입니다.
          * @return 레지스트리 소유의 파라미터 메타데이터이며 없으면 nullptr입니다.
          */
-        const Engine::FAnimGraphParameterInfo* FindFloatInput(const Asset::FAnimGraphNode* Node, Core::Int32 Parameter) {
+        const Engine::FAnimGraphParameterInfo* FindFloatInput(const Asset::FAnimGraphNode* Node, Core::Index_t Parameter) {
             const Engine::FAnimGraphNodeType* Type{Node != nullptr ? Engine::FAnimGraphNodeRegistry::Find(Node->mType) : nullptr};
 
             if (Type == nullptr || Parameter < 0 || static_cast<std::size_t>(Parameter) >= Type->mParameters.size()) {
                 return nullptr;
             }
 
-            const Engine::FAnimGraphParameterInfo& Info{Type->mParameters[static_cast<std::size_t>(Parameter)]};
+            const Engine::FAnimGraphParameterInfo& Info{Type->mParameters[Parameter]};
 
             return IsBindableFloat(Info) ? &Info : nullptr;
         }
@@ -172,7 +173,7 @@ namespace Editor {
             /**
              * @brief 노드 내부 입력 핀 번호입니다.
              */
-            Core::Int32 mPin{};
+            Core::Index_t mPin{};
 
             /**
              * @brief 출력 핀이면 true, 입력 핀이면 false입니다.
@@ -434,9 +435,9 @@ namespace Editor {
             ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.11f, 0.14f, 0.18f, 1.0f});
             ImGui::PushStyleColor(ImGuiCol_Border, {0.29f, 0.35f, 0.43f, 0.55f});
 
-            for (std::size_t Index{}; Index < mRootEditing->GetVariables().size(); ++Index) {
+            for (Core::Index_t Index{}; Index < mRootEditing->GetVariables().size(); ++Index) {
                 if (DrawVariable(Index, SaveRequested)) {
-                    Remove = static_cast<Core::Int32>(Index);
+                    Remove = Index;
                 }
             }
 
@@ -457,8 +458,8 @@ namespace Editor {
         }
     }
 
-    bool FAnimGraphEditor::DrawVariable(std::size_t Index, bool SaveRequested) {
-        ImGui::PushID(static_cast<int>(Index));
+    bool FAnimGraphEditor::DrawVariable(Core::Index_t Index, bool SaveRequested) {
+        ImGui::PushID(Index);
         const bool Visible{ImGui::BeginChild("Variable", {}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_NavFlattened, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)};
         bool Remove{};
 
@@ -552,7 +553,7 @@ namespace Editor {
             }
 
             if (Changed) {
-                if (mRootEditing->SetVariable(static_cast<Core::Int32>(Index), Variable)) {
+                if (mRootEditing->SetVariable(Index, Variable)) {
                     mDirty = true;
                     mError.clear();
                 } else {
@@ -567,7 +568,7 @@ namespace Editor {
         return Remove;
     }
 
-    Core::Int32 FAnimGraphEditor::FindVariableIndex(const Core::FString& Name) const {
+    Core::Index_t FAnimGraphEditor::FindVariableIndex(const Core::FString& Name) const {
         const auto& Variables{mEditing->GetVariables()};
         const auto Found{std::find_if(Variables.begin(), Variables.end(), [&Name](const Asset::FAnimGraphVariable& Variable) {
             return Variable.mName == Name;
@@ -607,7 +608,7 @@ namespace Editor {
         }
 
         for (const Asset::FAnimGraphVariableGetter& Getter : mEditing->GetVariableGetters()) {
-            const Core::Int32 Index{FindVariableIndex(Getter.mVariable)};
+            const Core::Index_t Index{static_cast<Core::Index_t>(FindVariableIndex(Getter.mVariable))};
 
             if (Index < 0) {
                 continue;
@@ -619,7 +620,7 @@ namespace Editor {
                 ed::SetNodePosition(ed::NodeId{Key}, {Getter.mX, Getter.mY});
             }
 
-            const Asset::FAnimGraphVariable& Variable{mEditing->GetVariables()[static_cast<std::size_t>(Index)]};
+            const Asset::FAnimGraphVariable& Variable{mEditing->GetVariables()[Index]};
             const Core::FString Value{FormatFloat(Variable.mDefault)};
             const bool Connected{std::find(Bound.begin(), Bound.end(), Getter.mId) != Bound.end()};
 
@@ -637,7 +638,7 @@ namespace Editor {
                 continue;
             }
 
-            for (std::size_t Index{}; Index < Type->mParameters.size(); ++Index) {
+            for (Core::Index_t Index{}; Index < Type->mParameters.size(); ++Index) {
                 const Engine::FAnimGraphParameterInfo& Info{Type->mParameters[Index]};
                 const Asset::FAnimGraphVariableGetter* Getter{IsBindableFloat(Info) ? mEditing->FindBoundGetter(Node, Info.mName) : nullptr};
 
@@ -699,7 +700,7 @@ namespace Editor {
             Builder.FitHeader(Title, TypeTitle);
             Builder.FitPins(PinCount > 0 ? Type->mPoseInputs.front().c_str() : nullptr, "Pose");
 
-            for (std::size_t Pin{1}; Pin < PinCount; ++Pin) {
+            for (Core::Index_t Pin{1}; Pin < PinCount; ++Pin) {
                 Builder.FitPins(Type->mPoseInputs[Pin].c_str());
             }
 
@@ -727,10 +728,10 @@ namespace Editor {
             Builder.Begin(ed::NodeId{NodeKey(Node.mId)}, 210.0f);
             Builder.Header(Title, TypeTitle);
 
-            for (std::size_t Pin{}; Pin < PinCount; ++Pin) {
-                const bool Connected{mEditing->FindInput(Node.mId, static_cast<Core::Int32>(Pin)) != Asset::UAnimGraph::OutputNodeId};
+            for (Core::Index_t Pin{}; Pin < PinCount; ++Pin) {
+                const bool Connected{mEditing->FindInput(Node.mId, Pin) != Asset::UAnimGraph::OutputNodeId};
 
-                Builder.InputPin(ed::PinId{InputPinKey(Node.mId, static_cast<Core::Int32>(Pin))}, Type->mPoseInputs[Pin].c_str(), Connected, PoseColor);
+                Builder.InputPin(ed::PinId{InputPinKey(Node.mId, Pin)}, Type->mPoseInputs[Pin].c_str(), Connected, PoseColor);
 
                 if (Pin == 0) {
                     Builder.OutputPin(ed::PinId{OutputPinKey(Node.mId)}, "Pose", HasOutput(Node.mId), PoseColor, true);
@@ -745,7 +746,7 @@ namespace Editor {
                 Builder.BeginBody();
                 Builder.DrawText(UnknownType.c_str(), {1.0f, 0.45f, 0.4f, 1.0f});
             } else {
-                for (std::size_t Index{}; Index < Parameters.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < Parameters.size(); ++Index) {
                     const Engine::FAnimGraphParameterInfo& Info{Type->mParameters[Index]};
 
                     if (IsBindableFloat(Info)) {
@@ -762,7 +763,7 @@ namespace Editor {
                     Builder.BeginBody();
                 }
 
-                for (std::size_t Index{}; Index < Parameters.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < Parameters.size(); ++Index) {
                     if (const Engine::FAnimGraphParameterInfo& Info{Type->mParameters[Index]}; !IsBindableFloat(Info)) {
                         Builder.DrawProperty(Info.mName.c_str(), Parameters[Index].c_str());
                     }
@@ -962,7 +963,7 @@ namespace Editor {
             }
 
             if (ImGui::MenuItem("입력 연결 끊기", nullptr, false, Id != -2)) {
-                for (Core::Int32 Pin{}; Pin < 255; ++Pin) {
+                for (Core::Index_t Pin{}; Pin < 255; ++Pin) {
                     mDirty |= mEditing->Disconnect(Id, Pin);
                 }
 

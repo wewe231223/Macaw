@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Animation/UBlendSpace.h"
 
 #include <array>
@@ -52,7 +53,7 @@ namespace Asset {
         /**
          * @brief 파라미터 순으로 정렬한 샘플 인덱스 캐시입니다.
          */
-        std::array<Core::Int32, MaxSamples> mSortedSampleIndices{};
+        std::array<Core::Index_t, MaxSamples> mSortedSampleIndices{};
     };
 
 }

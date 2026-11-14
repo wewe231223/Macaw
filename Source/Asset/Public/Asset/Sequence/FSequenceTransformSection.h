@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Sequence/FSequenceChannel.h"
 #include "Core/Math/FTransform.h"
 
@@ -88,14 +89,14 @@ namespace Asset {
          * @param[in] Channel 조회할 채널의 순서이며 ChannelCount보다 작아야 합니다.
          * @return 섹션이 소유한 채널의 참조입니다.
          */
-        Asset::FSequenceChannel& GetChannel(std::size_t Channel);
+        Asset::FSequenceChannel& GetChannel(Core::Index_t Channel);
 
         /**
          * @brief 채널의 저장 이름을 반환합니다.
          * @param[in] Channel 조회할 채널의 순서이며 ChannelCount보다 작아야 합니다.
          * @return 정적 수명의 채널 이름입니다.
          */
-        static const char* GetChannelName(std::size_t Channel);
+        static const char* GetChannelName(Core::Index_t Channel);
 
         /**
          * @brief 지정한 시간의 변환을 계산합니다.

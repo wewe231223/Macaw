@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "FEditorViewportLayout.h"
 #include "EditorStyle.h"
 #include "Editor/FEditorContext.h"
@@ -46,7 +47,7 @@ namespace Editor {
 
         const std::array<Editor::EEditorViewportType, 3> Types{Editor::EEditorViewportType::Top, Editor::EEditorViewportType::Front, Editor::EEditorViewportType::Right};
 
-        for (Core::Uint32 Index{}; Index < mOrthographicViewports.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mOrthographicViewports.size(); ++Index) {
             mOrthographicViewports[Index] = std::make_unique<Editor::FEditorViewport>(mContext, "Orthographic" + std::to_string(Index));
             mOrthographicViewports[Index]->GetClient()->SetViewType(Types[Index]);
 
@@ -99,8 +100,8 @@ namespace Editor {
     /**
      * @brief 0 기반 슬롯에 해당하는 뷰포트를 조회합니다.
      */
-    Editor::FEditorViewport* Editor::FEditorViewportLayout::GetViewport(Core::Uint32 Index) const {
-        return Index == 0 ? mViewport : Index <= mOrthographicViewports.size() ? mOrthographicViewports[Index - 1].get() : nullptr;
+    Editor::FEditorViewport* Editor::FEditorViewportLayout::GetViewport(Core::Index_t Index) const {
+        return Index == 0 ? mViewport : Index > 0 && Index <= mOrthographicViewports.size() ? mOrthographicViewports[Index - 1].get() : nullptr;
     }
 
     /**
@@ -131,7 +132,7 @@ namespace Editor {
             return false;
         }
 
-        for (Core::Uint32 Index{}; Index < mVisible.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mVisible.size(); ++Index) {
             Editor::FEditorViewport* Viewport{GetViewport(Index)};
 
             if (Viewport != nullptr && (Viewport->IsMouseCaptured() || Viewport->GetClient()->GetGizmo().IsDragging())) {
@@ -168,7 +169,7 @@ namespace Editor {
     /**
      * @brief 한 뷰포트의 UI를 표시하고 입력을 캡처한 뷰를 갱신합니다.
      */
-    void Editor::FEditorViewportLayout::DrawViewport(Core::Uint32 Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport) {
+    void Editor::FEditorViewportLayout::DrawViewport(Core::Index_t Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport) {
         Editor::FEditorViewport* Viewport{GetViewport(Index)};
 
         if (Viewport == nullptr) {
@@ -190,7 +191,7 @@ namespace Editor {
         if (ImGui::BeginCombo("##ViewType", Playing ? "Play" : Client->GetViewTypeName())) {
             const std::array<const char*, 7> Names{"Perspective", "Top", "Bottom", "Front", "Back", "Left", "Right"};
 
-            for (Core::Uint32 Type{}; Type < Names.size(); ++Type) {
+            for (Core::Index_t Type{}; Type < Names.size(); ++Type) {
                 const Editor::EEditorViewportType ViewType{static_cast<Editor::EEditorViewportType>(Type)};
 
                 if (ImGui::Selectable(Names[Type], Client->GetViewType() == ViewType)) {
@@ -236,7 +237,7 @@ namespace Editor {
 
         Editor::FEditorViewport* CapturedViewport{};
 
-        for (Core::Uint32 Index{}; Index < mVisible.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mVisible.size(); ++Index) {
             Editor::FEditorViewport* Viewport{GetViewport(Index)};
 
             if (Viewport != nullptr && Viewport->IsMouseCaptured()) {
@@ -254,10 +255,10 @@ namespace Editor {
             const bool QuadView{mQuadView};
 
             if (!QuadView) {
-                const Core::Uint32 Index{mPlaySession->IsActive() ? 0 : mSingleViewport};
+                const Core::Index_t Index{static_cast<Core::Index_t>(mPlaySession->IsActive() ? 0 : mSingleViewport)};
 
                 if (ImGui::BeginChild("ViewportSingle", Available, ImGuiChildFlags_None, Flags)) {
-                    ImGui::PushID(static_cast<int>(Index));
+                    ImGui::PushID(Index);
                     DrawViewport(Index, Input, DeltaTime, CapturedViewport);
                     ImGui::PopID();
                 }
@@ -294,9 +295,9 @@ namespace Editor {
                 const std::array<ImVec2, 4> Positions{{Origin, {Origin.x + Left + SplitterSize, Origin.y}, {Origin.x, Origin.y + Top + SplitterSize}, {Origin.x + Left + SplitterSize, Origin.y + Top + SplitterSize}}};
                 const std::array<ImVec2, 4> Sizes{{{Left, Top}, {Size.x - Left, Top}, {Left, Size.y - Top}, {Size.x - Left, Size.y - Top}}};
 
-                for (Core::Uint32 Index{}; Index < mVisible.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < mVisible.size(); ++Index) {
                     ImGui::SetCursorScreenPos(Positions[Index]);
-                    ImGui::PushID(static_cast<int>(Index));
+                    ImGui::PushID(Index);
 
                     if (ImGui::BeginChild("ViewportPane", Sizes[Index], ImGuiChildFlags_Borders, Flags)) {
                         DrawViewport(Index, Input, DeltaTime, CapturedViewport);
@@ -313,7 +314,7 @@ namespace Editor {
 
         ImGui::End();
 
-        for (Core::Uint32 Index{}; Index < mVisible.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mVisible.size(); ++Index) {
             if (!mVisible[Index]) {
                 if (Editor::FEditorViewport* Viewport{GetViewport(Index)}) {
                     Viewport->ReleaseInput();
@@ -328,7 +329,7 @@ namespace Editor {
     void Editor::FEditorViewportLayout::Draw(float DeltaTime) {
         UpdateViewportContexts();
 
-        for (Core::Uint32 Index{}; Index < mVisible.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mVisible.size(); ++Index) {
             if (mVisible[Index]) {
                 GetViewport(Index)->Draw();
             }
@@ -336,7 +337,7 @@ namespace Editor {
 
         const Editor::FEditorContext* Inspection{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
 
-        for (Core::Uint32 Index{}; Index < mVisible.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mVisible.size(); ++Index) {
             if (mVisible[Index]) {
                 GetViewport(Index)->DrawStatistics(DeltaTime, Inspection->GetWorld(), mContext->GetRenderer()->GetStats());
             }
@@ -399,7 +400,7 @@ namespace Editor {
         } else if (sscanf_s(Line, "QuadView=%d", &Value) == 1 && (Value == 0 || Value == 1)) {
             Layout->mQuadView = Value != 0;
         } else if (sscanf_s(Line, "SingleViewport=%d", &Value) == 1 && Value >= 0 && Value < 4) {
-            Layout->mSingleViewport = static_cast<Core::Uint32>(Value);
+            Layout->mSingleViewport = static_cast<Core::Index_t>(Value);
             Layout->mActiveViewport = Layout->mSingleViewport;
         }
     }

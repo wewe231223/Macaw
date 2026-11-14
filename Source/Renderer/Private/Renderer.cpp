@@ -4,6 +4,7 @@
  * @ingroup Renderer
  */
 
+#include "Core/Types.h"
 #include "Renderer/Renderer.h"
 #include "RendererStats.h"
 #include "Core/FilePath.h"
@@ -298,7 +299,7 @@ namespace Renderer {
             return false;
         }
 
-        mMeshes[static_cast<std::size_t>(Type)] = std::move(Resource);
+        mMeshes[static_cast<Core::Index_t>(Type)] = std::move(Resource);
 
         return true;
     }
@@ -442,7 +443,7 @@ namespace Renderer {
         BaseParameters.mViewProjection = Family.mView.mViewProjection;
         std::array<ID3D11RenderTargetView*, Renderer::GBuffer::AttachmentCount> Attachments{};
 
-        for (std::size_t Index{}; Index < Attachments.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Attachments.size(); ++Index) {
             Attachments[Index] = Target->GetGBuffer()[Index]->GetRenderTargetView();
         }
 
@@ -1085,7 +1086,7 @@ namespace Renderer {
      * @brief 고정 에디터 메시의 로컬 정점과 인덱스를 종류별 불변 GPU 버퍼에 업로드합니다.
      */
     bool Renderer::FRenderer::CreateEditorMeshes() {
-        for (std::size_t Index{}; Index < mEditorMeshes.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mEditorMeshes.size(); ++Index) {
             auto Resource{CoreUObject::NewObject<Asset::UStaticMesh>()};
 
             if (!Resource->SetMeshData(Engine::GetEditorMesh(static_cast<Engine::EEditorMesh>(Index))) || !Resource->CreateResources(mDevice.Get())) {
@@ -1118,7 +1119,7 @@ namespace Renderer {
                 continue;
             }
 
-            const Asset::UStaticMesh* Mesh{mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)].get()};
+            const Asset::UStaticMesh* Mesh{mEditorMeshes[static_cast<Core::Index_t>(Draw.mMesh)].get()};
 
             if (Mesh == nullptr || !Mesh->HasResources()) {
                 continue;
@@ -1567,7 +1568,7 @@ namespace Renderer {
         // 두 깊이 셰이더 중 하나만 바뀌어도 이전 실루엣을 캐시에서 재사용하지 않습니다.
         const Core::Uint64 DepthShaderRevision{std::max(DepthPipeline != nullptr ? DepthPipeline->GetVertexRevision() : 0, SkinDepthPipeline != nullptr ? SkinDepthPipeline->GetVertexRevision() : 0)};
 
-        for (Core::Uint32 Index{}; Index < Maps.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Maps.size(); ++Index) {
             const Renderer::FShadowTileStamp Stamp{mShadowResources->MakeTileStamp(Index, DepthShaderRevision)};
 
             if (mShadowResources->IsTileCurrent(Index, Stamp)) {
@@ -1664,10 +1665,10 @@ namespace Renderer {
         Core::Uint32 LastStencil{};
         Core::Uint32 DrawCalls{};
 
-        for (std::size_t First{}; First < Commands.size();) {
+        for (Core::Index_t First{}; First < Commands.size();) {
             const Renderer::FMeshDrawCommand& Command{Commands[First]};
             const bool ReceivesDecals{Command.mPrimitive->mProxy.mReceivesDecals};
-            std::size_t End{First + 1};
+            Core::Index_t End{static_cast<Core::Index_t>(First + 1)};
 
             if (Command.mPipeline->IsInstanced()) {
                 while (End < Commands.size() && Commands[End].mPipeline == Command.mPipeline && Commands[End].mMaterial == Command.mMaterial && Commands[End].mMesh == Command.mMesh && Commands[End].mFirstIndex == Command.mFirstIndex && Commands[End].mIndexCount == Command.mIndexCount) {

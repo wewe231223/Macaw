@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "RenderCore/EShaderStage.h"
 #include "RenderCore/FGpuBuffer.h"
 
@@ -52,7 +53,7 @@ namespace RenderCore {
          * @param[in] Stages 연결할 셰이더 단계입니다.
          * @param[in] Slot 상수 버퍼 슬롯(b 레지스터)입니다.
          */
-        void Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const {
+        void Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot) const {
             SetBuffer(Context, Stages, Slot, GetBuffer());
         }
 
@@ -62,7 +63,7 @@ namespace RenderCore {
          * @param[in] Stages 해제할 셰이더 단계입니다.
          * @param[in] Slot 상수 버퍼 슬롯(b 레지스터)입니다.
          */
-        static void Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) {
+        static void Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot) {
             SetBuffer(Context, Stages, Slot, nullptr);
         }
 
@@ -91,17 +92,17 @@ namespace RenderCore {
          * @param[in] Slot 조회하거나 바꿀 머티리얼 슬롯입니다.
          * @param[in] Buffer 래핑할 D3D11 버퍼의 COM 소유권입니다.
          */
-        static void SetBuffer(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot, ID3D11Buffer* Buffer) {
+        static void SetBuffer(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot, ID3D11Buffer* Buffer) {
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Vertex)) {
-                Context->VSSetConstantBuffers(Slot, 1, &Buffer);
+                Context->VSSetConstantBuffers(static_cast<UINT>(Slot), 1, &Buffer);
             }
 
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Pixel)) {
-                Context->PSSetConstantBuffers(Slot, 1, &Buffer);
+                Context->PSSetConstantBuffers(static_cast<UINT>(Slot), 1, &Buffer);
             }
 
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Compute)) {
-                Context->CSSetConstantBuffers(Slot, 1, &Buffer);
+                Context->CSSetConstantBuffers(static_cast<UINT>(Slot), 1, &Buffer);
             }
         }
     };

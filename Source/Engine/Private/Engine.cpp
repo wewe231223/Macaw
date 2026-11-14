@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Engine.h"
 #include "Core/FilePath.h"
 #include "Engine/SceneSerializer.h"
@@ -101,7 +102,7 @@ namespace Engine {
             return false;
         }
 
-        for (Core::Uint32 Index{}; Index < static_cast<Core::Uint32>(Engine::EPrimitiveType::Count); ++Index) {
+        for (Core::Index_t Index{}; Index < static_cast<Core::Uint32>(Engine::EPrimitiveType::Count); ++Index) {
             if (!Renderer->UploadMesh(static_cast<Engine::EPrimitiveType>(Index), Engine::GetPrimitiveMesh(static_cast<Engine::EPrimitiveType>(Index)))) {
                 return false;
             }
@@ -111,7 +112,7 @@ namespace Engine {
 
         std::size_t GeometryBytes{};
 
-        for (Core::Uint32 Index{}; Index < static_cast<Core::Uint32>(Engine::EPrimitiveType::Count); ++Index) {
+        for (Core::Index_t Index{}; Index < static_cast<Core::Uint32>(Engine::EPrimitiveType::Count); ++Index) {
             GeometryBytes += Engine::GetPrimitiveMesh(static_cast<Engine::EPrimitiveType>(Index)).GetAllocatedBytes();
         }
 
@@ -257,7 +258,7 @@ namespace Engine {
             return {};
         }
 
-        Core::Uint32 Index{};
+        Core::Index_t Index{};
 
         while (Index < mWorldContexts.size() && mWorldContexts[Index] != nullptr) {
             ++Index;

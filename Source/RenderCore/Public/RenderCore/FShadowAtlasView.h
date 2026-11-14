@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 
 #include "Core/Guid.h"
@@ -32,7 +33,7 @@ namespace RenderCore {
         /**
          * @brief 점광원 큐브 면 또는 방향광 캐스케이드의 0 기반 번호입니다.
          */
-        Core::Uint32 mFace{};
+        Core::Index_t mFace{};
 
         /**
          * @brief 보호 여백을 제외한 그림자 맵 한 변의 유효 픽셀 수입니다.

@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FProjectTemplatePicker.h"
 #include "Asset/UTexture2D.h"
 #include "Core/FilePath.h"
@@ -64,7 +65,7 @@ namespace Editor {
             return A.mName < B.mName;
         });
 
-        for (std::size_t Index{}; Index < mTemplates.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mTemplates.size(); ++Index) {
             if (mTemplates[Index].mDirectory.lexically_normal() == Preferred) {
                 mSelectedIndex = Index;
             }
@@ -142,7 +143,7 @@ namespace Editor {
             return false;
         }
 
-        mSelectedIndex = static_cast<std::size_t>(Found - mTemplates.begin());
+        mSelectedIndex = static_cast<Core::Index_t>(Found - mTemplates.begin());
 
         return true;
     }
@@ -150,7 +151,7 @@ namespace Editor {
     const std::filesystem::path& FProjectTemplatePicker::GetSelectedDirectory() const {
         static const std::filesystem::path Empty{};
 
-        return mSelectedIndex < mTemplates.size() ? mTemplates[mSelectedIndex].mDirectory : Empty;
+        return mSelectedIndex >= 0 && mSelectedIndex < mTemplates.size() ? mTemplates[mSelectedIndex].mDirectory : Empty;
     }
 
     Core::Uint32 FProjectTemplatePicker::GetTemplateCount() const {
@@ -186,7 +187,7 @@ namespace Editor {
             return false;
         }
 
-        for (std::size_t Index{}; Index < mTemplates.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mTemplates.size(); ++Index) {
             auto& Template{mTemplates[Index]};
             ImGui::TableNextColumn();
             ImGui::PushID(Template.mId.c_str());

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "CoreUObject/UObject.h"
 #include "Core/Math/FVector4.h"
 #include "RenderCore/TConstantBuffer.h"
@@ -182,7 +183,7 @@ namespace Asset {
          * @param[in] Stages 연결할 셰이더 단계입니다.
          * @param[in] Slot 상수 버퍼 슬롯(b 레지스터)입니다.
          */
-        void BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const;
+        void BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot) const;
 
         /**
          * @brief 정반사 색상 값을 반환합니다.

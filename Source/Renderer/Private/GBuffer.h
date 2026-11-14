@@ -21,7 +21,7 @@ namespace Renderer::GBuffer {
     /**
      * @brief 월드 공간 노멀을 저장하는 GBuffer 첨부 인덱스입니다.
      */
-    inline constexpr std::size_t NormalAttachment{1};
+    inline constexpr Core::Index_t NormalAttachment{1};
 
     /**
      * @brief 데칼을 받을 표면을 식별하는 스텐실 비트입니다.

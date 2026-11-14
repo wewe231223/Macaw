@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/FWorldHandle.h"
 
 namespace Engine {
@@ -11,7 +12,7 @@ namespace Engine {
     /**
      * @brief 슬롯과 세대를 조합하여 핸들을 구성합니다.
      */
-    Engine::FWorldHandle::FWorldHandle(Core::Uint32 Index, Core::Uint64 Generation)
+    Engine::FWorldHandle::FWorldHandle(Core::Index_t Index, Core::Uint64 Generation)
 		: mIndex{Index},
 		  mGeneration{Generation} {
     }
@@ -20,13 +21,13 @@ namespace Engine {
      * @brief 슬롯과 세대가 무효 기본값이 아닌지 검사합니다.
      */
     bool Engine::FWorldHandle::IsValid() const {
-        return mIndex != std::numeric_limits<Core::Uint32>::max() && mGeneration != 0;
+        return mIndex >= 0 && mGeneration != 0;
     }
 
     /**
      * @brief 월드 컨텍스트의 슬롯을 반환합니다.
      */
-    Core::Uint32 Engine::FWorldHandle::GetIndex() const {
+    Core::Index_t Engine::FWorldHandle::GetIndex() const {
         return mIndex;
     }
 

@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Animation/FAnimStateMachineData.h"
 #include "Asset/Animation/UAnimGraph.h"
 #include "Core/Archive.h"
@@ -96,7 +97,7 @@ namespace Asset {
         return false;
     }
 
-    bool FAnimTransitionGraph::Connect(Core::Int32 From, Core::Int32 To, Core::Int32 Pin) {
+    bool FAnimTransitionGraph::Connect(Core::Int32 From, Core::Int32 To, Core::Index_t Pin) {
         const auto* Source{FindNode(From)};
         auto* Target{FindNode(To)};
 
@@ -109,7 +110,7 @@ namespace Asset {
         return true;
     }
 
-    bool FAnimTransitionGraph::Disconnect(Core::Int32 To, Core::Int32 Pin) {
+    bool FAnimTransitionGraph::Disconnect(Core::Int32 To, Core::Index_t Pin) {
         auto* Node{FindNode(To)};
 
         if (Node == nullptr || Pin < 0 || Pin >= GetInputCount(Node->mType)) {
@@ -154,7 +155,7 @@ namespace Asset {
     const char* FAnimTransitionGraph::GetTitle(Asset::EAnimRuleNodeType Type) {
         static constexpr const char* Titles[]{"Float", "Bool", "Get Float", "Get Bool", ">", ">=", "<", "<=", "==", "!=", "And", "Or", "Not", "State Time", "Time Remaining", "Finished"};
 
-        return Type < Asset::EAnimRuleNodeType::Count ? Titles[static_cast<std::size_t>(Type)] : "Unknown";
+        return Type < Asset::EAnimRuleNodeType::Count ? Titles[static_cast<Core::Index_t>(Type)] : "Unknown";
     }
 
     bool FAnimTransitionGraph::Validate() const {
@@ -162,7 +163,7 @@ namespace Asset {
             return false;
         }
 
-        for (std::size_t Index{}; Index < mNodes.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < mNodes.size(); ++Index) {
             const auto& Node{mNodes[Index]};
 
             if (Node.mId < 0 || Node.mId == std::numeric_limits<Core::Int32>::max() || Node.mType >= Asset::EAnimRuleNodeType::Count || !std::isfinite(Node.mValue) || !std::isfinite(Node.mX) || !std::isfinite(Node.mY) || std::any_of(mNodes.begin(), mNodes.begin() + Index, [&Node](const auto& Other) {
@@ -171,7 +172,7 @@ namespace Asset {
                 return false;
             }
 
-            for (Core::Int32 Pin{}; Pin < 2; ++Pin) {
+            for (Core::Index_t Pin{}; Pin < 2; ++Pin) {
                 const Core::Int32 Input{Pin == 0 ? Node.mInputA : Node.mInputB};
 
                 if (Input == -1) {
@@ -212,7 +213,7 @@ namespace Asset {
             mNextId = 0;
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -396,7 +397,7 @@ namespace Asset {
             mNextStateId = 0;
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
@@ -444,7 +445,7 @@ namespace Asset {
             mNextTransitionId = 0;
         }
 
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "UMeshComponent.generated.h"
 
@@ -70,14 +71,14 @@ namespace Engine {
          * @param[in] Slot 조회하거나 바꿀 머티리얼 슬롯입니다.
          * @return 전체 덮어쓰기·슬롯 덮어쓰기·메시 기본값 순으로 선택한 머티리얼이며 로드할 수 없으면 nullptr입니다.
          */
-        Asset::UMaterial* GetSlotMaterial(Core::Uint32 Slot) const;
+        Asset::UMaterial* GetSlotMaterial(Core::Index_t Slot) const;
 
         /**
          * @brief 지정 슬롯의 덮어쓰기 머티리얼 경로를 반환합니다.
          * @param[in] Slot 조회하거나 바꿀 머티리얼 슬롯입니다.
          * @return 지정 슬롯의 덮어쓰기 머티리얼 경로입니다.
          */
-        const Core::FString& GetSlotMaterialPath(Core::Uint32 Slot) const;
+        const Core::FString& GetSlotMaterialPath(Core::Index_t Slot) const;
 
         /**
          * @brief 지정 슬롯의 머티리얼 경로를 검증해 덮어쓰기에 반영합니다.
@@ -85,7 +86,7 @@ namespace Engine {
          * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
          * @return 슬롯·경로·참조 머티리얼이 유효해 반영되면 true입니다.
          */
-        bool SetSlotMaterialPath(Core::Uint32 Slot, const Core::FString& Path);
+        bool SetSlotMaterialPath(Core::Index_t Slot, const Core::FString& Path);
 
         /**
          * @brief 슬롯별 머티리얼 경로를 비우고 렌더 상태를 갱신 대상으로 표시합니다.

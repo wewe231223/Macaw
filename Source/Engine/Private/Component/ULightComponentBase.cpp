@@ -4,6 +4,7 @@
  * @ingroup Engine
  */
 
+#include "Core/Types.h"
 #include "Engine/Component/ULightComponentBase.h"
 #include "Engine/UWorld.h"
 #include "Engine/FSceneInterface.h"
@@ -225,8 +226,8 @@ namespace Engine {
         if (Proxy.mType == Engine::ELightType::Point) {
             const std::array<Core::FVector, 3> Axes{{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
 
-            for (Core::Uint32 Axis{}; Axis < 3; ++Axis) {
-                for (Core::Uint32 Index{}; Index < Segments; ++Index) {
+            for (Core::Index_t Axis{}; Axis < 3; ++Axis) {
+                for (Core::Index_t Index{}; Index < Segments; ++Index) {
                     const Core::FAngle Start{1_turn * Index / Segments};
                     const Core::FAngle End{1_turn * (Index + 1) / Segments};
 
@@ -242,7 +243,7 @@ namespace Engine {
             const Core::FVector Center{Position + Forward * (Radius * Core::Math::Cos(Angle * 1_deg))};
             const Core::FVector ConeColor{Angle == Proxy.mOuterConeAngle ? Color : Color * 0.5f};
 
-            for (Core::Uint32 Index{}; Index < Segments; ++Index) {
+            for (Core::Index_t Index{}; Index < Segments; ++Index) {
                 const Core::FAngle Start{1_turn * Index / Segments};
                 const Core::FAngle End{1_turn * (Index + 1) / Segments};
                 const Core::FVector Edge{Center + (Right * Core::Math::Cos(Start) + Up * Core::Math::Sin(Start)) * ConeRadius};

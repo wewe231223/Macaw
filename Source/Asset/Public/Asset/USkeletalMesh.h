@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/FMeshData.h"
 #include "Asset/UStaticMesh.h"
 #include "Asset/Import/FMeshImportSkinWeight.h"
@@ -94,14 +95,14 @@ namespace Asset {
          * @param Context 바인딩할 장치 컨텍스트입니다.
          * @param Slot 입력 슬롯입니다.
          */
-        void BindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot) const;
+        void BindSkinWeights(ID3D11DeviceContext* Context, Core::Index_t Slot) const;
 
         /**
          * @brief 입력 슬롯의 스킨 가중치 버퍼 연결을 해제합니다.
          * @param Context 바인딩할 장치 컨텍스트입니다.
          * @param Slot 입력 슬롯입니다.
          */
-        static void UnbindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot);
+        static void UnbindSkinWeights(ID3D11DeviceContext* Context, Core::Index_t Slot);
 
         /**
          * @brief 바인드 형상의 로컬 경계를 반환합니다.

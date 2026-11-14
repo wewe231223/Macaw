@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "Editor/FMeshViewer.h"
 #include "Viewer/FMeshViewerContent.h"
 #include "Viewer/FBonePreview.h"
@@ -167,8 +168,8 @@ namespace Editor {
         const auto Paths{mAssets->GetAssetPaths(Error)};
         const auto& Slots{mMesh->GetMeshData().GetMaterialSlots()};
 
-        for (Core::Uint32 Slot{}; Slot < Slots.size(); ++Slot) {
-            ImGui::PushID(static_cast<int>(Slot));
+        for (Core::Index_t Slot{}; Slot < Slots.size(); ++Slot) {
+            ImGui::PushID(Slot);
 
             Core::FString Path{mMaterialPaths[Slot]};
             bool Changed{};
@@ -443,20 +444,20 @@ namespace Editor {
             const float ControlsHeight{ImGui::GetTextLineHeightWithSpacing() + ImGui::GetFrameHeightWithSpacing() * 2.0f};
 
             if (ImGui::BeginChild("Bone Hierarchy", {0.0f, -ControlsHeight}, ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar)) {
-                Core::TArray<Core::TArray<Core::Uint32>> Children(Bones.size());
+                Core::TArray<Core::TArray<Core::Index_t>> Children(Bones.size());
 
-                for (Core::Uint32 Index{}; Index < Bones.size(); ++Index) {
-                    const Core::Int32 Parent{Bones[Index].GetParentIndex()};
+                for (Core::Index_t Index{}; Index < Bones.size(); ++Index) {
+                    const Core::Index_t Parent{static_cast<Core::Index_t>(Bones[Index].GetParentIndex())};
 
                     if (Parent >= 0) {
-                        Children[static_cast<std::size_t>(Parent)].push_back(Index);
+                        Children[Parent].push_back(Index);
                     }
                 }
 
                 // 본 계층은 깊으므로 들여쓰기를 줄여 깊은 본의 이름까지 패널 안에 표시합니다.
                 ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, ImGui::GetStyle().IndentSpacing / 3.0f);
 
-                for (Core::Uint32 Index{}; Index < Bones.size(); ++Index) {
+                for (Core::Index_t Index{}; Index < Bones.size(); ++Index) {
                     if (Bones[Index].GetParentIndex() < 0) {
                         DrawBoneNode(Index, Children);
                     }
@@ -506,7 +507,7 @@ namespace Editor {
     /**
      * @brief 본 하나와 그 자손을 계층 트리 노드로 표시하고 클릭하면 조작 대상으로 선택합니다.
      */
-    void Editor::FMeshViewer::DrawBoneNode(Core::Uint32 Bone, const Core::TArray<Core::TArray<Core::Uint32>>& Children) {
+    void Editor::FMeshViewer::DrawBoneNode(Core::Index_t Bone, const Core::TArray<Core::TArray<Core::Index_t>>& Children) {
         const auto& BoneChildren{Children[Bone]};
         const ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen | (Bone == mPoseBone ? ImGuiTreeNodeFlags_Selected : 0) | (BoneChildren.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen : 0)};
 
@@ -519,7 +520,7 @@ namespace Editor {
         }
 
         if (Open && !BoneChildren.empty()) {
-            for (const Core::Uint32 Child : BoneChildren) {
+            for (const Core::Index_t Child : BoneChildren) {
                 DrawBoneNode(Child, Children);
             }
 
@@ -569,14 +570,14 @@ namespace Editor {
     /**
      * @brief 선택한 본의 현재 전역 포즈로 기즈모 배치를 구성합니다.
      */
-    Editor::FGizmoPlacement Editor::FMeshViewer::GetBonePlacement(Core::Uint32 Bone) const {
+    Editor::FGizmoPlacement Editor::FMeshViewer::GetBonePlacement(Core::Index_t Bone) const {
         const Core::FMatrix& Global{mContent->GetPose().GetGlobalTransforms()[Bone]};
         Editor::FGizmoPlacement Placement{};
         Placement.mPivot = Global.TransformPosition({});
         Placement.mMode = mGizmoMode;
 
         // 본 행렬에는 스케일이 있을 수 있으므로 축을 정규화하고, 퇴화한 축은 월드 축으로 대체합니다.
-        for (Core::Int32 Index{}; Index < 3; ++Index) {
+        for (Core::Index_t Index{}; Index < 3; ++Index) {
             const Core::FVector Axis{Global.GetAxis(Index).Normalized()};
 
             Placement.mAxes[Index] = mGizmoSpace == Editor::EGizmoSpace::Local && !Axis.IsNearlyZero() ? Axis : Editor::FGizmoCore::GetUnitAxes()[Index];
@@ -588,7 +589,7 @@ namespace Editor {
     /**
      * @brief 기즈모의 호버와 드래그 입력을 처리합니다.
      */
-    bool Editor::FMeshViewer::UpdateBoneGizmo(Core::Uint32 Bone, const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered) {
+    bool Editor::FMeshViewer::UpdateBoneGizmo(Core::Index_t Bone, const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered) {
         using Core::EKey;
 
         if (mGizmo.IsDragging()) {
@@ -616,7 +617,7 @@ namespace Editor {
         const bool CanHover{Hovered && !mMouseCaptured && !Input.IsDown(EKey::MouseRight) && !Input.IsDown(EKey::MouseMiddle)};
         const Editor::FGizmoPlacement Placement{GetBonePlacement(Bone)};
         const Engine::FHitProxy Hit{CanHover ? mGizmo.HitTest(Mouse, View, Placement) : Engine::FHitProxy{}};
-        const Core::Int32 Axis{Hit.mType == Engine::EHitProxyType::GizmoAxis ? Hit.mAxis : -1};
+        const Core::Index_t Axis{static_cast<Core::Index_t>(Hit.mType == Engine::EHitProxyType::GizmoAxis ? Hit.mAxis : -1)};
 
         mGizmo.SetHoveredAxis(Axis);
 
@@ -635,7 +636,7 @@ namespace Editor {
     /**
      * @brief 기즈모의 드래그 결과를 선택한 본의 부모 기준 로컬 변환으로 바꾸어 적용합니다.
      */
-    void Editor::FMeshViewer::ApplyBoneGizmo(Core::Uint32 Bone) {
+    void Editor::FMeshViewer::ApplyBoneGizmo(Core::Index_t Bone) {
         Core::FMatrix Delta{Core::FMatrix::Translation(mGizmo.GetTranslation())};
 
         if (mGizmo.GetDragMode() == Editor::EGizmoMode::Rotate) {
@@ -644,10 +645,10 @@ namespace Editor {
             Delta = Core::FMatrix::Translation(-Pivot) * Core::FMatrix::Rotation(mGizmo.GetRotation()) * Core::FMatrix::Translation(Pivot);
         }
 
-        const Core::Int32 Parent{mSkeleton->GetBones()[Bone].GetParentIndex()};
+        const Core::Index_t Parent{static_cast<Core::Index_t>(mSkeleton->GetBones()[Bone].GetParentIndex())};
         Core::FMatrix ParentInverse{Core::FMatrix::Identity()};
 
-        if (Parent >= 0 && !mContent->GetPose().GetGlobalTransforms()[static_cast<std::size_t>(Parent)].TryInverse(ParentInverse)) {
+        if (Parent >= 0 && !mContent->GetPose().GetGlobalTransforms()[Parent].TryInverse(ParentInverse)) {
             return;
         }
 
@@ -655,7 +656,7 @@ namespace Editor {
         Core::FMatrix Local{mDragStartGlobal * Delta * ParentInverse};
 
         // 역행렬의 부동소수점 오차가 아핀 검사에 걸리지 않도록 마지막 열을 고정합니다.
-        for (Core::Int32 Row{}; Row < 3; ++Row) {
+        for (Core::Index_t Row{}; Row < 3; ++Row) {
             Local(Row, 3) = 0.0f;
         }
 

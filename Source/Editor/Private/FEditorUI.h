@@ -581,17 +581,17 @@ namespace Editor {
         /**
          * @brief 테마 카탈로그에서 현재 선택한 항목의 0 기반 인덱스입니다.
          */
-        Core::Uint32 mThemeIndex{};
+        Core::Index_t mThemeIndex{};
 
         /**
          * @brief 뷰포트별 설정을 편집할 대상의 0 기반 인덱스입니다.
          */
-        Core::Uint32 mSettingsViewport{};
+        Core::Index_t mSettingsViewport{};
 
         /**
          * @brief 설정 창에서 선택한 인터페이스·뷰포트·렌더링 등 분류의 인덱스입니다.
          */
-        int mSettingsSection{};
+        Core::Index_t mSettingsSection{};
 
         /**
          * @brief DPI와 사용자 배율을 적용하기 전의 기본 폰트 크기이며 10~32 범위입니다.

@@ -279,7 +279,7 @@ namespace Core {
         /**
          * @brief 다음 완료 프레임 값을 기록할 순환 이력 위치입니다.
          */
-        std::size_t mHistoryIndex{};
+        Core::Index_t mHistoryIndex{};
 
         /**
          * @brief 순환 이력에 저장한 유효 프레임 수입니다.

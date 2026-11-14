@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Sequence/FSequenceTransformSection.h"
 #include "Core/Archive.h"
 #include "Core/Math/FRotator.h"
@@ -38,14 +39,14 @@ namespace Asset {
     /**
      * @brief 지정한 채널을 반환합니다.
      */
-    Asset::FSequenceChannel& Asset::FSequenceTransformSection::GetChannel(std::size_t Channel) {
+    Asset::FSequenceChannel& Asset::FSequenceTransformSection::GetChannel(Core::Index_t Channel) {
         return mChannels[Channel];
     }
 
     /**
      * @brief 채널의 저장 이름을 반환합니다.
      */
-    const char* Asset::FSequenceTransformSection::GetChannelName(std::size_t Channel) {
+    const char* Asset::FSequenceTransformSection::GetChannelName(Core::Index_t Channel) {
         return ChannelNames[Channel];
     }
 
@@ -55,7 +56,7 @@ namespace Asset {
     Core::FTransform Asset::FSequenceTransformSection::Evaluate(double Tick, const Core::FTransform& Base) const {
         Core::FTransform Result{Base};
         const auto Sample{[this, Tick](Asset::ESequenceTransformChannel Channel, float& Value) {
-            return mChannels[static_cast<std::size_t>(Channel)].Evaluate(Tick, Value);
+            return mChannels[Channel].Evaluate(Tick, Value);
         }};
 
         Sample(Asset::ESequenceTransformChannel::LocationX, Result.mLocation.x);
@@ -100,7 +101,7 @@ namespace Asset {
             return;
         }
 
-        for (std::size_t Index{}; Index < ChannelCount && !Archive.HasError(); ++Index) {
+        for (Core::Index_t Index{}; Index < ChannelCount && !Archive.HasError(); ++Index) {
             if (Archive.IsLoading() ? !Archive.HasField(ChannelNames[Index]) : mChannels[Index].GetKeys().empty()) {
                 continue;
             }

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Asset/Import/FMeshImportBone.h"
 #include "Engine/EEditorMesh.h"
 
@@ -24,7 +25,7 @@ namespace Viewer {
          * @param World 표시 도형의 월드 변환 행렬입니다.
          * @param Bone 대응하는 스켈레톤 본 인덱스입니다.
          */
-        FBoneShape(Engine::EEditorMesh Mesh, const Core::FMatrix& World, Core::Uint32 Bone);
+        FBoneShape(Engine::EEditorMesh Mesh, const Core::FMatrix& World, Core::Index_t Bone);
 
     public:
 
@@ -44,7 +45,7 @@ namespace Viewer {
          * @brief 도형에 연결된 본 인덱스를 반환합니다.
          * @return 스켈레톤 본 배열의 인덱스입니다.
          */
-        Core::Uint32 GetBone() const;
+        Core::Index_t GetBone() const;
 
     private:
 
@@ -61,7 +62,7 @@ namespace Viewer {
         /**
          * @brief 표시 도형이 대응하는 스켈레톤 본 인덱스입니다.
          */
-        Core::Uint32 mBone{};
+        Core::Index_t mBone{};
     };
 
     Core::TArray<Viewer::FBoneShape> BuildBoneShapes(const Core::TArray<Asset::FMeshImportBone>& Bones, const Core::TArray<Core::FMatrix>& Transforms, float Radius);

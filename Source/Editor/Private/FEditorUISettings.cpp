@@ -4,6 +4,7 @@
  * @ingroup Editor
  */
 
+#include "Core/Types.h"
 #include "FEditorUI.h"
 #include "BufferVisualization.h"
 #include "Core/FilePath.h"
@@ -368,7 +369,7 @@ namespace Editor {
             Input.KeyRepeatRate = std::isfinite(RepeatRate) ? std::clamp(RepeatRate, 0.02f, 0.3f) : 0.05f;
         }
 
-        for (Core::Uint32 Index{}; Index < 4; ++Index) {
+        for (Core::Index_t Index{}; Index < 4; ++Index) {
             Editor::FEditorViewport* Viewport{mViewportLayout.GetViewport(Index)};
 
             if (Viewport != nullptr && Archive.BeginObject("Viewport" + std::to_string(Index))) {
@@ -387,8 +388,8 @@ namespace Editor {
         }
 
         if (ImGui::BeginMenu("Theme")) {
-            for (Core::Uint32 Index{}; Index < mThemes.GetCount(); ++Index) {
-                ImGui::PushID(static_cast<int>(Index));
+            for (Core::Index_t Index{}; Index < mThemes.GetCount(); ++Index) {
+                ImGui::PushID(Index);
 
                 if (ImGui::MenuItem(mThemes.GetName(Index).c_str(), nullptr, mThemeIndex == Index)) {
                     mThemeIndex = Index;
@@ -449,7 +450,7 @@ namespace Editor {
             const float FooterHeight{ImGui::GetFrameHeightWithSpacing() * 2.0f};
 
             if (ImGui::BeginChild("SettingsNavigation", {170.0f * Scale, -FooterHeight}, ImGuiChildFlags_Borders)) {
-                for (int Index{}; Index < static_cast<int>(std::size(Sections)); ++Index) {
+                for (Core::Index_t Index{}; Index < static_cast<int>(std::size(Sections)); ++Index) {
                     if (ImGui::Selectable(Sections[Index], mSettingsSection == Index)) {
                         mSettingsSection = Index;
                     }
@@ -467,10 +468,10 @@ namespace Editor {
                     DrawInterfaceSettings();
                 } else if (mSettingsSection == 1 || mSettingsSection == 2 || mSettingsSection == 4) {
                     const std::array<const char*, 4> Names{"Viewport 1", "Viewport 2", "Viewport 3", "Viewport 4"};
-                    int Selected{static_cast<int>(mSettingsViewport)};
+                    Core::Index_t Selected{mSettingsViewport};
 
                     if (ImGui::Combo("Viewport", &Selected, Names.data(), static_cast<int>(Names.size()))) {
-                        mSettingsViewport = static_cast<Core::Uint32>(Selected);
+                        mSettingsViewport = static_cast<Core::Index_t>(Selected);
                     }
 
                     ImGui::TextDisabled("%s", mViewportLayout.GetViewport(mSettingsViewport)->GetClient()->GetViewTypeName());
@@ -550,12 +551,12 @@ namespace Editor {
         if (ImGui::BeginCombo("Theme", mThemes.GetName(mThemeIndex).c_str())) {
             ImGuiTextFilter Filter{mThemeFilter.data()};
 
-            for (Core::Uint32 Index{}; Index < mThemes.GetCount(); ++Index) {
+            for (Core::Index_t Index{}; Index < mThemes.GetCount(); ++Index) {
                 if (!Filter.PassFilter(mThemes.GetName(Index).c_str()) && !Filter.PassFilter(mThemes.GetAuthor(Index).c_str())) {
                     continue;
                 }
 
-                ImGui::PushID(static_cast<int>(Index));
+                ImGui::PushID(Index);
 
                 if (ImGui::Selectable(mThemes.GetName(Index).c_str(), mThemeIndex == Index)) {
                     mThemeIndex = Index;
@@ -929,7 +930,7 @@ namespace Editor {
         mViewportLayout.SetQuadView(false);
         mViewportLayout.SetSplitRatios(0.5f, 0.5f);
 
-        for (Core::Uint32 Index{}; Index < 4; ++Index) {
+        for (Core::Index_t Index{}; Index < 4; ++Index) {
             Editor::FEditorViewport* Viewport{mViewportLayout.GetViewport(Index)};
             Editor::FEditorViewportClient& Client{*Viewport->GetClient()};
             Client.SetCameraSpeed(4.0f);

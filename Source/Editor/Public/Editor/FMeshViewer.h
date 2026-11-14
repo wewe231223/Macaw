@@ -143,7 +143,7 @@ namespace Editor {
          * @param Bone 표시할 본 번호입니다.
          * @param Children 본 번호별 자식 본 번호 목록입니다.
          */
-        void DrawBoneNode(Core::Uint32 Bone, const Core::TArray<Core::TArray<Core::Uint32>>& Children);
+        void DrawBoneNode(Core::Index_t Bone, const Core::TArray<Core::TArray<Core::Index_t>>& Children);
 
         /**
          * @brief 마우스 위치의 광선과 본 표시 도형을 비교하여 선택 본을 갱신합니다.
@@ -166,7 +166,7 @@ namespace Editor {
          * @param Bone 월드 위치·회전을 계산할 스켈레톤 본 인덱스입니다.
          * @return 공통 코어에 전달할 기즈모 배치입니다.
          */
-        Editor::FGizmoPlacement GetBonePlacement(Core::Uint32 Bone) const;
+        Editor::FGizmoPlacement GetBonePlacement(Core::Index_t Bone) const;
 
         /**
          * @brief 기즈모의 호버와 드래그 입력을 처리합니다.
@@ -177,13 +177,13 @@ namespace Editor {
          * @return 기즈모가 마우스를 사용 중이어서 카메라 조작을 막아야 하면 true입니다.
          * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        bool UpdateBoneGizmo(Core::Uint32 Bone, const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
+        bool UpdateBoneGizmo(Core::Index_t Bone, const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
 
         /**
          * @brief 기즈모의 드래그 결과를 선택한 본의 부모 기준 로컬 변환으로 바꾸어 적용합니다.
          * @param Bone 기즈모 변환을 적용할 스켈레톤 본 인덱스입니다.
          */
-        void ApplyBoneGizmo(Core::Uint32 Bone);
+        void ApplyBoneGizmo(Core::Index_t Bone);
 
         /**
          * @brief 카메라 입력을 처리하고 공통 렌더 경로로 메시와 본 도형을 그리며 아이콘·스프라이트·텍스트 표시는 제외합니다.
@@ -261,7 +261,7 @@ namespace Editor {
         /**
          * @brief 기즈모 조작 대상으로 선택한 본입니다.
          */
-        std::optional<Core::Uint32> mPoseBone{};
+        std::optional<Core::Index_t> mPoseBone{};
 
         /**
          * @brief 현재 본 계층을 보조 도형으로 표시할지 지정합니다.

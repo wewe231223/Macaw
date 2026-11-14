@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FBox.h"
 #include "Core/Math/FVector2.h"
@@ -85,13 +86,13 @@ namespace Asset {
          * @brief 삼각형을 구성하는 정점 인덱스 배열의 참조를 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
          */
-        Core::TArray<Core::Uint32>& GetIndices();
+        Core::TArray<Core::Index_t>& GetIndices();
 
         /**
          * @brief 삼각형을 구성하는 정점 인덱스 배열의 참조를 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
          */
-        const Core::TArray<Core::Uint32>& GetIndices() const;
+        const Core::TArray<Core::Index_t>& GetIndices() const;
 
         /**
          * @brief 메시의 로컬 공간 경계 상자를 반환합니다.
@@ -169,7 +170,7 @@ namespace Asset {
         /**
          * @brief 삼각형을 구성하는 정점 인덱스 목록입니다.
          */
-        Core::TArray<Core::Uint32> mIndices{};
+        Core::TArray<Core::Index_t> mIndices{};
 
         /**
          * @brief 축 정렬 경계 상자입니다.

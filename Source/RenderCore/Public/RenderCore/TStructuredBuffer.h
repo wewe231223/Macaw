@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/Types.h"
 #include "RenderCore/EShaderStage.h"
 #include "RenderCore/FGpuBuffer.h"
 
@@ -49,7 +50,7 @@ namespace RenderCore {
          * @param[in] Stages 연결할 셰이더 단계입니다.
          * @param[in] Slot 셰이더 리소스 슬롯(t 레지스터)입니다.
          */
-        void Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const {
+        void Bind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot) const {
             SetView(Context, Stages, Slot, mShaderResourceView.Get());
         }
 
@@ -59,7 +60,7 @@ namespace RenderCore {
          * @param[in] Stages 해제할 셰이더 단계입니다.
          * @param[in] Slot 셰이더 리소스 슬롯(t 레지스터)입니다.
          */
-        static void Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) {
+        static void Unbind(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot) {
             SetView(Context, Stages, Slot, nullptr);
         }
 
@@ -118,17 +119,17 @@ namespace RenderCore {
          * @param[in] Slot 조회하거나 바꿀 머티리얼 슬롯입니다.
          * @param[in] View 화면 크기와 뷰 투영 행렬입니다.
          */
-        static void SetView(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot, ID3D11ShaderResourceView* View) {
+        static void SetView(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Index_t Slot, ID3D11ShaderResourceView* View) {
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Vertex)) {
-                Context->VSSetShaderResources(Slot, 1, &View);
+                Context->VSSetShaderResources(static_cast<UINT>(Slot), 1, &View);
             }
 
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Pixel)) {
-                Context->PSSetShaderResources(Slot, 1, &View);
+                Context->PSSetShaderResources(static_cast<UINT>(Slot), 1, &View);
             }
 
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Compute)) {
-                Context->CSSetShaderResources(Slot, 1, &View);
+                Context->CSSetShaderResources(static_cast<UINT>(Slot), 1, &View);
             }
         }
 

@@ -4,6 +4,7 @@
  * @ingroup Asset
  */
 
+#include "Core/Types.h"
 #include "Asset/Import/FFBXImporter.h"
 #include "Core/FilePath.h"
 #include "Core/Math/FTransform.h"
@@ -45,7 +46,7 @@ namespace Asset {
             const FbxVector4 Origin{Matrix.GetT()};
             Core::FMatrix Result{};
 
-            for (Core::Int32 Row{}; Row < 3; ++Row) {
+            for (Core::Index_t Row{}; Row < 3; ++Row) {
                 FbxVector4 Axis{};
                 Axis[Row] = 1.0;
 
@@ -203,13 +204,13 @@ namespace Asset {
     /**
      * @brief FBX 재질의 결과 재질 인덱스를 찾고 처음 만난 재질이면 읽어서 등록합니다.
      */
-    bool Asset::FFBXImporter::FindMaterialIndex(FbxSurfaceMaterial* Material, Core::Uint32& Index) {
+    bool Asset::FFBXImporter::FindMaterialIndex(FbxSurfaceMaterial* Material, Core::Index_t& Index) {
         // 여러 노드가 같은 FBX 재질을 공유할 수 있으므로, 이미 읽은 재질은 캐시된 인덱스를 재사용합니다.
         auto Existing{mMaterialIndices.find(Material)};
 
         if (Existing == mMaterialIndices.end()) {
             // ReadMaterial이 재질 목록 끝에 추가하므로, 추가 전의 목록 크기가 새 재질의 인덱스가 됩니다.
-            const auto MaterialIndex{static_cast<Core::Uint32>(GetResult().GetMaterials().size())};
+            const Core::Index_t MaterialIndex{static_cast<Core::Index_t>(GetResult().GetMaterials().size())};
 
             if (!ReadMaterial(Material)) {
                 return false;
@@ -314,11 +315,11 @@ namespace Asset {
         const FbxGeometryElementBinormal* BitangentElement{HasTangents ? Mesh.GetElementBinormal() : nullptr};
 
         // 노드의 로컬 재질 인덱스(0..GetMaterialCount()-1)를 대상 메시의 재질 슬롯 인덱스로 바꾸는 표입니다.
-        Core::TArray<Core::Uint32> NodeMaterials{};
+        Core::TArray<Core::Index_t> NodeMaterials{};
 
         // FBX 재질의 결과 재질 인덱스를 찾고(처음이면 읽어서) 그 재질을 가리키는 대상 메시의 슬롯을 NodeMaterials 끝에 추가하는 도우미입니다.
         const auto AddMaterial{[&](FbxSurfaceMaterial* Material) {
-            Core::Uint32 MaterialIndex{};
+            Core::Index_t MaterialIndex{};
 
             if (!FindMaterialIndex(Material, MaterialIndex)) {
                 return false;
@@ -330,7 +331,7 @@ namespace Asset {
         }};
 
         // 노드의 재질을 순서대로 등록합니다. 재질이 하나도 없으면 기본 재질(nullptr) 하나를 로컬 인덱스 0으로 등록합니다.
-        for (int Index{}; Index < std::max(1, Node.GetMaterialCount()); ++Index) {
+        for (Core::Index_t Index{}; Index < std::max(1, Node.GetMaterialCount()); ++Index) {
             if (!AddMaterial(Node.GetMaterialCount() == 0 ? nullptr : Node.GetMaterial(Index))) {
                 return false;
             }
@@ -352,17 +353,17 @@ namespace Asset {
         }
 
         // 로컬 재질 인덱스별로 그 재질을 쓰는 삼각형의 정점 인덱스를 모아 두는 목록입니다. 나중에 재질별 서브메시가 됩니다.
-        Core::TArray<Core::TArray<Core::Uint32>> Sections{};
+        Core::TArray<Core::TArray<Core::Index_t>> Sections{};
         Sections.resize(NodeMaterials.size());
 
-        for (int Polygon{}; Polygon < Mesh.GetPolygonCount(); ++Polygon) {
+        for (Core::Index_t Polygon{}; Polygon < Mesh.GetPolygonCount(); ++Polygon) {
             // 이 삼각형이 사용하는 로컬 재질 인덱스입니다. 재질 매핑 정보가 없으면 0번 재질을 사용합니다.
-            int LocalMaterial{};
+            Core::Index_t LocalMaterial{};
 
             // 노드에 재질이 있고 메시에 재질 매핑 요소가 있으면, 매핑 모드에 따라 이 삼각형의 재질 인덱스를 읽습니다.
             if (const auto* Element{Mesh.GetElementMaterial()}; Element != nullptr && Node.GetMaterialCount() > 0) {
                 // eAllSame은 모든 삼각형이 인덱스 배열의 0번 항목을 공유하고, eByPolygon은 삼각형마다 자기 항목을 가집니다.
-                const int MaterialEntry{Element->GetMappingMode() == FbxLayerElement::eAllSame ? 0 : Polygon};
+                const Core::Index_t MaterialEntry{static_cast<Core::Index_t>(Element->GetMappingMode() == FbxLayerElement::eAllSame ? 0 : Polygon)};
 
                 // 재질은 위 두 매핑 모드만 의미가 있으므로 다른 모드이거나 인덱스 배열 범위를 벗어나면 실패시킵니다.
                 if ((Element->GetMappingMode() != FbxLayerElement::eAllSame && Element->GetMappingMode() != FbxLayerElement::eByPolygon) || MaterialEntry >= Element->GetIndexArray().GetCount()) {
@@ -396,16 +397,16 @@ namespace Asset {
             }
 
             // 삼각형의 세 꼭짓점을 하나씩 정점으로 만듭니다.
-            for (int Corner{}; Corner < 3; ++Corner) {
+            for (Core::Index_t Corner{}; Corner < 3; ++Corner) {
                 // DeepConvertScene이 왼손 좌표계로 바꾸면서 폴리곤 꼭짓점 순서도 이미 엔진의 앞면 방향에 맞춰 두었습니다.
                 // 노드나 임포트 변환이 거울 변환(행렬식 음수)일 때만 앞면이 뒤집히므로 꼭짓점을 역순(2, 1, 0)으로 읽습니다.
-                const int SourceCorner{Transform.ReversesWinding() ? 2 - Corner : Corner};
+                const Core::Index_t SourceCorner{static_cast<Core::Index_t>(Transform.ReversesWinding() ? 2 - Corner : Corner)};
 
                 // 이 꼭짓점이 가리키는 컨트롤 포인트(위치 정점) 인덱스입니다. 여러 삼각형이 같은 컨트롤 포인트를 공유할 수 있습니다.
-                const int ControlPoint{Mesh.GetPolygonVertex(Polygon, SourceCorner)};
+                const Core::Index_t ControlPoint{static_cast<Core::Index_t>(Mesh.GetPolygonVertex(Polygon, SourceCorner))};
 
                 // 메시 전체에서 이 꼭짓점의 순번(폴리곤 정점 인덱스)입니다. eByPolygonVertex 매핑 속성을 읽을 때 사용합니다.
-                const int PolygonVertex{Mesh.GetPolygonVertexIndex(Polygon) + SourceCorner};
+                const Core::Index_t PolygonVertex{static_cast<Core::Index_t>(Mesh.GetPolygonVertexIndex(Polygon) + SourceCorner)};
 
                 // 노멀·탄젠트·색상·UV 같은 레이어 요소를 매핑 모드에 맞는 인덱스로 읽는 도우미입니다.
                 // 요소가 없으면 Value를 바꾸지 않고 true를 반환하므로, 아래에서 지정한 기본값이 그대로 사용됩니다.
@@ -470,16 +471,16 @@ namespace Asset {
 
                 // 스킨 가중치는 컨트롤 포인트 단위이므로 이 꼭짓점이 가리키는 컨트롤 포인트의 가중치를 그대로 씁니다.
                 if (!ControlPointWeights.empty()) {
-                    CornerWeights.push_back(ControlPointWeights[static_cast<std::size_t>(ControlPoint)]);
+                    CornerWeights.push_back(ControlPointWeights[ControlPoint]);
                 }
 
                 // 모든 UV 채널에 이 정점의 좌표를 하나씩 추가하여 채널 길이를 정점 수와 맞춥니다.
-                for (std::size_t Channel{}; Channel < UVCount; ++Channel) {
+                for (Core::Index_t Channel{}; Channel < UVCount; ++Channel) {
                     // 다른 메시 때문에 생긴 채널이라 이 메시에는 없는 채널일 수 있습니다. 그 경우 (0, 0)을 넣습니다.
                     const bool HasChannel{Channel < static_cast<std::size_t>(Mesh.GetElementUVCount())};
                     FbxVector2 UV{};
 
-                    if (HasChannel && !Read(Mesh.GetElementUV(static_cast<int>(Channel)), UV)) {
+                    if (HasChannel && !Read(Mesh.GetElementUV(Channel), UV)) {
                         Error = "The FBX mesh contains an invalid UV mapping";
 
                         return false;
@@ -505,7 +506,7 @@ namespace Asset {
 
         // 재질별로 모은 정점 인덱스를 인덱스 버퍼에 이어 붙이고, 각 구간을 하나의 서브메시로 등록합니다.
         // 서브메시는 (인덱스 버퍼 시작 위치, 인덱스 수, 전역 재질 인덱스)이며, 삼각형이 없는 재질은 서브메시를 만들지 않습니다.
-        for (std::size_t Index{}; Index < Sections.size(); ++Index) {
+        for (Core::Index_t Index{}; Index < Sections.size(); ++Index) {
             const auto& Section{Sections[Index]};
 
             if (!Section.empty()) {
@@ -536,7 +537,7 @@ namespace Asset {
         }
 
         // 자식 노드를 재귀적으로 방문하여 Scene 트리 전체의 메시를 읽습니다. 하나라도 실패하면 즉시 중단합니다.
-        for (int Index{}; Index < Node.GetChildCount(); ++Index) {
+        for (Core::Index_t Index{}; Index < Node.GetChildCount(); ++Index) {
             if (!ReadNode(*Node.GetChild(Index))) {
                 return false;
             }
@@ -548,9 +549,9 @@ namespace Asset {
     /**
      * @brief 스켈레톤 속성을 가졌거나 스킨 클러스터가 링크하는 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
      */
-    bool Asset::FFBXImporter::ReadSkeleton(FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
+    bool Asset::FFBXImporter::ReadSkeleton(FbxNode& Node, Core::Index_t ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
         // 이 노드가 본이 아니면 부모 본의 인덱스와 전역 변환을 그대로 자식에게 넘깁니다.
-        Core::Int32 Index{ParentIndex};
+        Core::Index_t Index{ParentIndex};
         Core::FMatrix BoneGlobal{ParentBoneGlobal};
 
         // 스켈레톤 속성을 가졌거나 스킨 클러스터가 링크하는 노드를 본으로 추가합니다.
@@ -584,7 +585,7 @@ namespace Asset {
             Bones.emplace_back(Core::FString{Node.GetName()}, ParentIndex, BoneGlobal * ParentInverse);
         }
 
-        for (int Child{}; Child < Node.GetChildCount(); ++Child) {
+        for (Core::Index_t Child{}; Child < Node.GetChildCount(); ++Child) {
             if (!ReadSkeleton(*Node.GetChild(Child), Index, BoneGlobal)) {
                 return false;
             }
@@ -599,13 +600,13 @@ namespace Asset {
     void Asset::FFBXImporter::CollectBindPoses() {
         // FBX의 스킨 구조는 지오메트리 → 스킨 디포머(FbxSkin) → 클러스터(FbxCluster) 순이며, 클러스터 하나가 본 하나에 대응합니다.
         // 기본 자세는 바인드 자세와 다를 수 있으므로, 스킨을 묶은 시점의 값이 기록된 클러스터 행렬을 본 순회 전에 모아 둡니다.
-        for (int GeometryIndex{}; GeometryIndex < mScene->GetGeometryCount(); ++GeometryIndex) {
+        for (Core::Index_t GeometryIndex{}; GeometryIndex < mScene->GetGeometryCount(); ++GeometryIndex) {
             FbxGeometry* Geometry{mScene->GetGeometry(GeometryIndex)};
 
-            for (int DeformerIndex{}; Geometry != nullptr && DeformerIndex < Geometry->GetDeformerCount(FbxDeformer::eSkin); ++DeformerIndex) {
+            for (Core::Index_t DeformerIndex{}; Geometry != nullptr && DeformerIndex < Geometry->GetDeformerCount(FbxDeformer::eSkin); ++DeformerIndex) {
                 auto* Skin{static_cast<FbxSkin*>(Geometry->GetDeformer(DeformerIndex, FbxDeformer::eSkin))};
 
-                for (int ClusterIndex{}; ClusterIndex < Skin->GetClusterCount(); ++ClusterIndex) {
+                for (Core::Index_t ClusterIndex{}; ClusterIndex < Skin->GetClusterCount(); ++ClusterIndex) {
                     FbxCluster* Cluster{Skin->GetCluster(ClusterIndex)};
                     FbxNode* Link{Cluster->GetLink()};
 
@@ -623,14 +624,14 @@ namespace Asset {
 
         // 장면의 바인드 포즈 객체(FbxPose)는 가중치가 없는 본까지 바인드 시점의 전역 변환을 담으므로 클러스터보다 먼저 사용합니다.
         // 바인드 포즈가 아닌 Rest 포즈는 건너뛰며, 여러 바인드 포즈에 같은 노드가 있으면 먼저 나온 값을 사용합니다.
-        for (int PoseIndex{}; PoseIndex < mScene->GetPoseCount(); ++PoseIndex) {
+        for (Core::Index_t PoseIndex{}; PoseIndex < mScene->GetPoseCount(); ++PoseIndex) {
             FbxPose* Pose{mScene->GetPose(PoseIndex)};
 
             if (!Pose->IsBindPose()) {
                 continue;
             }
 
-            for (int Item{}; Item < Pose->GetCount(); ++Item) {
+            for (Core::Index_t Item{}; Item < Pose->GetCount(); ++Item) {
                 FbxNode* Node{Pose->GetNode(Item)};
 
                 if (Node != nullptr && !mPoseBindPoses.contains(Node)) {
@@ -651,13 +652,13 @@ namespace Asset {
         Weights.clear();
 
         // 제어점별로 (결과 본 인덱스, 가중치)를 모읍니다. 정리는 FMeshImportSkinWeight::FromInfluences가 합니다.
-        Core::TArray<Core::TArray<std::pair<Core::Uint32, float>>> Influences(static_cast<std::size_t>(Mesh.GetControlPointsCount()));
+        Core::TArray<Core::TArray<std::pair<Core::Index_t, float>>> Influences(static_cast<Core::Index_t>(Mesh.GetControlPointsCount()));
         bool Found{};
 
-        for (int DeformerIndex{}; DeformerIndex < Mesh.GetDeformerCount(FbxDeformer::eSkin); ++DeformerIndex) {
+        for (Core::Index_t DeformerIndex{}; DeformerIndex < Mesh.GetDeformerCount(FbxDeformer::eSkin); ++DeformerIndex) {
             auto* Skin{static_cast<FbxSkin*>(Mesh.GetDeformer(DeformerIndex, FbxDeformer::eSkin))};
 
-            for (int ClusterIndex{}; ClusterIndex < Skin->GetClusterCount(); ++ClusterIndex) {
+            for (Core::Index_t ClusterIndex{}; ClusterIndex < Skin->GetClusterCount(); ++ClusterIndex) {
                 FbxCluster* Cluster{Skin->GetCluster(ClusterIndex)};
                 const auto Bone{mBoneIndices.find(Cluster->GetLink())};
 
@@ -678,9 +679,9 @@ namespace Asset {
                 const int* ControlPoints{Cluster->GetControlPointIndices()};
                 const double* ControlPointWeights{Cluster->GetControlPointWeights()};
 
-                for (int Index{}; ControlPoints != nullptr && ControlPointWeights != nullptr && Index < Cluster->GetControlPointIndicesCount(); ++Index) {
+                for (Core::Index_t Index{}; ControlPoints != nullptr && ControlPointWeights != nullptr && Index < Cluster->GetControlPointIndicesCount(); ++Index) {
                     if (ControlPoints[Index] >= 0 && ControlPoints[Index] < Mesh.GetControlPointsCount()) {
-                        Influences[static_cast<std::size_t>(ControlPoints[Index])].emplace_back(static_cast<Core::Uint32>(Bone->second), static_cast<float>(ControlPointWeights[Index]));
+                        Influences[static_cast<std::size_t>(ControlPoints[Index])].emplace_back(Bone->second, static_cast<float>(ControlPointWeights[Index]));
                     }
                 }
             }
@@ -824,7 +825,7 @@ namespace Asset {
         const int StackCount{mScene->GetSrcObjectCount<FbxAnimStack>()};
         Core::TArray<std::pair<Core::FString, Asset::FAnimDataModel>> Stacks{};
 
-        for (int StackIndex{}; StackIndex < StackCount; ++StackIndex) {
+        for (Core::Index_t StackIndex{}; StackIndex < StackCount; ++StackIndex) {
             FbxAnimStack* Stack{mScene->GetSrcObject<FbxAnimStack>(StackIndex)};
             Asset::FAnimDataModel DataModel{};
             bool Animated{};
@@ -868,7 +869,7 @@ namespace Asset {
         // 본 사이의 일반 노드(Blender의 Armature 등)가 움직여도 본 전역 변환이 바뀌므로 장면 전체를 기준으로 판단합니다.
         FbxTimeSpan AnimatedSpan{};
 
-        for (int LayerIndex{}; LayerIndex < Stack.GetMemberCount<FbxAnimLayer>(); ++LayerIndex) {
+        for (Core::Index_t LayerIndex{}; LayerIndex < Stack.GetMemberCount<FbxAnimLayer>(); ++LayerIndex) {
             FbxTimeSpan LayerSpan{};
 
             if (Root->GetAnimationInterval(LayerSpan, &Stack, LayerIndex)) {
@@ -965,7 +966,7 @@ namespace Asset {
         DataModel.SetNumberOfFrames(NumberOfFrames);
         Tracks.resize(Bones.size());
 
-        for (std::size_t Bone{}; Bone < Bones.size(); ++Bone) {
+        for (Core::Index_t Bone{}; Bone < Bones.size(); ++Bone) {
             Tracks[Bone].mName = Bones[Bone].GetName();
             Tracks[Bone].mInternalTrack.mPosKeys.reserve(Keys);
             Tracks[Bone].mInternalTrack.mRotKeys.reserve(Keys);
@@ -974,20 +975,20 @@ namespace Asset {
 
         Core::TArray<Core::FMatrix> Globals(Bones.size());
 
-        for (std::size_t Key{}; Key < Keys; ++Key) {
+        for (Core::Index_t Key{}; Key < Keys; ++Key) {
             // 누적 오차가 없도록 매 키의 시간을 시작 시간에서 다시 계산합니다.
             FbxTime Time{};
 
             Time.SetSecondDouble(Start + static_cast<double>(Key) * Interval);
 
             // 부모가 항상 자식보다 앞에 있으므로 Globals[Parent]는 같은 시각에 이미 계산되어 있습니다.
-            for (std::size_t Bone{}; Bone < Bones.size(); ++Bone) {
-                const Core::Int32 Parent{Bones[Bone].GetParentIndex()};
+            for (Core::Index_t Bone{}; Bone < Bones.size(); ++Bone) {
+                const Core::Index_t Parent{static_cast<Core::Index_t>(Bones[Bone].GetParentIndex())};
                 Core::FMatrix ParentInverse{};
                 Core::FTransform Local{};
 
                 // ReadSkeleton과 같이 원본 전역 변환을 엔진 공간으로 옮긴 뒤, 부모 본의 전역 변환을 되돌려 부모 본 기준 로컬 변환을 구합니다.
-                if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, ToMatrix(mBoneNodes[Bone]->EvaluateGlobalTransform(Time)), Globals[Bone]) || (Parent >= 0 && !Globals[static_cast<std::size_t>(Parent)].TryInverse(ParentInverse))) {
+                if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, ToMatrix(mBoneNodes[Bone]->EvaluateGlobalTransform(Time)), Globals[Bone]) || (Parent >= 0 && !Globals[Parent].TryInverse(ParentInverse))) {
                     GetError() = "The animated transform cannot be converted to the engine space: " + Bones[Bone].GetName();
 
                     return false;

@@ -3,6 +3,7 @@
  * @brief 원문 위치를 보존하는 마스크·토큰과 헤더 툴 진단을 구현합니다.
  */
 
+#include "Core/Types.h"
 #include "SourceText.h"
 
 #include <algorithm>
@@ -24,8 +25,8 @@ namespace HeaderTool {
          * @param[in] First 처리 구간의 시작 위치입니다.
          * @param[in] Last 처리 구간의 끝 위치이며 포함하지 않습니다.
          */
-        void Blank(std::string& Mask, std::size_t First, std::size_t Last) {
-            for (std::size_t Index{First}; Index < Last && Index < Mask.size(); ++Index) {
+        void Blank(std::string& Mask, Core::Index_t First, Core::Index_t Last) {
+            for (Core::Index_t Index{First}; Index < Last && Index < Mask.size(); ++Index) {
                 if (Mask[Index] != '\r' && Mask[Index] != '\n') {
                     Mask[Index] = ' ';
                 }
@@ -56,7 +57,7 @@ namespace HeaderTool {
             std::size_t End{LineEnd(Text, Position)};
 
             while (End < Text.size()) {
-                std::size_t Last{End};
+                Core::Index_t Last{static_cast<Core::Index_t>(End)};
 
                 while (Last > Position && (Text[Last - 1] == '\r' || Text[Last - 1] == ' ' || Text[Last - 1] == '\t')) {
                     --Last;
@@ -85,7 +86,7 @@ namespace HeaderTool {
             while (Position < Text.size()) {
                 const char Character{Text[Position]};
                 const char Next{Position + 1 < Text.size() ? Text[Position + 1] : '\0'};
-                std::size_t Last{Position + 1};
+                Core::Index_t Last{static_cast<Core::Index_t>(Position + 1)};
 
                 if (Character == '/' && Next == '/') {
                     Last = LineEnd(Text, Position);
@@ -100,7 +101,7 @@ namespace HeaderTool {
 
                     Last = Finish + 2;
                 } else if (Character == 'R' && Next == '"') {
-                    const std::size_t Opening{Text.find('(', Position + 2)};
+                    const Core::Index_t Opening{static_cast<Core::Index_t>(Text.find('(', Position + 2))};
 
                     if (Opening == std::string::npos) {
                         throw FHeaderToolError{Path, 0, "Invalid raw string"};
@@ -158,7 +159,7 @@ namespace HeaderTool {
                     continue;
                 }
 
-                std::size_t Last{Position + 1};
+                Core::Index_t Last{static_cast<Core::Index_t>(Position + 1)};
                 ETokenKind Kind{ETokenKind::Punctuation};
 
                 if (std::isalpha(static_cast<unsigned char>(Character)) || Character == '_') {
@@ -197,16 +198,16 @@ namespace HeaderTool {
     /**
      * @brief 토큰 위치를 담아 오류를 던집니다.
      */
-    void FSourceFile::Fail(std::size_t TokenIndex, const std::string& Message) const {
-        throw FHeaderToolError{Path, TokenIndex < Tokens.size() ? LineAt(Tokens[TokenIndex].Offset) : 0, Message};
+    void FSourceFile::Fail(Core::Index_t TokenIndex, const std::string& Message) const {
+        throw FHeaderToolError{Path, TokenIndex >= 0 && TokenIndex < Tokens.size() ? LineAt(Tokens[TokenIndex].Offset) : 0, Message};
     }
 
     /**
      * @brief 두 토큰 사이의 원문을 앞뒤 공백 없이 반환합니다.
      */
-    std::string FSourceFile::TextBetween(std::size_t First, std::size_t Last) const {
-        const std::size_t Begin{First < Tokens.size() ? Tokens[First].Offset : Text.size()};
-        const std::size_t End{Last < Tokens.size() ? Tokens[Last].Offset : Text.size()};
+    std::string FSourceFile::TextBetween(Core::Index_t First, Core::Index_t Last) const {
+        const std::size_t Begin{First >= 0 && First < Tokens.size() ? Tokens[First].Offset : Text.size()};
+        const std::size_t End{Last >= 0 && Last < Tokens.size() ? Tokens[Last].Offset : Text.size()};
 
         return End > Begin ? Trim(std::string_view{Text}.substr(Begin, End - Begin)) : std::string{};
     }
@@ -214,9 +215,9 @@ namespace HeaderTool {
     /**
      * @brief 두 토큰 사이의 마스크를 앞뒤 공백 없이 반환합니다.
      */
-    std::string FSourceFile::MaskBetween(std::size_t First, std::size_t Last) const {
-        const std::size_t Begin{First < Tokens.size() ? Tokens[First].Offset : Mask.size()};
-        const std::size_t End{Last < Tokens.size() ? Tokens[Last].Offset : Mask.size()};
+    std::string FSourceFile::MaskBetween(Core::Index_t First, Core::Index_t Last) const {
+        const std::size_t Begin{First >= 0 && First < Tokens.size() ? Tokens[First].Offset : Mask.size()};
+        const std::size_t End{Last >= 0 && Last < Tokens.size() ? Tokens[Last].Offset : Mask.size()};
 
         return End > Begin ? Trim(std::string_view{Mask}.substr(Begin, End - Begin)) : std::string{};
     }
@@ -224,12 +225,12 @@ namespace HeaderTool {
     /**
      * @brief 여는 괄호 토큰과 짝이 맞는 닫는 괄호 토큰을 찾습니다.
      */
-    std::size_t FSourceFile::FindClosing(std::size_t Opening) const {
+    Core::Index_t FSourceFile::FindClosing(Core::Index_t Opening) const {
         const std::string& Open{Tokens[Opening].Text};
         const std::string Close{Open == "(" ? ")" : (Open == "{" ? "}" : (Open == "[" ? "]" : ">"))};
         int Depth{};
 
-        for (std::size_t Index{Opening}; Index < Tokens.size(); ++Index) {
+        for (Core::Index_t Index{Opening}; Index < Tokens.size(); ++Index) {
             if (Tokens[Index].Text == Open) {
                 ++Depth;
             } else if (Tokens[Index].Text == Close && --Depth == 0) {
@@ -243,8 +244,8 @@ namespace HeaderTool {
     /**
      * @brief 토큰이 지정한 문자열인지 검사합니다.
      */
-    bool FSourceFile::Is(std::size_t Index, std::string_view Value) const {
-        return Index < Tokens.size() && Tokens[Index].Text == Value;
+    bool FSourceFile::Is(Core::Index_t Index, std::string_view Value) const {
+        return Index >= 0 && Index < Tokens.size() && Tokens[Index].Text == Value;
     }
 
     /**
@@ -274,8 +275,8 @@ namespace HeaderTool {
      * @brief 앞뒤 공백을 제거합니다.
      */
     std::string Trim(std::string_view Text) {
-        std::size_t First{};
-        std::size_t Last{Text.size()};
+        Core::Index_t First{};
+        Core::Index_t Last{static_cast<Core::Index_t>(Text.size())};
 
         while (First < Last && std::isspace(static_cast<unsigned char>(Text[First]))) {
             ++First;
@@ -353,7 +354,7 @@ namespace HeaderTool {
     std::vector<std::string> SplitTopLevel(std::string_view Text) {
         std::vector<std::string> Parts;
         int Depth{};
-        std::size_t First{};
+        Core::Index_t First{};
 
         for (std::size_t Position{}; Position < Text.size(); ++Position) {
             const char Character{Text[Position]};

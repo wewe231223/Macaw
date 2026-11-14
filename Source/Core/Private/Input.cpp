@@ -4,6 +4,7 @@
  * @ingroup Core
  */
 
+#include "Core/Types.h"
 #include "Core/Input.h"
 
 namespace Core {
@@ -50,7 +51,7 @@ namespace Core {
      * @brief 플랫폼에서 받은 키 상태를 반영하고 누름·해제 전이를 기록합니다.
      */
     void FInput::SetKey(EKey Key, bool Down) {
-        const auto Index{static_cast<std::size_t>(Key)};
+        const Core::Index_t Index{static_cast<Core::Index_t>(Key)};
 
         if (Index == 0 || Index >= mDown.size() || mDown[Index] == Down || (Down && !mFocused)) {
             return;
@@ -146,7 +147,7 @@ namespace Core {
      * @brief 입력 경로에서 해당 키를 누르고 있는지 검사합니다.
      */
     bool FInput::IsDown(EKey Key, EInputRoute Route) const {
-        return ReadKey(mDown, Key, Route) && (Route == EInputRoute::Application || !mGameBlockedKeys[static_cast<std::size_t>(Key)]);
+        return ReadKey(mDown, Key, Route) && (Route == EInputRoute::Application || !mGameBlockedKeys[static_cast<Core::Index_t>(Key)]);
     }
 
     /**
@@ -195,7 +196,7 @@ namespace Core {
      * @brief 키 번호와 입력 경로를 검증한 뒤 지정한 키 비트 집합을 조회합니다.
      */
     bool FInput::ReadKey(const FKeys& Keys, EKey Key, EInputRoute Route) const {
-        const auto Index{static_cast<std::size_t>(Key)};
+        const Core::Index_t Index{static_cast<Core::Index_t>(Key)};
 
         return Index < Keys.size() && CanRead(Route) && Keys[Index];
     }
