@@ -10,6 +10,9 @@
 #include "Engine/Cascade/UParticleEmitter.h"
 #include "Engine/Cascade/UParticleLODLevel.h"
 #include "Engine/Cascade/UParticleModule.h"
+#include "Engine/Cascade/UParticleModuleRequired.h"
+#include "Engine/Cascade/IParticleEmitterInstanceOwner.h"
+#include "Core/Math/FTransform.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
 
@@ -82,6 +85,8 @@ void FParticleEmitterInstance::Init() {
         SetCurrentLODIndex(0);
     }
 
+    UpdateTransforms();
+
     if (mInstancePayloadSize != 0) {
         mModuleInstancePayload.reset(static_cast<Uint8*>(::operator new(mInstancePayloadSize, std::align_val_t{16})));
         std::memset(mModuleInstancePayload.get(), 0, mInstancePayloadSize);
@@ -128,6 +133,51 @@ bool FParticleEmitterInstance::SetCurrentLODIndex(Index_t Index) {
     return true;
 }
 
+bool FParticleEmitterInstance::UpdateTransforms() {
+    const UParticleLODLevel* LODLevel{GetCurrentLODLevel()};
+
+    if (LODLevel == nullptr) {
+        return false;
+    }
+
+    const auto RequiredModule{LODLevel->GetRequiredModule()};
+    const FTransform& Transform{mOwner.GetTransform()};
+
+    if (RequiredModule == nullptr || !Transform.mLocation.IsFinite() || !Transform.mRotation.IsNormalized()) {
+        return false;
+    }
+
+    const FMatrix ComponentToWorld{FMatrix::Rotation(Transform.mRotation) * FMatrix::Translation(Transform.mLocation)};
+    const FMatrix EmitterToComponent{FMatrix::Rotation(RequiredModule->GetEmitterRotation()) * FMatrix::Translation(RequiredModule->GetEmitterOrigin())};
+    const bool UseLocalSpace{RequiredModule->GetUseLocalSpace()};
+    const FMatrix EmitterToSimulation{UseLocalSpace ? EmitterToComponent : EmitterToComponent * ComponentToWorld};
+    const FMatrix SimulationToWorld{UseLocalSpace ? ComponentToWorld : FMatrix{}};
+
+    if (!EmitterToSimulation.IsFinite() || !SimulationToWorld.IsFinite()) {
+        return false;
+    }
+
+    mEmitterToSimulation = EmitterToSimulation;
+    mSimulationToWorld = SimulationToWorld;
+
+    return true;
+}
+
+bool FParticleEmitterInstance::GetUseLocalSpace() const {
+    const UParticleLODLevel* LODLevel{GetCurrentLODLevel()};
+    const auto RequiredModule{LODLevel != nullptr ? LODLevel->GetRequiredModule() : nullptr};
+
+    return RequiredModule != nullptr && RequiredModule->GetUseLocalSpace();
+}
+
+const FMatrix& FParticleEmitterInstance::GetEmitterToSimulation() const {
+    return mEmitterToSimulation;
+}
+
+const FMatrix& FParticleEmitterInstance::GetSimulationToWorld() const {
+    return mSimulationToWorld;
+}
+
 /**
  * @brief 기존 파티클과 모듈 추가 데이터를 보존하면서 16바이트 정렬 버퍼의 용량을 확보합니다.
  */
@@ -166,10 +216,14 @@ void FParticleEmitterInstance::ReserveParticles(Uint32 Capacity) {
 /**
  * @brief 기본 데이터와 0으로 채운 추가 데이터를 생성하고 Spawn 컨텍스트로 모듈을 초기화합니다.
  */
-Index_t FParticleEmitterInstance::SpawnParticle(float SpawnTime) {
+Index_t FParticleEmitterInstance::SpawnParticle(float SpawnTime, const FVector& InitialLocation, const FVector& InitialVelocity) {
     const UParticleLODLevel* LODLevel{GetCurrentLODLevel()};
 
     if (mParticleStride == 0 || LODLevel == nullptr || !LODLevel->GetEnabled()) {
+        return -1;
+    }
+
+    if (!InitialLocation.IsFinite() || !InitialVelocity.IsFinite()) {
         return -1;
     }
 
@@ -191,6 +245,9 @@ Index_t FParticleEmitterInstance::SpawnParticle(float SpawnTime) {
     std::memset(Record, 0, mParticleStride);
 
     FBaseParticle* Particle{std::construct_at(reinterpret_cast<FBaseParticle*>(Record))};
+
+    Particle->GetLocation() = InitialLocation;
+    Particle->GetVelocity() = InitialVelocity;
     ++mParticleCount;
 
     for (const auto& Reference : mLODModules[mCurrentLODIndex]) {
@@ -345,4 +402,6 @@ void FParticleEmitterInstance::ResetRuntimeData() {
     mLODModules.clear();
     mLODLevels.clear();
     mCurrentLODIndex = -1;
+    mEmitterToSimulation = FMatrix{};
+    mSimulationToWorld = FMatrix{};
 }

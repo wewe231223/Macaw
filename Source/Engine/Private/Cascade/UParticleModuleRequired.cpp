@@ -82,6 +82,34 @@ bool UParticleModuleRequired::SetMaterialPath(const FString& Path) {
     return true;
 }
 
+const FVector& UParticleModuleRequired::GetEmitterOrigin() const {
+    return mEmitterOrigin;
+}
+
+bool UParticleModuleRequired::SetEmitterOrigin(const FVector& Origin) {
+    if (!Origin.IsFinite()) {
+        return false;
+    }
+
+    mEmitterOrigin = Origin;
+
+    return true;
+}
+
+const FRotator& UParticleModuleRequired::GetEmitterRotation() const {
+    return mEmitterRotation;
+}
+
+bool UParticleModuleRequired::SetEmitterRotation(const FRotator& Rotation) {
+    if (!Rotation.IsFinite()) {
+        return false;
+    }
+
+    mEmitterRotation = Rotation;
+
+    return true;
+}
+
 bool UParticleModuleRequired::GetUseLocalSpace() const {
     return mUseLocalSpace;
 }
