@@ -1,6 +1,6 @@
 /**
  * @file FParticleEmitterInstance.h
- * @brief Emitter 원본 참조와 인스턴스별 typeless 모듈 페이로드의 수명을 선언합니다.
+ * @brief Emitter 원본 참조와 파티클 버퍼 및 인스턴스별 모듈 페이로드의 수명을 선언합니다.
  * @ingroup Cascade
  */
 
@@ -19,16 +19,18 @@ namespace Cascade {
     class UParticleEmitter;
     class UParticleModule;
     class IParticleEmitterInstanceOwner;
+    struct FBaseParticle;
 
     /**
-     * @brief Emitter 정의를 참조하며 인스턴스별 모듈 페이로드를 소유하는 실행 객체입니다.
-     * @details Init()에서 모듈 목록과 배치를 복사하고 추가 메모리를 초기화합니다. 현재 구현에는 자동 파티클 생성·갱신 루프가 없습니다.
+     * @brief Emitter 정의를 참조하며 파티클 버퍼와 인스턴스별 모듈 페이로드를 소유하는 실행 객체입니다.
+     * @details Init()에서 모듈 목록과 배치를 복사합니다. 파티클 레코드는 FBaseParticle 뒤에 모듈별 추가 데이터를 보관하며, SpawnParticle()로 명시적으로 생성합니다. 자동 생성 주기와 시간에 따른 갱신은 별도로 구동해야 합니다.
+     * @note 모듈 추가 데이터는 16바이트 이하의 정렬을 요구하며 바이트 복사로 이동할 수 있어야 합니다.
      * @ingroup Cascade
      */
     class FParticleEmitterInstance {
     private:
         /**
-         * @brief 16바이트 정렬로 할당한 인스턴스 페이로드를 해제하는 삭제자입니다.
+         * @brief 16바이트 정렬로 할당한 파티클 버퍼와 모듈 페이로드를 해제하는 삭제자입니다.
          */
         struct FPayloadDeleter {
         public:
@@ -46,7 +48,7 @@ namespace Cascade {
          */
         explicit FParticleEmitterInstance(Cascade::IParticleEmitterInstanceOwner& Owner);
         /**
-         * @brief 인스턴스 페이로드와 모듈 정의에 대한 소유 참조를 해제합니다.
+         * @brief 남은 파티클을 파괴하고 파티클 버퍼와 모듈 페이로드 및 모듈 비소유 참조를 해제합니다.
          */
         virtual ~FParticleEmitterInstance();
 
@@ -58,9 +60,9 @@ namespace Cascade {
          */
         virtual void InitParameters(Cascade::UParticleEmitter* Template);
         /**
-         * @brief 원본 정의의 배치를 복사하고 모듈별 인스턴스 페이로드를 초기화합니다.
-         * @details 버퍼를 16바이트 정렬로 할당하고 0으로 채운 뒤, 데이터가 필요한 모듈의 PrepPerInstanceBlock()을 호출합니다. 원본이 없으면 아무 작업도 하지 않습니다.
-         * @note 다시 호출하면 기존 실행 페이로드가 초기화됩니다.
+         * @brief 기존 파티클을 비우고 원본 정의의 배치와 모듈별 인스턴스 페이로드를 준비합니다.
+         * @details 모듈 페이로드를 16바이트 정렬로 할당하고 0으로 채운 뒤 PrepPerInstanceBlock()을 호출합니다. 파티클 버퍼는 ReserveParticles() 또는 SpawnParticle()에서 할당합니다. 원본이 없으면 실행 데이터를 비웁니다.
+         * @note 다시 호출하면 기존 파티클과 실행 페이로드가 초기화됩니다.
          */
         virtual void Init();
 
@@ -74,31 +76,109 @@ namespace Cascade {
          * @return 원본 정의의 비소유 주소이며 파괴되었거나 연결하지 않았으면 nullptr입니다.
          */
         Cascade::UParticleEmitter* GetTemplate() const;
+
+        /**
+         * @brief 기존 파티클과 모듈 추가 데이터를 보존하면서 파티클 버퍼의 용량을 확보합니다.
+         * @param[in] Capacity 확보할 파티클 수이며 현재 용량 이하이면 변경하지 않습니다.
+         * @throws std::logic_error Init()으로 파티클 레코드 배치를 준비하지 않은 경우입니다.
+         * @throws std::length_error 용량이 Index_t 또는 주소 공간의 지원 범위를 넘는 경우입니다.
+         * @note 재할당하면 파티클과 파티클별 모듈 데이터의 기존 주소가 무효화됩니다.
+         */
+        void ReserveParticles(Core::Uint32 Capacity);
+        /**
+         * @brief 기본 파티클을 생성하고 활성 Spawn 모듈로 초기화합니다.
+         * @param[in] SpawnTime FSpawnContext에 전달할 생성 시간 값입니다.
+         * @return 생성한 파티클의 인덱스이며 초기화된 원본 배치가 없으면 -1입니다.
+         * @throws std::length_error 지원할 수 있는 최대 파티클 수에 도달한 경우입니다.
+         * @note 추가 데이터는 0으로 초기화합니다. Spawn 모듈을 실행하는 동안 파티클 생성·삭제·버퍼 재할당을 호출하지 않아야 합니다.
+         */
+        Core::Index_t SpawnParticle(float SpawnTime = 0.0f);
+        /**
+         * @brief 지정한 파티클을 제거하고 마지막 파티클의 전체 레코드로 빈자리를 채웁니다.
+         * @param[in] Index 제거할 활성 파티클의 인덱스이며 범위를 벗어나면 무시합니다.
+         * @note 마지막 파티클의 인덱스가 변경될 수 있으며 제거한 슬롯의 기존 주소와 인덱스를 재사용하면 안 됩니다.
+         */
+        void KillParticle(Core::Index_t Index);
+        /**
+         * @brief 버퍼 용량과 모듈 인스턴스 페이로드를 유지하면서 모든 파티클을 제거합니다.
+         */
+        void ClearParticles();
+
+        /**
+         * @brief 활성 파티클의 기본 데이터를 반환합니다.
+         * @param[in] Index 0부터 GetParticleCount() 미만인 활성 파티클 인덱스입니다.
+         * @return 기본 데이터의 비소유 주소이며 범위를 벗어나면 nullptr입니다.
+         * @note 버퍼 재할당·삭제·초기화 시 주소 또는 해당 주소가 나타내는 파티클이 바뀔 수 있습니다.
+         */
+        Cascade::FBaseParticle* GetParticle(Core::Index_t Index);
+        /**
+         * @brief 활성 파티클의 기본 데이터를 읽기 전용으로 반환합니다.
+         * @param[in] Index 조회할 활성 파티클의 인덱스입니다.
+         * @return 기본 데이터의 비소유 주소이며 범위를 벗어나면 nullptr입니다.
+         */
+        const Cascade::FBaseParticle* GetParticle(Core::Index_t Index) const;
+        /**
+         * @brief 파티클 레코드에서 지정한 모듈의 추가 데이터를 반환합니다.
+         * @param[in] Index 조회할 활성 파티클의 인덱스입니다.
+         * @param[in] Module 추가 데이터를 요구한 모듈 정의의 비소유 참조입니다.
+         * @return 추가 데이터의 비소유 주소이며 파티클이 없거나 모듈 영역을 할당하지 않았으면 nullptr입니다.
+         */
+        Core::Uint8* GetParticleModuleData(Core::Index_t Index, CoreUObject::TObjectRef<const Cascade::UParticleModule> Module);
+        /**
+         * @brief 파티클 레코드에서 지정한 모듈의 추가 데이터를 읽기 전용으로 반환합니다.
+         * @param[in] Index 조회할 활성 파티클의 인덱스입니다.
+         * @param[in] Module 추가 데이터를 요구한 모듈 정의의 비소유 참조입니다.
+         * @return 추가 데이터의 비소유 주소이며 파티클 또는 할당 영역이 없으면 nullptr입니다.
+         */
+        const Core::Uint8* GetParticleModuleData(Core::Index_t Index, CoreUObject::TObjectRef<const Cascade::UParticleModule> Module) const;
+
+        /**
+         * @brief 버퍼에 저장한 활성 파티클 수를 반환합니다.
+         * @return GetParticle()로 접근할 수 있는 파티클 수입니다.
+         */
+        Core::Uint32 GetParticleCount() const;
+        /**
+         * @brief 재할당 없이 저장할 수 있는 파티클 수를 반환합니다.
+         * @return 현재 파티클 버퍼의 레코드 용량입니다.
+         */
+        Core::Uint32 GetParticleCapacity() const;
+        /**
+         * @brief 기본 데이터와 모든 모듈 추가 데이터 및 정렬 패딩을 포함한 레코드 간격을 반환합니다.
+         * @return 파티클 하나에 배정한 바이트 수이며 초기화 전에는 0입니다.
+         */
+        Core::Uint32 GetParticleStride() const;
+
         /**
          * @brief 배치 스냅샷에서 모듈의 파티클 추가 데이터 오프셋을 조회합니다.
-         * @param[in] Module 조회할 모듈 정의의 비소유 주소입니다.
+         * @param[in] Module 조회할 모듈 정의의 비소유 참조입니다.
          * @return 파티클 레코드 내 바이트 오프셋이며 추가 영역이 없으면 0입니다.
          */
-        Core::Index_t GetModuleDataOffset(const Cascade::UParticleModule* Module) const;
+        Core::Index_t GetModuleDataOffset(CoreUObject::TObjectRef<const Cascade::UParticleModule> Module) const;
         /**
          * @brief 이 인스턴스에서 모듈에 배정한 실행 상태 영역을 반환합니다.
-         * @param[in] Module 실행 상태 영역을 조회할 모듈의 비소유 주소입니다.
+         * @param[in] Module 실행 상태 영역을 조회할 모듈의 비소유 참조입니다.
          * @return 수정 가능한 데이터 주소이며 배정한 영역이 없으면 nullptr입니다.
          * @note 반환 주소는 재초기화 또는 인스턴스 소멸 전까지 유효합니다.
          */
-        Core::Uint8* GetModuleInstanceData(const Cascade::UParticleModule* Module);
+        Core::Uint8* GetModuleInstanceData(CoreUObject::TObjectRef<const Cascade::UParticleModule> Module);
         /**
          * @brief 이 인스턴스에서 모듈에 배정한 실행 상태 영역을 읽기 전용으로 반환합니다.
-         * @param[in] Module 실행 상태 영역을 조회할 모듈의 비소유 주소입니다.
+         * @param[in] Module 실행 상태 영역을 조회할 모듈의 비소유 참조입니다.
          * @return 읽기 전용 데이터 주소이며 배정한 영역이 없으면 nullptr입니다.
          * @note 반환 주소는 재초기화 또는 인스턴스 소멸 전까지 유효합니다.
          */
-        const Core::Uint8* GetModuleInstanceData(const Cascade::UParticleModule* Module) const;
+        const Core::Uint8* GetModuleInstanceData(CoreUObject::TObjectRef<const Cascade::UParticleModule> Module) const;
         /**
          * @brief 이 인스턴스에 준비한 모듈 실행 데이터 버퍼의 크기를 반환합니다.
          * @return 정렬 패딩을 포함한 바이트 수입니다.
          */
         Core::Uint32 GetInstancePayloadSize() const;
+
+    private:
+        /**
+         * @brief 원본 핸들을 유지하면서 파티클과 모듈 실행 메모리 및 배치 스냅샷을 비웁니다.
+         */
+        void ResetRuntimeData();
 
     private:
         /**
@@ -110,21 +190,37 @@ namespace Cascade {
          */
         CoreUObject::TObjectRef<Cascade::UParticleEmitter> mTemplate{};
         /**
-         * @brief 배치 스냅샷에서 사용하는 모듈 정의의 수명을 유지하는 공유 참조 목록입니다.
+         * @brief 배치 스냅샷에서 사용하는 모듈 정의의 파괴를 감지하는 비소유 참조 목록입니다.
          */
-        Core::TArray<std::shared_ptr<Cascade::UParticleModule>> mModules{};
+        Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>> mModules{};
         /**
          * @brief 초기화 시 복사한 모듈별 파티클 추가 데이터의 바이트 오프셋입니다.
          */
-        Core::TMap<const Cascade::UParticleModule*, Core::Index_t> mModuleDataOffsets{};
+        Core::TMap<CoreUObject::TObjectRef<const Cascade::UParticleModule>, Core::Index_t, CoreUObject::TObjectRefHash<const Cascade::UParticleModule>> mModuleDataOffsets{};
         /**
          * @brief 초기화 시 복사한 모듈별 인스턴스 실행 데이터의 바이트 오프셋입니다.
          */
-        Core::TMap<const Cascade::UParticleModule*, Core::Index_t> mModuleInstanceDataOffsets{};
+        Core::TMap<CoreUObject::TObjectRef<const Cascade::UParticleModule>, Core::Index_t, CoreUObject::TObjectRefHash<const Cascade::UParticleModule>> mModuleInstanceDataOffsets{};
         /**
-         * @brief 이 인스턴스가 단독 소유하며 정렬 삭제자로 해제하는 typeless 실행 데이터 버퍼입니다.
+         * @brief 각 레코드에 기본 파티클과 모듈별 추가 데이터를 함께 보관하는 16바이트 정렬 버퍼입니다.
          */
-        std::unique_ptr<Core::Uint8, Cascade::FParticleEmitterInstance::FPayloadDeleter> mInstanceData{};
+        std::unique_ptr<Core::Uint8, Cascade::FParticleEmitterInstance::FPayloadDeleter> mParticleData{};
+        /**
+         * @brief 초기화 시 복사한 파티클 레코드의 16바이트 정렬 간격입니다.
+         */
+        Core::Uint32 mParticleStride{};
+        /**
+         * @brief 버퍼 앞부분에 연속해서 저장한 활성 파티클 수입니다.
+         */
+        Core::Uint32 mParticleCount{};
+        /**
+         * @brief 현재 파티클 버퍼에 할당한 전체 레코드 수입니다.
+         */
+        Core::Uint32 mParticleCapacity{};
+        /**
+         * @brief 파티클 수와 무관하게 모듈별 EmitterInstance 실행 상태를 보관하는 16바이트 정렬 버퍼입니다.
+         */
+        std::unique_ptr<Core::Uint8, Cascade::FParticleEmitterInstance::FPayloadDeleter> mModuleInstancePayload{};
         /**
          * @brief 실제로 준비한 인스턴스 실행 데이터와 정렬 패딩의 전체 바이트 수입니다.
          */

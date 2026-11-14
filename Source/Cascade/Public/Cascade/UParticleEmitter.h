@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "CoreUObject/TObjectRef.h"
 #include "CoreUObject/UObject.h"
 #include "Cascade/FParticleEmitterInstance.h"
 
@@ -49,44 +50,44 @@ namespace Cascade {
     public:
         /**
          * @brief 모듈을 자식으로 추가하고 실행 단계 목록을 갱신합니다.
-         * @param[in] Module 추가할 모듈의 공유 소유 참조입니다.
-         * @return 추가하면 true이며 null·중복·다른 Outer·개수 제한 등으로 거부하면 false입니다.
+         * @param[in] Module Emitter로 소유권을 이전할 모듈입니다.
+         * @return 추가하면 true이며 null·다른 Outer·개수 제한 등으로 거부하면 false입니다.
          * @note 페이로드 배치 캐시는 무효화되므로 사용 전에 Build()를 호출합니다.
          */
-        bool AddModule(const std::shared_ptr<Cascade::UParticleModule>& Module);
+        bool AddModule(std::unique_ptr<Cascade::UParticleModule> Module);
         /**
          * @brief 모듈의 자식 연결을 제거하고 실행 단계 목록과 배치 캐시를 갱신합니다.
-         * @param[in] Module 제거할 모듈의 비소유 주소입니다.
+         * @param[in] Module 제거할 모듈의 비소유 참조입니다.
          * @return 제거했으면 true이며 대상이 없으면 false입니다.
          */
-        bool RemoveModule(const Cascade::UParticleModule* Module);
+        bool RemoveModule(CoreUObject::TObjectRef<const Cascade::UParticleModule> Module);
         /**
          * @brief 모든 모듈의 Outer 연결과 소유 목록 및 실행 준비 정보를 비웁니다.
          */
         void ClearModules();
 
         /**
-         * @brief 인덱스에 해당하는 모듈의 수정 가능한 비소유 주소를 반환합니다.
+         * @brief 인덱스에 해당하는 모듈의 수정 가능한 비소유 참조를 반환합니다.
          * @param[in] Index 모듈 목록의 0부터 시작하는 인덱스입니다.
-         * @return 모듈의 주소이며 범위를 벗어나면 nullptr입니다.
+         * @return 모듈의 참조이며 범위를 벗어나면 빈 참조입니다.
          */
-        Cascade::UParticleModule* GetModule(Core::Index_t Index);
+        CoreUObject::TObjectRef<Cascade::UParticleModule> GetModule(Core::Index_t Index);
         /**
-         * @brief 인덱스에 해당하는 모듈의 읽기 전용 비소유 주소를 반환합니다.
+         * @brief 인덱스에 해당하는 모듈의 읽기 전용 비소유 참조를 반환합니다.
          * @param[in] Index 모듈 목록의 0부터 시작하는 인덱스입니다.
-         * @return 모듈의 주소이며 범위를 벗어나면 nullptr입니다.
+         * @return 모듈의 참조이며 범위를 벗어나면 빈 참조입니다.
          */
-        const Cascade::UParticleModule* GetModule(Core::Index_t Index) const;
+        CoreUObject::TObjectRef<const Cascade::UParticleModule> GetModule(Core::Index_t Index) const;
         /**
          * @brief Emitter에 등록된 모듈 정의의 개수를 반환합니다.
          * @return 비활성 모듈도 포함한 원소 수입니다.
          */
         std::size_t GetModuleCount() const;
         /**
-         * @brief 설정 순서를 유지하는 전체 모듈 소유 목록을 제공합니다.
-         * @return Emitter가 보관하는 공유 소유 목록의 읽기 전용 참조입니다.
+         * @brief 설정 순서를 유지하는 전체 모듈의 비소유 참조를 제공합니다.
+         * @return Emitter가 소유하는 모듈들의 비소유 참조 스냅샷입니다.
          */
-        const Core::TArray<std::shared_ptr<Cascade::UParticleModule>>& GetModules() const;
+        Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>> GetModules() const;
 
         /**
          * @brief 실행 단계별 모듈 목록과 파티클·인스턴스 페이로드 배치를 다시 구성합니다.
@@ -113,19 +114,19 @@ namespace Cascade {
 
         /**
          * @brief 새 파티클 초기화 단계에 참여하는 활성 모듈 목록을 반환합니다.
-         * @return 모듈 소유 목록의 순서를 유지하는 비소유 주소 목록의 참조입니다.
+         * @return 모듈 소유 목록의 순서를 유지하는 비소유 참조 목록의 참조입니다.
          */
-        const Core::TArray<Cascade::UParticleModule*>& GetSpawnModules() const;
+        const Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>>& GetSpawnModules() const;
         /**
          * @brief 파티클 갱신 단계에 참여하는 활성 모듈 목록을 반환합니다.
-         * @return 모듈 소유 목록의 순서를 유지하는 비소유 주소 목록의 참조입니다.
+         * @return 모듈 소유 목록의 순서를 유지하는 비소유 참조 목록의 참조입니다.
          */
-        const Core::TArray<Cascade::UParticleModule*>& GetUpdateModules() const;
+        const Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>>& GetUpdateModules() const;
         /**
          * @brief 최종 갱신 단계에 참여하는 활성 모듈 목록을 반환합니다.
-         * @return 모듈 소유 목록의 순서를 유지하는 비소유 주소 목록의 참조입니다.
+         * @return 모듈 소유 목록의 순서를 유지하는 비소유 참조 목록의 참조입니다.
          */
-        const Core::TArray<Cascade::UParticleModule*>& GetFinalUpdateModules() const;
+        const Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>>& GetFinalUpdateModules() const;
 
         /**
          * @brief 기본 파티클과 모듈 추가 데이터 및 패딩을 합친 레코드 크기를 반환합니다.
@@ -142,13 +143,13 @@ namespace Cascade {
          * @return 파티클 레코드 시작을 기준으로 한 바이트 오프셋 목록의 참조입니다.
          * @note 파티클 추가 데이터를 요구하지 않는 모듈은 포함하지 않습니다.
          */
-        const Core::TMap<const Cascade::UParticleModule*, Core::Index_t>& GetModuleDataOffsets() const;
+        const Core::TMap<CoreUObject::TObjectRef<const Cascade::UParticleModule>, Core::Index_t, CoreUObject::TObjectRefHash<const Cascade::UParticleModule>>& GetModuleDataOffsets() const;
         /**
          * @brief 모듈별 인스턴스 추가 데이터의 시작 오프셋 대응표를 반환합니다.
          * @return 인스턴스 버퍼 시작을 기준으로 한 바이트 오프셋 목록의 참조입니다.
          * @note 인스턴스 데이터를 요구하지 않는 모듈은 포함하지 않습니다.
          */
-        const Core::TMap<const Cascade::UParticleModule*, Core::Index_t>& GetModuleInstanceDataOffsets() const;
+        const Core::TMap<CoreUObject::TObjectRef<const Cascade::UParticleModule>, Core::Index_t, CoreUObject::TObjectRefHash<const Cascade::UParticleModule>>& GetModuleInstanceDataOffsets() const;
 
         /**
          * @brief Emitter 이름과 모듈 클래스·설정을 아카이브로 읽거나 기록합니다.
@@ -165,29 +166,29 @@ namespace Cascade {
 
     private:
         /**
-         * @brief 설정 순서대로 자식 모듈 UObject를 공유 소유하는 목록입니다.
+         * @brief 설정 순서대로 자식 모듈 UObject를 단독 소유하는 목록입니다.
          */
-        Core::TArray<std::shared_ptr<Cascade::UParticleModule>> mModules{};
+        Core::TArray<std::unique_ptr<Cascade::UParticleModule>> mModules{};
         /**
-         * @brief Spawn에 참여하는 활성 모듈의 비소유 주소 캐시입니다.
+         * @brief Spawn에 참여하는 활성 모듈의 비소유 참조 캐시입니다.
          */
-        Core::TArray<Cascade::UParticleModule*> mSpawnModules{};
+        Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>> mSpawnModules{};
         /**
-         * @brief Update에 참여하는 활성 모듈의 비소유 주소 캐시입니다.
+         * @brief Update에 참여하는 활성 모듈의 비소유 참조 캐시입니다.
          */
-        Core::TArray<Cascade::UParticleModule*> mUpdateModules{};
+        Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>> mUpdateModules{};
         /**
-         * @brief FinalUpdate에 참여하는 활성 모듈의 비소유 주소 캐시입니다.
+         * @brief FinalUpdate에 참여하는 활성 모듈의 비소유 참조 캐시입니다.
          */
-        Core::TArray<Cascade::UParticleModule*> mFinalUpdateModules{};
+        Core::TArray<CoreUObject::TObjectRef<Cascade::UParticleModule>> mFinalUpdateModules{};
         /**
          * @brief 모듈별 파티클 추가 데이터의 레코드 내 바이트 오프셋입니다.
          */
-        Core::TMap<const Cascade::UParticleModule*, Core::Index_t> mModuleDataOffsets{};
+        Core::TMap<CoreUObject::TObjectRef<const Cascade::UParticleModule>, Core::Index_t, CoreUObject::TObjectRefHash<const Cascade::UParticleModule>> mModuleDataOffsets{};
         /**
          * @brief 모듈별 인스턴스 페이로드의 버퍼 내 바이트 오프셋입니다.
          */
-        Core::TMap<const Cascade::UParticleModule*, Core::Index_t> mModuleInstanceDataOffsets{};
+        Core::TMap<CoreUObject::TObjectRef<const Cascade::UParticleModule>, Core::Index_t, CoreUObject::TObjectRefHash<const Cascade::UParticleModule>> mModuleInstanceDataOffsets{};
         /**
          * @brief 기본 파티클과 추가 데이터 및 정렬 패딩을 포함한 레코드 크기입니다.
          */

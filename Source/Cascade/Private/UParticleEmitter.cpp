@@ -14,7 +14,6 @@
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Core/Archive.h"
 
-#include <algorithm>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -74,7 +73,7 @@ namespace {
      * @param[in,out] Module 저장할 모듈이며 로드 시 UClass 팩토리로 만든 객체를 받습니다.
      * @details 모듈의 정적 정의만 처리하며 파티클·인스턴스 실행 페이로드는 포함하지 않습니다.
      */
-    void SerializeModule(FArchive& Archive, std::shared_ptr<UParticleModule>& Module) {
+    void SerializeModule(FArchive& Archive, std::unique_ptr<UParticleModule>& Module) {
         FString Type{Archive.IsLoading() ? FString{} : Module->GetClass()->GetName()};
 
         Archive.Serialize("Type", Type);
@@ -93,7 +92,7 @@ namespace {
                 return;
             }
 
-            std::shared_ptr<UObject> Object{Class->CreateInstance()};
+            std::unique_ptr<UObject> Object{Class->CreateInstance()};
 
             if (Cast<UParticleModule>(Object.get()) == nullptr) {
                 Archive.SetError("Cannot create particle module class: " + Type);
@@ -101,7 +100,7 @@ namespace {
                 return;
             }
 
-            Module = std::static_pointer_cast<UParticleModule>(Object);
+            Module.reset(static_cast<UParticleModule*>(Object.release()));
         }
 
         if (Archive.BeginObject("Parameters")) {
@@ -129,8 +128,8 @@ UParticleEmitter::~UParticleEmitter() {
 /**
  * @brief 모듈을 자식으로 추가하고 실행 단계 목록을 갱신합니다.
  */
-bool UParticleEmitter::AddModule(const std::shared_ptr<UParticleModule>& Module) {
-    if (!Module || mModules.size() >= MaximumModules || std::find(mModules.begin(), mModules.end(), Module) != mModules.end()) {
+bool UParticleEmitter::AddModule(std::unique_ptr<UParticleModule> Module) {
+    if (Module == nullptr || mModules.size() >= MaximumModules) {
         return false;
     }
 
@@ -138,7 +137,7 @@ bool UParticleEmitter::AddModule(const std::shared_ptr<UParticleModule>& Module)
         return false;
     }
 
-    mModules.push_back(Module);
+    mModules.push_back(std::move(Module));
     InvalidateBuildData();
     UpdateModuleLists();
 
@@ -148,7 +147,7 @@ bool UParticleEmitter::AddModule(const std::shared_ptr<UParticleModule>& Module)
 /**
  * @brief 모듈의 자식 연결을 제거하고 실행 단계 목록과 배치 캐시를 갱신합니다.
  */
-bool UParticleEmitter::RemoveModule(const UParticleModule* Module) {
+bool UParticleEmitter::RemoveModule(TObjectRef<const UParticleModule> Module) {
     for (auto Iterator{mModules.begin()}; Iterator != mModules.end(); ++Iterator) {
         if (Iterator->get() == Module) {
             if ((*Iterator)->GetOuter() == this) {
@@ -182,16 +181,16 @@ void UParticleEmitter::ClearModules() {
 }
 
 /**
- * @brief 인덱스에 해당하는 모듈의 수정 가능한 비소유 주소를 반환합니다.
+ * @brief 인덱스에 해당하는 모듈의 수정 가능한 비소유 참조를 반환합니다.
  */
-UParticleModule* UParticleEmitter::GetModule(Core::Index_t Index) {
+TObjectRef<UParticleModule> UParticleEmitter::GetModule(Core::Index_t Index) {
     return Index >= 0 && Index < mModules.size() ? mModules[Index].get() : nullptr;
 }
 
 /**
- * @brief 인덱스에 해당하는 모듈의 읽기 전용 비소유 주소를 반환합니다.
+ * @brief 인덱스에 해당하는 모듈의 읽기 전용 비소유 참조를 반환합니다.
  */
-const UParticleModule* UParticleEmitter::GetModule(Core::Index_t Index) const {
+TObjectRef<const UParticleModule> UParticleEmitter::GetModule(Core::Index_t Index) const {
     return Index >= 0 && Index < mModules.size() ? mModules[Index].get() : nullptr;
 }
 
@@ -203,10 +202,17 @@ std::size_t UParticleEmitter::GetModuleCount() const {
 }
 
 /**
- * @brief 설정 순서를 유지하는 전체 모듈 소유 목록을 제공합니다.
+ * @brief 설정 순서를 유지하는 전체 모듈의 비소유 참조를 제공합니다.
  */
-const TArray<std::shared_ptr<UParticleModule>>& UParticleEmitter::GetModules() const {
-    return mModules;
+TArray<TObjectRef<UParticleModule>> UParticleEmitter::GetModules() const {
+    TArray<TObjectRef<UParticleModule>> Modules{};
+    Modules.reserve(mModules.size());
+
+    for (const auto& Module : mModules) {
+        Modules.push_back(Module.get());
+    }
+
+    return Modules;
 }
 
 /**
@@ -221,8 +227,8 @@ void UParticleEmitter::Build() {
  * @brief 모듈의 요구 바이트 수로 16바이트 정렬 오프셋과 전체 레코드 크기를 계산합니다.
  */
 void UParticleEmitter::CacheEmitterModuleInfo() {
-    TMap<const UParticleModule*, Core::Index_t> ParticleOffsets{};
-    TMap<const UParticleModule*, Core::Index_t> InstanceOffsets{};
+    TMap<TObjectRef<const UParticleModule>, Core::Index_t, TObjectRefHash<const UParticleModule>> ParticleOffsets{};
+    TMap<TObjectRef<const UParticleModule>, Core::Index_t, TObjectRefHash<const UParticleModule>> InstanceOffsets{};
     Uint32 ParticleSize{static_cast<Uint32>(sizeof(FBaseParticle))};
     Uint32 InstanceSize{};
 
@@ -288,21 +294,21 @@ std::unique_ptr<FParticleEmitterInstance> UParticleEmitter::CreateInstance(IPart
 /**
  * @brief 새 파티클 초기화 단계에 참여하는 활성 모듈 목록을 반환합니다.
  */
-const TArray<UParticleModule*>& UParticleEmitter::GetSpawnModules() const {
+const TArray<TObjectRef<UParticleModule>>& UParticleEmitter::GetSpawnModules() const {
     return mSpawnModules;
 }
 
 /**
  * @brief 파티클 갱신 단계에 참여하는 활성 모듈 목록을 반환합니다.
  */
-const TArray<UParticleModule*>& UParticleEmitter::GetUpdateModules() const {
+const TArray<TObjectRef<UParticleModule>>& UParticleEmitter::GetUpdateModules() const {
     return mUpdateModules;
 }
 
 /**
  * @brief 최종 갱신 단계에 참여하는 활성 모듈 목록을 반환합니다.
  */
-const TArray<UParticleModule*>& UParticleEmitter::GetFinalUpdateModules() const {
+const TArray<TObjectRef<UParticleModule>>& UParticleEmitter::GetFinalUpdateModules() const {
     return mFinalUpdateModules;
 }
 
@@ -323,14 +329,14 @@ Uint32 UParticleEmitter::GetInstancePayloadSize() const {
 /**
  * @brief 모듈별 파티클 추가 데이터의 시작 오프셋 대응표를 반환합니다.
  */
-const TMap<const UParticleModule*, Core::Index_t>& UParticleEmitter::GetModuleDataOffsets() const {
+const TMap<TObjectRef<const UParticleModule>, Core::Index_t, TObjectRefHash<const UParticleModule>>& UParticleEmitter::GetModuleDataOffsets() const {
     return mModuleDataOffsets;
 }
 
 /**
  * @brief 모듈별 인스턴스 추가 데이터의 시작 오프셋 대응표를 반환합니다.
  */
-const TMap<const UParticleModule*, Core::Index_t>& UParticleEmitter::GetModuleInstanceDataOffsets() const {
+const TMap<TObjectRef<const UParticleModule>, Core::Index_t, TObjectRefHash<const UParticleModule>>& UParticleEmitter::GetModuleInstanceDataOffsets() const {
     return mModuleInstanceDataOffsets;
 }
 
@@ -366,14 +372,15 @@ void UParticleEmitter::Serialize(FArchive& Archive) {
         Archive.SetError("Too many particle modules");
     }
 
-    TArray<std::shared_ptr<UParticleModule>> Modules{};
+    TArray<std::unique_ptr<UParticleModule>> Modules{};
 
     for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
         if (!Archive.BeginObject(std::to_string(Index))) {
             break;
         }
 
-        std::shared_ptr<UParticleModule> Module{Archive.IsLoading() ? nullptr : mModules[Index]};
+        std::unique_ptr<UParticleModule> Loaded{};
+        std::unique_ptr<UParticleModule>& Module{Archive.IsLoading() ? Loaded : mModules[Index]};
 
         SerializeModule(Archive, Module);
         Archive.EndObject();
