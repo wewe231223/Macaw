@@ -10,7 +10,7 @@
 #include "Core/Math/FQuat.h"
 #include "Core/Math/FVector.h"
 #include "Engine/AActor.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Engine/EViewTargetBlendFunction.h"
 #include "Engine/FMinimalViewInfo.h"
 #include "Engine/UCameraModifier.h"
@@ -182,7 +182,7 @@ namespace Engine {
          * @param[in] Handle 해석할 액터 핸들입니다.
          * @return 살아 있는 액터이며, 없으면 nullptr입니다.
          */
-        Engine::AActor* ResolveTarget(CoreUObject::FObjectHandle Handle) const;
+        Engine::AActor* ResolveTarget(CoreUObject::TObjectRef<Engine::AActor> Handle) const;
 
         /**
          * @brief 액터의 카메라나 변환으로 시점을 계산합니다.
@@ -201,12 +201,12 @@ namespace Engine {
         /**
          * @brief 현재 뷰 타깃이며, 블렌드 중에는 출발 대상입니다.
          */
-        CoreUObject::FObjectHandle mViewTarget{};
+        CoreUObject::TObjectRef<Engine::AActor> mViewTarget{};
 
         /**
          * @brief 블렌드로 전환할 뷰 타깃입니다.
          */
-        CoreUObject::FObjectHandle mPendingViewTarget{};
+        CoreUObject::TObjectRef<Engine::AActor> mPendingViewTarget{};
 
         /**
          * @brief 블렌드 출발 시점이며, 출발 대상이 사라지면 이 값을 씁니다.

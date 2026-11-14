@@ -5,6 +5,7 @@
  */
 
 #include "FBasePass.h"
+#include "Asset/USkeletalMesh.h"
 
 #include "FScenePrimitive.h"
 #include "Renderer/Renderer.h"
@@ -48,7 +49,7 @@ namespace Renderer {
 
         for (const Asset::FSubMesh& SubMesh : Mesh.GetMeshData().GetSubMeshes()) {
             Asset::UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
-            Asset::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial : SlotMaterial != nullptr ? SlotMaterial : mDefaultMaterial};
+            Asset::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial.Get() : SlotMaterial != nullptr ? SlotMaterial : mDefaultMaterial.Get()};
 
             if (!Material->CreateResources(mDevice, mContext)) {
                 Material = mDefaultMaterial;

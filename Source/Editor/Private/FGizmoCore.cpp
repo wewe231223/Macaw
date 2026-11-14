@@ -5,6 +5,7 @@
  */
 
 #include "Core/Types.h"
+#include "Engine/AActor.h"
 #include "Editor/FGizmoCore.h"
 #include "Engine/EditorMesh.h"
 #include "Engine/MeshPicking.h"
@@ -349,7 +350,7 @@ namespace Editor {
 
         const std::array<Core::FVector, 3> Axes{IsDragging() ? mDragAxes : Placement.mAxes};
         const Core::Int32 Highlight{IsDragging() ? mActiveAxis : mHoveredAxis};
-        const CoreUObject::FObjectHandle Owner{Placement.mOwner};
+        const CoreUObject::TObjectRef<Engine::AActor> Owner{Placement.mOwner};
 
         const auto Add{[&](Engine::EEditorMesh Mesh, const Core::FMatrix& World, Core::Int32 Handle, Core::Uint32 Priority, const Core::FVector4& Color, bool Pickable = true) {
             DrawInterface.DrawMesh({Mesh, World, Color, Pickable ? Engine::FHitProxy{Engine::EHitProxyType::GizmoAxis, Owner, Handle} : Engine::FHitProxy{}, Priority});

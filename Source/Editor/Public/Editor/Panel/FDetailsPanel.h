@@ -9,7 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Editor/Panel/FEditorPanel.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Editor/FAssetPicker.h"
 
 #include <functional>
@@ -60,7 +60,7 @@ namespace Editor {
             /**
              * @brief 편집 대상 객체의 세대 검증 핸들 목록입니다.
              */
-            Core::TArray<CoreUObject::FObjectHandle> mTargets{};
+            Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> mTargets{};
 
             /**
              * @brief 프로퍼티의 표시 분류입니다.
@@ -135,7 +135,7 @@ namespace Editor {
          * @brief 대상 고정, 검색, 고급·변경 프로퍼티 필터를 표시합니다.
          * @param Targets 표시·편집할 객체 핸들 목록입니다.
          */
-        void DrawToolbar(Core::TArray<CoreUObject::FObjectHandle>& Targets);
+        void DrawToolbar(Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>>& Targets);
 
         /**
          * @brief 프로퍼티 분류·표시 이름·내부 이름에 검색어가 일치하는지 확인합니다.
@@ -231,7 +231,7 @@ namespace Editor {
          * @brief 스켈레탈 메시 컴포넌트가 가진 AnimClass 인스턴스의 설정을 표시하고 편집합니다.
          * @param Targets 설정을 함께 표시할 선택 객체 핸들입니다.
          */
-        void DrawAnimInstance(const Core::TArray<CoreUObject::FObjectHandle>& Targets);
+        void DrawAnimInstance(const Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>>& Targets);
 
         /**
          * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
@@ -250,13 +250,13 @@ namespace Editor {
          * @param Actor 액터와 컴포넌트 계층을 표시할 대상입니다.
          * @param Selected 현재 상세 선택 객체의 핸들입니다.
          */
-        void DrawComponentTree(Engine::AActor* Actor, CoreUObject::FObjectHandle Selected);
+        void DrawComponentTree(Engine::AActor* Actor, CoreUObject::TObjectRef<CoreUObject::UObject> Selected);
 
         /**
          * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
          * @param Targets 공통 프로퍼티를 표시하고 편집할 객체 핸들입니다.
          */
-        void DrawReflectedObjects(const Core::TArray<CoreUObject::FObjectHandle>& Targets);
+        void DrawReflectedObjects(const Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>>& Targets);
 
         /**
          * @brief 프로퍼티 타입에 맞는 편집 위젯을 표시하고 변경한 값을 돌려줍니다.
@@ -288,7 +288,7 @@ namespace Editor {
         /**
          * @brief 선택 변경과 무관하게 표시할 고정 객체 핸들입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> mLockedTargets{};
+        Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> mLockedTargets{};
 
         /**
          * @brief 고정한 대상이 속한 에디터 컨텍스트의 비소유 포인터입니다.

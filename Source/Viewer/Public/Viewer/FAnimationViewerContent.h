@@ -9,6 +9,7 @@
 #include "Viewer/IViewerContent.h"
 #include "Viewer/FPreviewScene.h"
 #include "Core/Math/FBox.h"
+#include "CoreUObject/TObjectRef.h"
 
 #include <memory>
 
@@ -214,7 +215,7 @@ namespace Viewer {
         /**
          * @brief 외부에서 수명을 보장하는 재생 시퀀스의 비소유 포인터입니다.
          */
-        const Asset::UAnimSequence* mSequence{};
+        CoreUObject::TObjectRef<const Asset::UAnimSequence> mSequence{};
 
         /**
          * @brief 애니메이션 액터와 렌더 장면을 소유하는 독립 미리보기 월드입니다.
@@ -222,9 +223,9 @@ namespace Viewer {
         std::unique_ptr<Viewer::FPreviewScene> mScene{};
 
         /**
-         * @brief 미리보기 월드가 소유하는 스켈레탈 메시 컴포넌트입니다.
+         * @brief 미리보기 월드가 소유하는 스켈레탈 메시 컴포넌트의 세대 핸들입니다.
          */
-        Engine::USkeletalMeshComponent* mComponent{};
+        CoreUObject::TObjectRef<Engine::USkeletalMeshComponent> mComponent{};
 
         /**
          * @brief 시퀀스 끝에서 반복 재생할지 여부입니다.

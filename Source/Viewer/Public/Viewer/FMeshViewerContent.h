@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Viewer/IViewerContent.h"
 #include "Viewer/FPreviewScene.h"
 #include "Viewer/FBonePreview.h"
@@ -126,7 +128,7 @@ namespace Viewer {
          * @brief 미리보기 메시 슬롯의 재질 포인터 목록을 제공합니다.
          * @return 콘텐츠가 보관하는 비소유 재질 포인터 배열의 수정 가능한 참조입니다.
          */
-        Core::TArray<Asset::UMaterial*>& GetMaterials();
+        Core::TArray<CoreUObject::TObjectRef<Asset::UMaterial>>& GetMaterials();
 
         /**
          * @brief 현재 스켈레탈 메시와 호환되는 스켈레톤으로 기준 포즈를 재구성합니다.
@@ -166,27 +168,27 @@ namespace Viewer {
         /**
          * @brief 외부에서 소유하는 정적 미리보기 메시입니다.
          */
-        Asset::UStaticMesh* mMesh{};
+        CoreUObject::TObjectRef<Asset::UStaticMesh> mMesh{};
 
         /**
          * @brief 에셋 관리자가 소유하는 미리보기 스켈레탈 메시입니다.
          */
-        Asset::USkeletalMesh* mSkeletalMesh{};
+        CoreUObject::TObjectRef<Asset::USkeletalMesh> mSkeletalMesh{};
 
         /**
          * @brief 외부에서 소유하는 미리보기 스켈레톤입니다.
          */
-        Asset::USkeleton* mSkeleton{};
+        CoreUObject::TObjectRef<Asset::USkeleton> mSkeleton{};
 
         /**
          * @brief 에셋 관리자가 소유하는 미리보기 재질입니다.
          */
-        Asset::UMaterial* mMaterial{};
+        CoreUObject::TObjectRef<Asset::UMaterial> mMaterial{};
 
         /**
          * @brief 외부에서 소유하며 직접 2D로 표시할 텍스처입니다.
          */
-        Asset::UTexture2D* mTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mTexture{};
         
 
         /**
@@ -197,7 +199,7 @@ namespace Viewer {
         /**
          * @brief 메시 슬롯별 재질의 비소유 포인터 목록입니다.
          */
-        Core::TArray<Asset::UMaterial*> mMaterials{};
+        Core::TArray<CoreUObject::TObjectRef<Asset::UMaterial>> mMaterials{};
 
         /**
          * @brief 스켈레톤 오버레이의 본·관절 도형 캐시입니다.

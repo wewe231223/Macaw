@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FHeightFogSceneProxy.h"
 #include "UHeightFogComponent.generated.h"
@@ -212,7 +214,7 @@ namespace Engine {
         /**
          * @brief 프로젝트 에셋 또는 대체 텍스처가 소유하는 언리얼 안개 아이콘의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mIcon{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mIcon{};
 
         /**
          * @brief 현재 아이콘을 조회한 에셋 관리자의 비소유 주소이며 관리자가 바뀌면 아이콘을 다시 찾습니다.

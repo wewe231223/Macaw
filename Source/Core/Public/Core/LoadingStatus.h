@@ -26,7 +26,7 @@ namespace Core {
             /**
              * @brief 객체 수명을 끝냅니다.
              */
-            virtual ~ISink() = default;
+            virtual ~ISink();
 
         public:
             /**

@@ -179,7 +179,7 @@ namespace Engine {
      * @brief 월드에서 이 액터를 제거합니다. 실행 전달 중이면 안전한 시점까지 미룹니다.
      */
     bool Engine::AActor::Destroy() {
-        return mWorld != nullptr && mWorld->DestroyActor(GetHandle());
+        return mWorld != nullptr && mWorld->DestroyActor(CoreUObject::MakeObjectRef(this));
     }
 
     /**
@@ -297,12 +297,12 @@ namespace Engine {
     /**
      * @brief 콜백 중 컴포넌트 추가에 영향받지 않는 핸들 스냅샷을 만듭니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Engine::AActor::GetComponentHandles() const {
-        Core::TArray<CoreUObject::FObjectHandle> Handles{};
+    Core::TArray<CoreUObject::TObjectRef<Engine::UActorComponent>> Engine::AActor::GetComponentRefs() const {
+        Core::TArray<CoreUObject::TObjectRef<Engine::UActorComponent>> Handles{};
         Handles.reserve(mComponents.size());
 
         for (const auto& Component : mComponents) {
-            Handles.push_back(Component->GetHandle());
+            Handles.push_back(CoreUObject::MakeObjectRef(Component));
         }
 
         return Handles;
@@ -318,14 +318,14 @@ namespace Engine {
 
         mHasBegunPlay = true;
 
-        const auto Handles{GetComponentHandles()};
+        const auto Handles{GetComponentRefs()};
 
-        for (const CoreUObject::FObjectHandle Handle : Handles) {
+        for (const CoreUObject::TObjectRef<Engine::UActorComponent> Handle : Handles) {
             if (mPendingDestroy || !mWorld->CanBeginActor()) {
                 break;
             }
 
-            if (auto* Component{CoreUObject::Cast<Engine::UActorComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))}; Component != nullptr && Component->GetOwner() == this) {
+            if (auto* Component{CoreUObject::Cast<Engine::UActorComponent>(Handle.Get())}; Component != nullptr && Component->GetOwner() == this) {
                 Component->DispatchBeginPlay();
             }
         }
@@ -345,19 +345,19 @@ namespace Engine {
             return;
         }
 
-        const auto Handles{GetComponentHandles()};
+        const auto Handles{GetComponentRefs()};
 
         if (!EditorTick || mEditorTickable) {
             Engine::EngineStats::ActorTicks.Add();
             Tick(DeltaTime);
         }
 
-        for (const CoreUObject::FObjectHandle Handle : Handles) {
+        for (const CoreUObject::TObjectRef<Engine::UActorComponent> Handle : Handles) {
             if (mPendingDestroy || mWorld == nullptr || (!EditorTick && !mHasBegunPlay) || mWorld->mEndPlayRequested || mWorld->mShutdownRequested) {
                 break;
             }
 
-            if (auto* Component{CoreUObject::Cast<Engine::UActorComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))}; Component != nullptr && Component->GetOwner() == this) {
+            if (auto* Component{CoreUObject::Cast<Engine::UActorComponent>(Handle.Get())}; Component != nullptr && Component->GetOwner() == this) {
                 Component->DispatchTick(DeltaTime, EditorTick);
             }
         }
@@ -373,7 +373,7 @@ namespace Engine {
 
         mHasBegunPlay = false;
 
-        const auto Handles{GetComponentHandles()};
+        const auto Handles{GetComponentRefs()};
 
         if (mBeginPlayCalled) {
             mBeginPlayCalled = false;
@@ -382,7 +382,7 @@ namespace Engine {
         }
 
         for (auto Position{Handles.rbegin()}; Position != Handles.rend(); ++Position) {
-            if (auto* Component{CoreUObject::Cast<Engine::UActorComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(*Position))}; Component != nullptr && Component->GetOwner() == this) {
+            if (auto* Component{CoreUObject::Cast<Engine::UActorComponent>((*Position).Get())}; Component != nullptr && Component->GetOwner() == this) {
                 Component->DispatchEndPlay();
             }
         }

@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Core/Types.h"
-#include "CoreUObject/FObjectReference.h"
+#include "CoreUObject/TObjectRef.h"
 
 #include <memory>
 
@@ -106,9 +106,9 @@ namespace Cascade {
          */
         Cascade::IParticleEmitterInstanceOwner& mOwner;
         /**
-         * @brief 원본 Emitter의 파괴를 감지할 수 있는 GUID·세대 핸들 참조입니다.
+         * @brief 원본 Emitter의 파괴를 감지할 수 있는 런타임 세대 핸들입니다.
          */
-        CoreUObject::FObjectReference mTemplate{};
+        CoreUObject::TObjectRef<Cascade::UParticleEmitter> mTemplate{};
         /**
          * @brief 배치 스냅샷에서 사용하는 모듈 정의의 수명을 유지하는 공유 참조 목록입니다.
          */

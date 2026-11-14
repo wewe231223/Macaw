@@ -7,10 +7,13 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Core/Math/FVector.h"
 
 namespace Engine {
+
+    class AActor;
+    class UPrimitiveComponent;
 
     /**
      * @brief 월드 광선 질의로 찾은 액터, 컴포넌트와 충돌 위치 및 거리입니다.
@@ -21,12 +24,12 @@ namespace Engine {
         /**
          * @brief 충돌한 액터 핸들입니다.
          */
-        CoreUObject::FObjectHandle mActor{};
+        CoreUObject::TObjectRef<Engine::AActor> mActor{};
 
         /**
          * @brief 충돌한 컴포넌트 핸들입니다.
          */
-        CoreUObject::FObjectHandle mComponent{};
+        CoreUObject::TObjectRef<Engine::UPrimitiveComponent> mComponent{};
 
         /**
          * @brief 월드 좌표의 충돌 위치입니다.

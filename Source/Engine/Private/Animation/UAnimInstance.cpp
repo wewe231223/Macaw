@@ -242,7 +242,8 @@ namespace Engine {
     }
 
     const UAnimInstance::FSequenceBoneMapping& UAnimInstance::GetSequenceBoneMapping(const Asset::UAnimSequence& Sequence) {
-        auto Mapping{mTrackToBone.find(&Sequence)};
+        const CoreUObject::TObjectRef<const Asset::UAnimSequence> Handle{&Sequence};
+        auto Mapping{mTrackToBone.find(Handle)};
 
         if (Mapping != mTrackToBone.end() && Mapping->second.mRootMotionBone == Sequence.GetRootMotionBone()) {
             return Mapping->second;
@@ -291,7 +292,7 @@ namespace Engine {
             }
         }
 
-        return mTrackToBone.insert_or_assign(&Sequence, std::move(Data)).first->second;
+        return mTrackToBone.insert_or_assign(Handle, std::move(Data)).first->second;
     }
 
     bool UAnimInstance::GetBoolVariable(const Core::FString&) const {

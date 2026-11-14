@@ -27,7 +27,7 @@ namespace Script {
         }
 
         // C# AddedToCamera가 GetCameraOwner를 쓸 수 있도록 기반 클래스에서 소유자를 먼저 정합니다.
-        mInstance = Script::FScriptRuntime::Get()->CreateModifierInstance(mClassName, GetHandle());
+        mInstance = Script::FScriptRuntime::Get()->CreateModifierInstance(mClassName, this);
 
         return mInstance != 0;
     }

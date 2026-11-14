@@ -8,7 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FTransform.h"
@@ -67,7 +67,7 @@ namespace Editor {
             /**
              * @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 전역 세대 핸들입니다.
              */
-            CoreUObject::FObjectHandle mObject{};
+            CoreUObject::TObjectRef<Engine::USceneComponent> mObject{};
 
             /**
              * @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 월드 변환입니다.

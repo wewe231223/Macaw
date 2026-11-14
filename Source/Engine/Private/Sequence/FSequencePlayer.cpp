@@ -77,7 +77,7 @@ namespace Engine {
                 return Candidate.mBindingId == Binding.GetId();
             })};
 
-            const Engine::USceneComponent* Component{Target != Targets.end() ? FindSceneComponent(World, Target->mObject.GetGuid()) : nullptr};
+            Engine::USceneComponent* Component{Target != Targets.end() ? FindSceneComponent(World, Target->mObject.GetGuid()) : nullptr};
 
             if (Component == nullptr) {
                 Core::ErrorHandler::Report("Sequencer", "Cannot resolve sequence binding '" + Binding.GetName() + "'", Core::ErrorHandler::EErrorLevel::Warning);
@@ -86,8 +86,8 @@ namespace Engine {
             }
 
             FResolvedBinding Resolved{};
-            Resolved.mBinding = &Binding;
-            Resolved.mComponent = Component->GetHandle();
+            Resolved.mBindingId = Binding.GetId();
+            Resolved.mComponent = CoreUObject::MakeObjectRef(Component);
 
             mBindings.push_back(Resolved);
         }
@@ -99,8 +99,8 @@ namespace Engine {
      * @brief 시퀀스 연결과 보관한 변환을 값 복원 없이 해제합니다.
      */
     void Engine::FSequencePlayer::Reset() {
-        mSequence = nullptr;
-        mWorld = nullptr;
+        mSequence = {};
+        mWorld = {};
         mBindings.clear();
         mBaseCamera = {};
         mBaseViewTarget = {};
@@ -114,12 +114,16 @@ namespace Engine {
      * @brief 재생을 시작하거나 일시정지를 해제하고 현재 시간의 값을 적용합니다.
      */
     bool Engine::FSequencePlayer::Play() {
-        if (mSequence == nullptr) {
+        const Asset::ULevelSequence* Sequence{GetSequence()};
+
+        if (Sequence == nullptr || GetWorld() == nullptr) {
+            Stop();
+
             return false;
         }
 
         if (mState == Engine::ESequencePlayState::Stopped) {
-            mTick = mSequence->GetStartTick();
+            mTick = Sequence->GetStartTick();
         }
 
         mState = Engine::ESequencePlayState::Playing;
@@ -153,12 +157,20 @@ namespace Engine {
      * @brief 재생 중이면 시간을 진행하고 값을 적용합니다.
      */
     void Engine::FSequencePlayer::Advance(float DeltaTime) {
-        if (mSequence == nullptr || mState != Engine::ESequencePlayState::Playing || !std::isfinite(DeltaTime) || DeltaTime < 0.0f) {
+        const Asset::ULevelSequence* Sequence{GetSequence()};
+
+        if (Sequence == nullptr || GetWorld() == nullptr) {
+            Stop();
+
             return;
         }
 
-        const double Start{static_cast<double>(mSequence->GetStartTick())};
-        const double End{static_cast<double>(mSequence->GetEndTick())};
+        if (mState != Engine::ESequencePlayState::Playing || !std::isfinite(DeltaTime) || DeltaTime < 0.0f) {
+            return;
+        }
+
+        const double Start{static_cast<double>(Sequence->GetStartTick())};
+        const double End{static_cast<double>(Sequence->GetEndTick())};
 
         mTick += static_cast<double>(DeltaTime) * Asset::ULevelSequence::TicksPerSecond;
 
@@ -187,11 +199,13 @@ namespace Engine {
      * @brief 재생 구간 안의 시간으로 이동하여 값을 적용합니다.
      */
     void Engine::FSequencePlayer::Seek(double Tick) {
-        if (mSequence == nullptr) {
+        const Asset::ULevelSequence* Sequence{GetSequence()};
+
+        if (Sequence == nullptr || GetWorld() == nullptr || !std::isfinite(Tick)) {
             return;
         }
 
-        mTick = std::clamp(Tick, static_cast<double>(mSequence->GetStartTick()), static_cast<double>(mSequence->GetEndTick()));
+        mTick = std::clamp(Tick, static_cast<double>(Sequence->GetStartTick()), static_cast<double>(Sequence->GetEndTick()));
 
         if (mState == Engine::ESequencePlayState::Stopped) {
             mState = Engine::ESequencePlayState::Paused;
@@ -204,9 +218,13 @@ namespace Engine {
      * @brief 바인딩에 연결된 공간 컴포넌트를 조회합니다.
      */
     Engine::USceneComponent* Engine::FSequencePlayer::FindBoundComponent(const Core::FGuid& BindingId) const {
+        if (FindBinding(BindingId) == nullptr) {
+            return nullptr;
+        }
+
         for (const FResolvedBinding& Binding : mBindings) {
-            if (Binding.mBinding->GetId() == BindingId) {
-                return CoreUObject::Cast<Engine::USceneComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Binding.mComponent));
+            if (Binding.mBindingId == BindingId) {
+                return ResolveComponent(Binding.mComponent);
             }
         }
 
@@ -218,7 +236,7 @@ namespace Engine {
      */
     void Engine::FSequencePlayer::RestoreState() {
         for (FResolvedBinding& Binding : mBindings) {
-            auto* Component{CoreUObject::Cast<Engine::USceneComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Binding.mComponent))};
+            Engine::USceneComponent* Component{ResolveComponent(Binding.mComponent)};
 
             if (Binding.mCaptured && Component != nullptr) {
                 Component->SetTransform(Binding.mBaseTransform);
@@ -236,11 +254,15 @@ namespace Engine {
             Binding.mBaseProperties.clear();
         }
 
-        if (mCameraCaptured && mWorld != nullptr) {
-            mWorld->SetActiveCamera(CoreUObject::Cast<Engine::UCameraComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(mBaseCamera)));
+        Engine::UWorld* World{GetWorld()};
 
-            if (Engine::APlayerCameraManager* CameraManager{mWorld->GetPlayerCameraManager()}) {
-                CameraManager->SetViewTarget(CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(mBaseViewTarget)));
+        if (mCameraCaptured && World != nullptr) {
+            World->SetActiveCamera(CoreUObject::Cast<Engine::UCameraComponent>(ResolveComponent(mBaseCamera)));
+
+            if (Engine::APlayerCameraManager* CameraManager{World->GetPlayerCameraManager()}) {
+                Engine::AActor* ViewTarget{CoreUObject::Cast<Engine::AActor>(mBaseViewTarget.Get())};
+
+                CameraManager->SetViewTarget(World->ContainsObject(ViewTarget) ? ViewTarget : nullptr);
             }
         }
 
@@ -254,7 +276,7 @@ namespace Engine {
      * @brief 현재 카메라 컷이 활성화한 카메라를 조회합니다.
      */
     Engine::UCameraComponent* Engine::FSequencePlayer::GetCutCamera() const {
-        return CoreUObject::Cast<Engine::UCameraComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(mCutCamera));
+        return CoreUObject::Cast<Engine::UCameraComponent>(ResolveComponent(mCutCamera));
     }
 
     /**
@@ -275,7 +297,7 @@ namespace Engine {
      * @brief 현재 재생 상태를 반환합니다.
      */
     Engine::ESequencePlayState Engine::FSequencePlayer::GetState() const {
-        return mState;
+        return GetSequence() != nullptr && GetWorld() != nullptr ? mState : Engine::ESequencePlayState::Stopped;
     }
 
     /**
@@ -285,18 +307,49 @@ namespace Engine {
         return mTick;
     }
 
+    Engine::UWorld* Engine::FSequencePlayer::GetWorld() const {
+        return CoreUObject::Cast<Engine::UWorld>(mWorld.Get());
+    }
+
+    const Asset::ULevelSequence* Engine::FSequencePlayer::GetSequence() const {
+        return CoreUObject::Cast<Asset::ULevelSequence>(mSequence.Get());
+    }
+
+    const Asset::FSequenceBinding* Engine::FSequencePlayer::FindBinding(const Core::FGuid& BindingId) const {
+        const Asset::ULevelSequence* Sequence{GetSequence()};
+
+        if (Sequence == nullptr) {
+            return nullptr;
+        }
+
+        const auto& Bindings{Sequence->GetBindings()};
+        const auto Position{std::find_if(Bindings.begin(), Bindings.end(), [&BindingId](const Asset::FSequenceBinding& Binding) {
+            return Binding.GetId() == BindingId;
+        })};
+
+        return Position != Bindings.end() ? &*Position : nullptr;
+    }
+
+    Engine::USceneComponent* Engine::FSequencePlayer::ResolveComponent(CoreUObject::TObjectRef<Engine::USceneComponent> Handle) const {
+        const Engine::UWorld* World{GetWorld()};
+        Engine::USceneComponent* Component{CoreUObject::Cast<Engine::USceneComponent>(Handle.Get())};
+
+        return World != nullptr && World->ContainsObject(Component) ? Component : nullptr;
+    }
+
     /**
      * @brief 현재 시간의 값을 바인딩 대상에 적용합니다.
      */
     void Engine::FSequencePlayer::Evaluate() {
         for (FResolvedBinding& Binding : mBindings) {
-            auto* Component{CoreUObject::Cast<Engine::USceneComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Binding.mComponent))};
+            const Asset::FSequenceBinding* Source{FindBinding(Binding.mBindingId)};
+            Engine::USceneComponent* Component{ResolveComponent(Binding.mComponent)};
 
-            if (Component == nullptr) {
+            if (Source == nullptr || Component == nullptr) {
                 continue;
             }
 
-            for (const auto& Track : Binding.mBinding->GetTracks()) {
+            for (const auto& Track : Source->GetTracks()) {
                 if (Track->GetType() == Asset::ESequenceTrackType::Property) {
                     const auto* PropertyTrack{static_cast<const Asset::FSequencePropertyTrack*>(Track.get())};
                     const CoreUObject::FProperty* Property{Component->GetClass()->FindClassProperty(PropertyTrack->GetPropertyName())};
@@ -345,36 +398,38 @@ namespace Engine {
      * @brief 현재 시간의 카메라 컷을 월드의 활성 카메라에 적용합니다.
      */
     void Engine::FSequencePlayer::EvaluateCameraCut() {
-        const Asset::FSequenceCameraCut* Cut{mSequence != nullptr ? mSequence->FindCameraCut(mTick) : nullptr};
+        const Asset::ULevelSequence* Sequence{GetSequence()};
+        Engine::UWorld* World{GetWorld()};
+        const Asset::FSequenceCameraCut* Cut{Sequence != nullptr ? Sequence->FindCameraCut(mTick) : nullptr};
         auto* Camera{Cut != nullptr ? CoreUObject::Cast<Engine::UCameraComponent>(FindBoundComponent(Cut->mCameraBinding)) : nullptr};
 
-        if (Camera == nullptr || mWorld == nullptr) {
+        if (Camera == nullptr || World == nullptr) {
             return;
         }
 
         if (!mCameraCaptured) {
-            const Engine::UCameraComponent* Active{mWorld->GetActiveCamera()};
+            Engine::UCameraComponent* Active{World->GetActiveCamera()};
 
-            mBaseCamera = Active != nullptr ? Active->GetHandle() : CoreUObject::FObjectHandle{};
+            mBaseCamera = Active;
 
-            if (const Engine::APlayerCameraManager* CameraManager{mWorld->GetPlayerCameraManager()}) {
-                const Engine::AActor* ViewTarget{CameraManager->GetViewTarget()};
+            if (const Engine::APlayerCameraManager* CameraManager{World->GetPlayerCameraManager()}) {
+                Engine::AActor* ViewTarget{CameraManager->GetViewTarget()};
 
-                mBaseViewTarget = ViewTarget != nullptr ? ViewTarget->GetHandle() : CoreUObject::FObjectHandle{};
+                mBaseViewTarget = ViewTarget;
             }
 
             mCameraCaptured = true;
         }
 
         // 실행 중이면 게임 뷰포트가 카메라 관리자의 시점으로 그리므로 뷰 타깃도 컷 카메라로 바꿉니다.
-        if (Engine::APlayerCameraManager* CameraManager{mWorld->GetPlayerCameraManager()}) {
+        if (Engine::APlayerCameraManager* CameraManager{World->GetPlayerCameraManager()}) {
             if (CameraManager->GetViewTarget() != Camera->GetOwner()) {
                 CameraManager->SetViewTarget(Camera->GetOwner());
             }
         }
 
-        mWorld->SetActiveCamera(Camera);
-        mCutCamera = Camera->GetHandle();
+        World->SetActiveCamera(Camera);
+        mCutCamera = CoreUObject::MakeObjectRef(Camera);
     }
 
 }

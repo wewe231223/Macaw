@@ -59,7 +59,7 @@ namespace Engine {
      * @brief 현재 SubUV 대상 컴포넌트의 비소유 주소를 반환합니다.
      */
     Engine::UPrimitiveComponent* Engine::USubUVComponent::GetTarget() const {
-        return CoreUObject::Cast<Engine::UPrimitiveComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(mTarget));
+        return CoreUObject::Cast<Engine::UPrimitiveComponent>(mTarget.Get());
     }
 
     /**
@@ -260,7 +260,7 @@ namespace Engine {
      */
     void Engine::USubUVComponent::ClearTarget() {
         if (Engine::UPrimitiveComponent* Target{GetTarget()}) {
-            Target->ClearUVTransform(GetHandle());
+            Target->ClearUVTransform(CoreUObject::MakeObjectRef(this));
         }
 
         mTarget = {};
@@ -299,13 +299,13 @@ namespace Engine {
                 }
             }
 
-            mTarget = Target != nullptr ? Target->GetHandle() : CoreUObject::FObjectHandle{};
+            mTarget = Target;
         }
 
         if (Target != nullptr) {
             const Core::Index_t Frame{GetCurrentFrame()};
 
-            Target->SetUVTransform({1.0f / mColumns, 1.0f / mRows}, {static_cast<float>(Frame % mColumns) / mColumns, static_cast<float>(Frame / mColumns) / mRows}, GetHandle());
+            Target->SetUVTransform({1.0f / mColumns, 1.0f / mRows}, {static_cast<float>(Frame % mColumns) / mColumns, static_cast<float>(Frame / mColumns) / mRows}, CoreUObject::MakeObjectRef(this));
         }
     }
 

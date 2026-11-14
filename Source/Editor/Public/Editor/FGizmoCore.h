@@ -8,7 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FQuat.h"
@@ -18,6 +18,10 @@
 #include "Editor/FGizmoSettings.h"
 
 #include <array>
+
+namespace Engine {
+    class AActor;
+}
 
 namespace Editor {
 
@@ -83,7 +87,7 @@ namespace Editor {
         /**
          * @brief 핸들의 HitProxy에 기록할 대상 객체의 핸들이며 객체가 아닌 대상은 비워 둡니다.
          */
-        CoreUObject::FObjectHandle mOwner{};
+        CoreUObject::TObjectRef<Engine::AActor> mOwner{};
     };
 
     /**

@@ -62,7 +62,7 @@ namespace Editor {
         Editor::FGizmoPlacement Placement{};
         Placement.mPivot = GetPivot();
         Placement.mMode = mClient->GetGizmoMode();
-        Placement.mOwner = Target.GetOwner()->GetHandle();
+        Placement.mOwner = CoreUObject::MakeObjectRef(Target.GetOwner());
 
         for (Core::Index_t Index{}; Index < 3; ++Index) {
             Placement.mAxes[Index] = GetAxis(Target.GetTransform(), Index);
@@ -267,7 +267,7 @@ namespace Editor {
 
         const Engine::USceneComponent* Target{GetPrimaryTarget()};
         const Engine::AActor* Actor{Target != nullptr ? Target->GetOwner() : nullptr};
-        const Core::Int32 Hovered{Actor != nullptr && mContext->CanEditWorld() && Input.mHovered && !Input.mRightDown && Hit.mType == Engine::EHitProxyType::GizmoAxis && Hit.mObject == Actor->GetHandle() && Hit.mAxis >= 0 && Hit.mAxis <= 7 ? Hit.mAxis : -1};
+        const Core::Int32 Hovered{Actor != nullptr && mContext->CanEditWorld() && Input.mHovered && !Input.mRightDown && Hit.mType == Engine::EHitProxyType::GizmoAxis && Hit.mObject == CoreUObject::MakeObjectRef(Actor) && Hit.mAxis >= 0 && Hit.mAxis <= 7 ? Hit.mAxis : -1};
 
         mCore.SetHoveredAxis(Hovered);
 
@@ -328,7 +328,7 @@ namespace Editor {
      * @brief 현재 변환 작업의 기준 장면 컴포넌트를 조회합니다.
      */
     Engine::USceneComponent* Editor::FTransformGizmo::GetPrimaryTarget() const {
-        const Core::TArray<CoreUObject::FObjectHandle> Targets{mContext->GetTransformTargets()};
+        const Core::TArray<CoreUObject::TObjectRef<Engine::USceneComponent>> Targets{mContext->GetTransformTargets()};
 
         return Targets.empty() ? nullptr : CoreUObject::Cast<Engine::USceneComponent>(mContext->ResolveObject(Targets.back()));
     }
@@ -366,7 +366,7 @@ namespace Editor {
     bool Editor::FTransformGizmo::CaptureTargets() {
         mTargets.clear();
 
-        for (CoreUObject::FObjectHandle Handle : mContext->GetTransformTargets()) {
+        for (CoreUObject::TObjectRef<Engine::USceneComponent> Handle : mContext->GetTransformTargets()) {
             const auto* Component{CoreUObject::Cast<Engine::USceneComponent>(mContext->ResolveObject(Handle))};
 
             if (Component != nullptr) {

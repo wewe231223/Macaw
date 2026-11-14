@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 
 #include "Core/Math/FVector2.h"
@@ -25,7 +27,7 @@ namespace Engine {
         /**
          * @brief 텍스처의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mTexture{};
 
         /**
          * @brief 로컬 쿼드의 가로·세로 월드 크기입니다.

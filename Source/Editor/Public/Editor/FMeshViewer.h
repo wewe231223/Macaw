@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Input.h"
 #include "Viewer/FAssetViewer.h"
 
@@ -216,17 +218,17 @@ namespace Editor {
         /**
          * @brief 현재 메시의 비소유 주소입니다.
          */
-        Asset::UStaticMesh* mMesh{};
+        CoreUObject::TObjectRef<Asset::UStaticMesh> mMesh{};
 
         /**
          * @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다.
          */
-        Asset::USkeletalMesh* mSkeletalMesh{};
+        CoreUObject::TObjectRef<Asset::USkeletalMesh> mSkeletalMesh{};
 
         /**
          * @brief 에셋 관리자가 소유하는 미리보기 스켈레톤입니다.
          */
-        Asset::USkeleton* mSkeleton{};
+        CoreUObject::TObjectRef<Asset::USkeleton> mSkeleton{};
 
         /**
          * @brief 스켈레톤 에셋 경로입니다.

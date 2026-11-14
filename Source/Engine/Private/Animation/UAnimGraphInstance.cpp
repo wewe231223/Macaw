@@ -9,6 +9,8 @@
 #include "Asset/FAssetManager.h"
 #include "Core/FilePath.h"
 #include "Core/Base/ErrorHandler.h"
+#include "CoreUObject/FObjectRegistry.h"
+#include "CoreUObject/Reflection/Cast.h"
 #include "Engine/UWorld.h"
 #include "Engine/Animation/FAnimGraphNodeRegistry.h"
 #include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
@@ -168,7 +170,7 @@ namespace Engine {
             return Candidate.get() == Node;
         })};
 
-        return Found != mNodes.end() && mNodeGraphs[static_cast<std::size_t>(Found - mNodes.begin())] == mSourceGraph;
+        return Found != mNodes.end() && mNodeSources[static_cast<std::size_t>(Found - mNodes.begin())].mGraph == CoreUObject::MakeObjectRef(mSourceGraph);
     }
 
     const Asset::FAnimGraphNode* UAnimGraphInstance::GetSourceNode(const Engine::FAnimNode_Base* Node) const {
@@ -180,7 +182,14 @@ namespace Engine {
             return Candidate.get() == Node;
         })};
 
-        return Found != mNodes.end() ? mNodeSources[static_cast<std::size_t>(Found - mNodes.begin())] : nullptr;
+        if (Found == mNodes.end()) {
+            return nullptr;
+        }
+
+        const FGraphSource& Source{mNodeSources[static_cast<std::size_t>(Found - mNodes.begin())]};
+        const Asset::UAnimGraph* Graph{CoreUObject::Cast<Asset::UAnimGraph>(Source.mGraph.Get())};
+
+        return Graph != nullptr && Graph->GetRevision() == Source.mRevision ? Graph->FindNode(Source.mId) : nullptr;
     }
 
     const Asset::FAnimGraphVariableGetter* UAnimGraphInstance::GetSourceGetter(const Engine::FAnimValueNode_Base* Node) const {
@@ -197,7 +206,14 @@ namespace Engine {
         }
 
         const Core::Index_t Index{static_cast<Core::Index_t>(static_cast<std::size_t>(Found - mValueNodes.begin()))};
-        return Index < mGetterSources.size() ? mGetterSources[Index] : nullptr;
+        if (Index >= mGetterSources.size()) {
+            return nullptr;
+        }
+
+        const FGraphSource& Source{mGetterSources[Index]};
+        const Asset::UAnimGraph* Graph{CoreUObject::Cast<Asset::UAnimGraph>(Source.mGraph.Get())};
+
+        return Graph != nullptr && Graph->GetRevision() == Source.mRevision ? Graph->FindVariableGetter(Source.mId) : nullptr;
     }
 
     Core::Uint64 UAnimGraphInstance::GetNodeKey(const Engine::FAnimNode_Base* Node) const {
@@ -223,7 +239,6 @@ namespace Engine {
         mNodes.clear();
         mValueNodes.clear();
         mNodeSources.clear();
-        mNodeGraphs.clear();
         mGetterSources.clear();
         mVariables.clear();
 
@@ -278,7 +293,7 @@ namespace Engine {
             auto Getter{std::make_unique<Engine::FAnimValueNode_GetFloat>()};
             Getter->mVariableName = Data.mVariable;
             mValueNodes.push_back(std::move(Getter));
-            mGetterSources.push_back(&Data);
+            mGetterSources.push_back({CoreUObject::MakeObjectRef(Graph), Data.mId, Graph->GetRevision()});
         }
 
         // 에셋의 노드마다 실행 노드를 만듭니다. 알 수 없는 종류는 건너뛰고, 그 노드에 이어진 링크도 무시됩니다.
@@ -311,8 +326,7 @@ namespace Engine {
             NodesById.emplace(Data.mId, Node.get());
             LocalNodes[Index] = Node.get();
             mNodes.push_back(std::move(Node));
-            mNodeSources.push_back(&Data);
-            mNodeGraphs.push_back(Graph);
+            mNodeSources.push_back({CoreUObject::MakeObjectRef(Graph), Data.mId, Graph->GetRevision()});
 
             if (auto* Machine{dynamic_cast<Engine::FAnimNode_StateMachine*>(LocalNodes[Index])}) {
                 const auto* Definition{Graph->FindStateMachine(Data.mId)};
@@ -362,7 +376,7 @@ namespace Engine {
                     Node->mVariableName = *VariableName;
                     Getter = Node.get();
                     mValueNodes.push_back(std::move(Node));
-                    mGetterSources.push_back(nullptr);
+                    mGetterSources.push_back({});
                 }
 
                 Input.mLink->SetLinkedNode(Getter);

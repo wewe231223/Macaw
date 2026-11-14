@@ -56,7 +56,7 @@ namespace Asset {
     Core::FTransform Asset::FSequenceTransformSection::Evaluate(double Tick, const Core::FTransform& Base) const {
         Core::FTransform Result{Base};
         const auto Sample{[this, Tick](Asset::ESequenceTransformChannel Channel, float& Value) {
-            return mChannels[Channel].Evaluate(Tick, Value);
+            return mChannels[static_cast<Core::Index_t>(Channel)].Evaluate(Tick, Value);
         }};
 
         Sample(Asset::ESequenceTransformChannel::LocationX, Result.mLocation.x);

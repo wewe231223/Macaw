@@ -8,7 +8,9 @@
 
 #include "Core/GuidHash.h"
 #include "Core/Types.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
+
+#include <optional>
 
 namespace CoreUObject {
 
@@ -43,6 +45,11 @@ namespace CoreUObject {
          */
         explicit FObjectReference(const CoreUObject::UObject* Object);
 
+        template <typename T>
+        explicit FObjectReference(const CoreUObject::TObjectRef<T>& Reference);
+
+    public:
+
         /**
          * @brief 대상 객체의 영속 GUID를 반환합니다.
          * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -62,6 +69,9 @@ namespace CoreUObject {
          */
         void Bind(const CoreUObject::FObjectGuidMap& Objects);
 
+        template <typename T>
+        std::optional<CoreUObject::TObjectRef<T>> ToObjectRef() const;
+
     private:
         /**
          * @brief 대상 객체의 영속 GUID입니다.
@@ -73,5 +83,27 @@ namespace CoreUObject {
          */
         CoreUObject::FObjectHandle mHandle{};
     };
+
+
+    template <typename T>
+    FObjectReference::FObjectReference(const CoreUObject::TObjectRef<T>& Reference)
+		: mGuid{Reference.mGuid},
+		  mHandle{Reference.mHandle} {
+    }
+
+    template <typename T>
+    std::optional<CoreUObject::TObjectRef<T>> FObjectReference::ToObjectRef() const {
+        using FMutableType = std::remove_const_t<T>;
+
+        if (Resolve() != nullptr && CoreUObject::ObjectRefPrivate::Resolve(mHandle, FMutableType::StaticClass()) == nullptr) {
+            return std::nullopt;
+        }
+
+        CoreUObject::TObjectRef<T> Value{};
+        Value.mHandle = mHandle;
+        Value.mGuid = mGuid;
+
+        return Value;
+    }
 
 }

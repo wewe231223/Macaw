@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
 
 namespace Asset {
@@ -41,7 +43,7 @@ namespace Engine {
         /**
          * @brief 재생할 시퀀스입니다. 에셋 관리자가 소유합니다.
          */
-        const Asset::UAnimSequence* mSequence{};
+        CoreUObject::TObjectRef<const Asset::UAnimSequence> mSequence{};
 
     private:
 

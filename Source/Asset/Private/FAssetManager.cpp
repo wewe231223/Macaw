@@ -509,7 +509,7 @@ namespace Asset {
             }
 
             for (Core::Index_t Vertex{}; Vertex < VertexCount && !Archive.HasError(); ++Vertex) {
-                std::array<Core::Index_t, Asset::FMeshImportSkinWeight::MaxInfluences> BoneIndices{Archive.IsLoading() ? std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetBoneIndices()};
+                std::array<Core::Index_t, Asset::FMeshImportSkinWeight::MaxInfluences> BoneIndices{Archive.IsLoading() ? std::array<Core::Index_t, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetBoneIndices()};
                 std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences> Weights{Archive.IsLoading() ? std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetWeights()};
 
                 for (Core::Index_t Influence{}; Influence < Asset::FMeshImportSkinWeight::MaxInfluences; ++Influence) {

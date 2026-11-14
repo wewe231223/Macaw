@@ -97,7 +97,7 @@
 #pragma once
 
 #include "Core/Types.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -106,6 +106,8 @@
 
 namespace Engine {
     struct FMinimalViewInfo;
+    class AActor;
+    class UCameraModifier;
 }
 
 namespace Script {
@@ -212,7 +214,7 @@ namespace Script {
          * @param[in] Owner 인스턴스를 소유한 액터의 핸들입니다.
          * @return 인스턴스 핸들이며, 실패하면 0입니다. 실패 원인은 로그로 보고합니다.
          */
-        std::intptr_t CreateInstance(const Core::FString& ClassName, CoreUObject::FObjectHandle Owner);
+        std::intptr_t CreateInstance(const Core::FString& ClassName, CoreUObject::TObjectRef<Engine::AActor> Owner);
 
         /**
          * @brief 인스턴스의 BeginPlay를 호출합니다.
@@ -245,7 +247,7 @@ namespace Script {
          * @param[in] Begin 겹침 시작이면 true, 끝이면 false입니다.
          * @param[in] Other 상대 액터이며, 파괴되어 없으면 유효하지 않은 핸들입니다.
          */
-        void OverlapInstance(std::intptr_t Instance, bool Begin, CoreUObject::FObjectHandle Other);
+        void OverlapInstance(std::intptr_t Instance, bool Begin, CoreUObject::TObjectRef<const Engine::AActor> Other);
 
         /**
          * @brief 클래스 이름으로 C# 카메라 모디파이어 인스턴스를 만들고 AddedToCamera를 호출합니다.
@@ -253,7 +255,7 @@ namespace Script {
          * @param[in] Modifier 인스턴스와 연결할 엔진 모디파이어입니다.
          * @return 인스턴스 핸들이며, 만들지 못하면 0입니다.
          */
-        std::intptr_t CreateModifierInstance(const Core::FString& ClassName, CoreUObject::FObjectHandle Modifier);
+        std::intptr_t CreateModifierInstance(const Core::FString& ClassName, CoreUObject::TObjectRef<Engine::UCameraModifier> Modifier);
 
         /**
          * @brief C# 모디파이어의 ModifyCamera를 호출합니다.

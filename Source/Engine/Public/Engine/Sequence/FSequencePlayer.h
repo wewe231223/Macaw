@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Core/Math/FTransform.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Engine/Sequence/ESequencePlayState.h"
 #include "Engine/Sequence/FSequenceBindingTarget.h"
 
@@ -19,6 +19,7 @@ namespace Asset {
 namespace Engine {
 
     class UWorld;
+    class AActor;
     class USceneComponent;
     class UCameraComponent;
 
@@ -51,14 +52,14 @@ namespace Engine {
         struct FResolvedBinding {
         public:
             /**
-             * @brief 시퀀스가 소유한 바인딩의 비소유 주소입니다.
+             * @brief 시퀀스가 소유한 바인딩의 식별자입니다.
              */
-            const Asset::FSequenceBinding* mBinding{};
+            Core::FGuid mBindingId{Core::FGuid::Null()};
 
             /**
              * @brief 값을 적용할 공간 컴포넌트의 핸들입니다.
              */
-            CoreUObject::FObjectHandle mComponent{};
+            CoreUObject::TObjectRef<Engine::USceneComponent> mComponent{};
 
             /**
              * @brief 값을 처음 쓰기 전의 변환입니다.
@@ -79,7 +80,7 @@ namespace Engine {
     public:
         /**
          * @brief 시퀀스의 바인딩을 월드 객체로 해석하고 정지 상태로 초기화합니다.
-         * @param[in] Sequence 재생할 시퀀스이며 플레이어보다 오래 유지해야 합니다.
+         * @param[in] Sequence 재생할 시퀀스이며 파괴되면 재생을 중단합니다.
          * @param[in] World 바인딩 대상을 찾을 월드입니다.
          * @param[in] Targets 바인딩 ID와 씬 객체의 연결 목록입니다.
          * @return 시퀀스와 월드가 유효하면 true이며 찾지 못한 바인딩은 경고 후 건너뜁니다.
@@ -163,6 +164,12 @@ namespace Engine {
         double GetTick() const;
 
     private:
+        Engine::UWorld* GetWorld() const;
+        const Asset::ULevelSequence* GetSequence() const;
+
+        const Asset::FSequenceBinding* FindBinding(const Core::FGuid& BindingId) const;
+        Engine::USceneComponent* ResolveComponent(CoreUObject::TObjectRef<Engine::USceneComponent> Handle) const;
+
         /**
          * @brief 현재 시간의 값을 바인딩 대상에 적용합니다.
          */
@@ -175,24 +182,24 @@ namespace Engine {
 
     private:
         /**
-         * @brief 바인딩을 해석하고 활성 카메라를 바꿀 월드의 비소유 주소입니다.
+         * @brief 바인딩을 해석하고 활성 카메라를 바꿀 월드의 비소유 세대 핸들입니다.
          */
-        Engine::UWorld* mWorld{};
+        CoreUObject::TObjectRef<Engine::UWorld> mWorld{};
 
         /**
          * @brief 첫 카메라 컷을 적용하기 전의 활성 카메라 핸들입니다.
          */
-        CoreUObject::FObjectHandle mBaseCamera{};
+        CoreUObject::TObjectRef<Engine::UCameraComponent> mBaseCamera{};
 
         /**
          * @brief 첫 카메라 컷을 적용하기 전 플레이어 카메라 관리자의 뷰 타깃 핸들입니다.
          */
-        CoreUObject::FObjectHandle mBaseViewTarget{};
+        CoreUObject::TObjectRef<Engine::AActor> mBaseViewTarget{};
 
         /**
          * @brief 현재 카메라 컷이 활성화한 카메라 핸들입니다.
          */
-        CoreUObject::FObjectHandle mCutCamera{};
+        CoreUObject::TObjectRef<Engine::UCameraComponent> mCutCamera{};
 
         /**
          * @brief 원래 활성 카메라를 보관했는지 여부입니다.
@@ -200,9 +207,9 @@ namespace Engine {
         bool mCameraCaptured{};
 
         /**
-         * @brief 재생할 시퀀스의 비소유 주소입니다.
+         * @brief 재생할 시퀀스의 비소유 세대 핸들입니다.
          */
-        const Asset::ULevelSequence* mSequence{};
+        CoreUObject::TObjectRef<const Asset::ULevelSequence> mSequence{};
 
         /**
          * @brief 월드 객체로 해석한 바인딩 목록입니다.

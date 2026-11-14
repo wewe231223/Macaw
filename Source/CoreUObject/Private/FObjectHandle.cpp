@@ -23,4 +23,10 @@ namespace CoreUObject {
         return mIndex == Other.mIndex && mGeneration == Other.mGeneration;
     }
 
+    std::size_t CoreUObject::FObjectHandleHash::operator()(const CoreUObject::FObjectHandle& Handle) const {
+        const Core::Uint64 Value{(static_cast<Core::Uint64>(Handle.mGeneration) << 32) | static_cast<Core::Uint32>(Handle.mIndex)};
+
+        return std::hash<Core::Uint64>{}(Value);
+    }
+
 }

@@ -8,7 +8,8 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
-#include "CoreUObject/FObjectReference.h"
+#include "CoreUObject/TObjectRef.h"
+#include "Engine/AActor.h"
 #include "FScriptField.generated.h"
 
 namespace Script {
@@ -45,7 +46,7 @@ namespace Script {
          * @brief Actor 타입 필드가 가리키는 액터입니다. GUID로 저장되어 PIE 복제에서도 재연결됩니다.
          */
         UPROPERTY(Serialize)
-        CoreUObject::FObjectReference mObject{};
+        CoreUObject::TObjectRef<Engine::AActor> mObject{};
     };
 
 }

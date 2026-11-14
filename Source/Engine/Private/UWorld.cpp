@@ -26,7 +26,7 @@
 #include "Engine/AStaticMeshActor.h"
 #include "Engine/ULevel.h"
 #include "Engine/FWorldHit.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FRay.h"
 #include "Asset/FMeshData.h"
@@ -242,7 +242,7 @@ namespace Engine {
             return nullptr;
         }
 
-        const CoreUObject::FObjectHandle Handle{Actor->GetHandle()};
+        const CoreUObject::TObjectRef<Engine::AActor> Handle{CoreUObject::MakeObjectRef(Actor)};
 
         return mPersistentLevel->AddActor(std::move(Actor)) ? ResolveActor(Handle) : nullptr;
     }
@@ -270,7 +270,7 @@ namespace Engine {
         Actor->SetName(Name);
         Actor->GetStaticMeshComponent()->SetPrimitiveType(Type);
 
-        const CoreUObject::FObjectHandle Handle{Actor->GetHandle()};
+        const CoreUObject::TObjectRef<Engine::AActor> Handle{CoreUObject::MakeObjectRef(Actor)};
 
         return mPersistentLevel->AddActor(std::move(Actor)) ? CoreUObject::Cast<Engine::AStaticMeshActor>(ResolveActor(Handle)) : nullptr;
     }
@@ -278,7 +278,7 @@ namespace Engine {
     /**
      * @brief 핸들에 해당하는 액터의 컴포넌트를 등록 해제하고 액터를 제거합니다.
      */
-    bool Engine::UWorld::DestroyActor(CoreUObject::FObjectHandle Handle) {
+    bool Engine::UWorld::DestroyActor(CoreUObject::TObjectRef<Engine::AActor> Handle) {
         Engine::AActor* Actor{ResolveActor(Handle)};
 
         if (Actor == nullptr || Actor->IsPendingDestroy()) {
@@ -296,7 +296,7 @@ namespace Engine {
     /**
      * @brief 컴포넌트 핸들을 프레임 말 렌더 갱신 큐에 추가합니다.
      */
-    void Engine::UWorld::EnqueueRenderUpdate(CoreUObject::FObjectHandle Handle) {
+    void Engine::UWorld::EnqueueRenderUpdate(CoreUObject::TObjectRef<Engine::UPrimitiveComponent> Handle) {
         mDirtyComponents.push_back(Handle);
     }
 
@@ -313,9 +313,9 @@ namespace Engine {
         const std::size_t Count{mDirtyComponents.size()};
 
         for (Core::Index_t Index{}; Index < Count; ++Index) {
-            const CoreUObject::FObjectHandle Handle{mDirtyComponents[Index]};
+            const CoreUObject::TObjectRef<Engine::UPrimitiveComponent> Handle{mDirtyComponents[Index]};
 
-            if (auto* Component{CoreUObject::Cast<Engine::UPrimitiveComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))}; Component != nullptr && Component->GetWorld() == this) {
+            if (auto* Component{CoreUObject::Cast<Engine::UPrimitiveComponent>(Handle.Get())}; Component != nullptr && Component->GetWorld() == this) {
                 Component->SendRenderUpdates();
             }
         }
@@ -343,10 +343,10 @@ namespace Engine {
             }
 
             for (const auto& Component : Actor->GetComponents()) {
-                const auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
+                auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
 
                 if (Primitive != nullptr && Engine::RaycastMesh(&Primitive->GetMeshData(), Primitive->GetWorldMatrix(), NormalizedRay, Closest)) {
-                    Hit = {Actor->GetHandle(), Primitive->GetHandle(), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest};
+                    Hit = {CoreUObject::MakeObjectRef(Actor), CoreUObject::MakeObjectRef(Primitive), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest};
                     Found = true;
                 }
             }
@@ -486,16 +486,16 @@ namespace Engine {
         if (auto CameraManager{CoreUObject::NewObject<Engine::APlayerCameraManager>()}; CameraManager != nullptr && CameraManager->InitializeDefaultComponents() && mPersistentLevel != nullptr) {
             CameraManager->SetName("PlayerCameraManager");
 
-            const CoreUObject::FObjectHandle Handle{CameraManager->GetHandle()};
+            const CoreUObject::TObjectRef<Engine::APlayerCameraManager> Handle{CoreUObject::MakeObjectRef(CameraManager)};
 
             if (mPersistentLevel->AddActor(std::move(CameraManager))) {
                 mPlayerCameraManager = Handle;
             }
         }
 
-        const auto Handles{GetActorHandles()};
+        const auto Handles{GetActorRefs()};
 
-        for (const CoreUObject::FObjectHandle Handle : Handles) {
+        for (const CoreUObject::TObjectRef<Engine::AActor> Handle : Handles) {
             if (!CanBeginActor()) {
                 break;
             }
@@ -543,9 +543,9 @@ namespace Engine {
 
         mPlayState = Engine::EWorldPlayState::Stopping;
 
-        const auto Handles{GetActorHandles()};
+        const auto Handles{GetActorRefs()};
 
-        for (const CoreUObject::FObjectHandle Handle : Handles) {
+        for (const CoreUObject::TObjectRef<Engine::AActor> Handle : Handles) {
             if (Engine::AActor* Actor{ResolveActor(Handle)}) {
                 Actor->DispatchEndPlay();
             }
@@ -614,7 +614,7 @@ namespace Engine {
             return false;
         }
 
-        mActiveCamera = Camera != nullptr ? Camera->GetHandle() : CoreUObject::FObjectHandle{};
+        mActiveCamera = Camera;
 
         return true;
     }
@@ -623,7 +623,7 @@ namespace Engine {
      * @brief 월드에 등록된 활성 카메라를 핸들로 검증하여 조회합니다.
      */
     Engine::UCameraComponent* Engine::UWorld::GetActiveCamera() const {
-        auto* Camera{CoreUObject::Cast<Engine::UCameraComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(mActiveCamera))};
+        auto* Camera{CoreUObject::Cast<Engine::UCameraComponent>(mActiveCamera.Get())};
 
         return Camera != nullptr && Camera->GetWorld() == this && ContainsObject(Camera) ? Camera : nullptr;
     }
@@ -636,7 +636,7 @@ namespace Engine {
             return false;
         }
 
-        mInputTarget = Actor != nullptr ? Actor->GetHandle() : CoreUObject::FObjectHandle{};
+        mInputTarget = Actor;
 
         return true;
     }
@@ -690,9 +690,9 @@ namespace Engine {
             ++mTickCount;
         }
 
-        const auto Handles{GetActorHandles()};
+        const auto Handles{GetActorRefs()};
 
-        for (const CoreUObject::FObjectHandle Handle : Handles) {
+        for (const CoreUObject::TObjectRef<Engine::AActor> Handle : Handles) {
             if (mEndPlayRequested || mShutdownRequested) {
                 break;
             }
@@ -732,12 +732,12 @@ namespace Engine {
             }
         }
 
-        Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FObjectHandle>> Current{};
+        Core::TArray<std::pair<CoreUObject::TObjectRef<Engine::UShapeComponent>, CoreUObject::TObjectRef<Engine::UShapeComponent>>> Current{};
 
         for (Core::Index_t First{}; First < Shapes.size(); ++First) {
             for (Core::Index_t Second{static_cast<Core::Index_t>(First + 1)}; Second < Shapes.size(); ++Second) {
                 if (Shapes[First]->GetOwner() != Shapes[Second]->GetOwner() && Shapes[First]->IsOverlapping(*Shapes[Second])) {
-                    Current.emplace_back(Shapes[First]->GetHandle(), Shapes[Second]->GetHandle());
+                    Current.emplace_back(Shapes[First], Shapes[Second]);
                 }
             }
         }
@@ -745,8 +745,8 @@ namespace Engine {
         const auto Contains{[](const auto& Pairs, const auto& Pair) {
             return std::find(Pairs.begin(), Pairs.end(), Pair) != Pairs.end();
         }};
-        const auto Resolve{[](CoreUObject::FObjectHandle Handle) {
-            return CoreUObject::Cast<Engine::UShapeComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle));
+        const auto Resolve{[](CoreUObject::TObjectRef<Engine::UShapeComponent> Handle) {
+            return CoreUObject::Cast<Engine::UShapeComponent>(Handle.Get());
         }};
 
         // 이벤트 안에서 액터가 파괴될 수 있으므로 호출할 때마다 핸들을 다시 해석합니다.
@@ -811,7 +811,7 @@ namespace Engine {
 
             mPendingActors.clear();
 
-            for (const CoreUObject::FObjectHandle Handle : Pending) {
+            for (const CoreUObject::TObjectRef<Engine::AActor> Handle : Pending) {
                 mPersistentLevel->RemoveActor(Handle);
             }
         }
@@ -851,14 +851,14 @@ namespace Engine {
     /**
      * @brief 컨테이너 변경에 영향받지 않는 액터 핸들 스냅샷을 만듭니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Engine::UWorld::GetActorHandles() const {
-        Core::TArray<CoreUObject::FObjectHandle> Handles{};
+    Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Engine::UWorld::GetActorRefs() const {
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Handles{};
 
         if (mPersistentLevel != nullptr) {
             Handles.reserve(mPersistentLevel->GetActors().size());
 
             for (const auto& Actor : mPersistentLevel->GetActors()) {
-                Handles.push_back(Actor->GetHandle());
+                Handles.push_back(CoreUObject::MakeObjectRef(Actor));
             }
         }
 
@@ -868,8 +868,8 @@ namespace Engine {
     /**
      * @brief 전역 핸들을 해석하고 이 월드의 액터인지 확인합니다.
      */
-    Engine::AActor* Engine::UWorld::ResolveActor(CoreUObject::FObjectHandle Handle) const {
-        Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
+    Engine::AActor* Engine::UWorld::ResolveActor(CoreUObject::TObjectRef<Engine::AActor> Handle) const {
+        Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(Handle.Get())};
 
         return Actor != nullptr && Actor->GetWorld() == this ? Actor : nullptr;
     }

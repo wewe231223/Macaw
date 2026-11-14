@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Engine/Component/USceneComponent.h"
 #include "UDecalComponent.generated.h"
 
@@ -189,12 +191,12 @@ namespace Engine {
         /**
          * @brief 에셋 관리자가 소유하는 데칼 색상 텍스처입니다.
          */
-        Asset::UTexture2D* mTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mTexture{};
 
         /**
          * @brief 에셋 관리자가 소유하는 데칼 노멀 텍스처입니다.
          */
-        Asset::UTexture2D* mNormalMap{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mNormalMap{};
     };
 
 }

@@ -93,7 +93,7 @@ namespace Renderer {
         }
 
         const Engine::FDrawSprite& Sprite{*Proxy.mSprite};
-        Asset::UTexture2D* Texture{Sprite.mTexture != nullptr ? Sprite.mTexture : mDefaultAtlas.get()};
+        Asset::UTexture2D* Texture{Sprite.mTexture != nullptr ? Sprite.mTexture.Get() : mDefaultAtlas.get()};
         Microsoft::WRL::ComPtr<ID3D11Device> Device{};
 
         Context->GetDevice(Device.GetAddressOf());

@@ -187,6 +187,14 @@ namespace Script {
         }
     }
 
+    Script::Abi::FWorldHit Script::Abi::ToAbi(const Engine::FWorldHit& Value) {
+        return {Value.mActor.GetHandle(), Value.mComponent.GetHandle(), Script::Abi::ToAbi(Value.mPosition), Value.mDistance};
+    }
+
+    CoreUObject::FObjectHandle Script::Abi::ToHandle(const CoreUObject::UObject* Object) {
+        return Object != nullptr ? Object->GetHandle() : CoreUObject::FObjectHandle{};
+    }
+
     /**
      * @brief 반환 문자열을 다음 호출까지 보관합니다.
      */

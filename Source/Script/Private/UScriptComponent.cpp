@@ -46,7 +46,7 @@ namespace Script {
 
         Script::FScriptRuntime* Runtime{Script::FScriptRuntime::Get()};
 
-        mInstance = Runtime->CreateInstance(mScriptClass, GetOwner()->GetHandle());
+        mInstance = Runtime->CreateInstance(mScriptClass, GetOwner());
 
         if (mInstance != 0) {
             for (const Script::FScriptField& Field : mFields) {
@@ -92,7 +92,7 @@ namespace Script {
     void Script::UScriptComponent::BindOverlapEvents() {
         const auto Notify{[this](bool Begin, const Engine::AActor* Other) {
             if (mInstance != 0) {
-                Script::FScriptRuntime::Get()->OverlapInstance(mInstance, Begin, Other != nullptr ? Other->GetHandle() : CoreUObject::FObjectHandle{});
+                Script::FScriptRuntime::Get()->OverlapInstance(mInstance, Begin, Other);
             }
         }};
 
@@ -104,7 +104,7 @@ namespace Script {
                 const CoreUObject::FDelegateHandle End{Shape->GetOnComponentEndOverlap().Add([Notify](Engine::UPrimitiveComponent*, Engine::AActor* Other, Engine::UPrimitiveComponent*) {
                     Notify(false, Other);
                 })};
-                mOverlapBindings.push_back({Shape->GetHandle(), Begin, End});
+                mOverlapBindings.push_back({Shape, Begin, End});
             }
         }
     }
@@ -114,7 +114,7 @@ namespace Script {
      */
     void Script::UScriptComponent::UnbindOverlapEvents() {
         for (const FOverlapBinding& Binding : mOverlapBindings) {
-            if (auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Binding.mShape))}) {
+            if (auto* Shape{Binding.mShape.Get()}) {
                 Shape->GetOnComponentBeginOverlap().Remove(Binding.mBegin);
                 Shape->GetOnComponentEndOverlap().Remove(Binding.mEnd);
             }

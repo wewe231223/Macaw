@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Viewer/FAssetViewer.h"
 #include "Viewer/FViewerCapture.h"
 
@@ -131,7 +133,7 @@ namespace Editor {
             /**
              * @brief 외부에서 소유하는 촬영 대상 UObject입니다.
              */
-            CoreUObject::UObject* mObject{};
+            CoreUObject::TObjectRef<CoreUObject::UObject> mObject{};
 
             /**
              * @brief 촬영할 객체의 에셋 종류입니다.

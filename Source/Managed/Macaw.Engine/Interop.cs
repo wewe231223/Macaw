@@ -22,8 +22,8 @@ internal readonly struct ObjectHandle : IEquatable<ObjectHandle> {
         this.Generation = Generation;
     }
 
-    /// <summary>예약된 빈 슬롯 인덱스인지 확인합니다.</summary>
-    public bool IsNone => Index == uint.MaxValue;
+    /// <summary>슬롯 인덱스나 세대 번호가 무효 핸들 형식인지 확인합니다.</summary>
+    public bool IsNone => Index > int.MaxValue || Generation == 0;
 
     /// <summary>슬롯 인덱스와 세대 번호가 모두 같은지 비교합니다.</summary>
     public bool Equals(ObjectHandle Other) => Index == Other.Index && Generation == Other.Generation;

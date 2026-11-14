@@ -206,7 +206,7 @@ namespace Editor {
         Context->SetPreviewRestorer([this] {
             RestorePreview();
         });
-        Context->SetSequencerOpener([this](CoreUObject::FObjectHandle Actor) {
+        Context->SetSequencerOpener([this](CoreUObject::TObjectRef<Engine::ALevelSequenceActor> Actor) {
             mActor = Actor;
             Open();
         });
@@ -300,9 +300,9 @@ namespace Editor {
             DrawKeyEditor(Sequence);
         }
 
-        const Engine::UCameraComponent* CutCamera{mPreviewActive && mPreviewCuts ? mPlayer.GetCutCamera() : nullptr};
+        Engine::UCameraComponent* CutCamera{mPreviewActive && mPreviewCuts ? mPlayer.GetCutCamera() : nullptr};
 
-        Context->SetPreviewCamera(CutCamera != nullptr ? CutCamera->GetHandle() : CoreUObject::FObjectHandle{});
+        Context->SetPreviewCamera(CutCamera);
     }
 
     /**
@@ -317,11 +317,11 @@ namespace Editor {
             mSelectionRevision = Context->GetSelectionRevision();
 
             if (auto* Selected{CoreUObject::Cast<Engine::ALevelSequenceActor>(Context->GetSelectedActor())}; Selected != nullptr) {
-                mActor = Selected->GetHandle();
+                mActor = CoreUObject::MakeObjectRef(Selected);
             }
         }
 
-        auto* Actor{CoreUObject::Cast<Engine::ALevelSequenceActor>(CoreUObject::FObjectRegistry::Get()->Resolve(mActor))};
+        auto* Actor{CoreUObject::Cast<Engine::ALevelSequenceActor>(mActor.Get())};
 
         if (Actor != nullptr && (Actor->IsPendingDestroy() || !World->ContainsObject(Actor))) {
             Actor = nullptr;
@@ -335,7 +335,7 @@ namespace Editor {
 
                 if (SequenceActor != nullptr && !SequenceActor->IsPendingDestroy() && ImGui::Selectable(SequenceActor->GetName().c_str(), SequenceActor == Actor)) {
                     Actor = SequenceActor;
-                    mActor = Actor->GetHandle();
+                    mActor = CoreUObject::MakeObjectRef(Actor);
                 }
             }
 
@@ -347,7 +347,7 @@ namespace Editor {
         if (ImGui::Button("New Actor")) {
             if (auto* Created{CoreUObject::Cast<Engine::ALevelSequenceActor>(Context->SpawnActorPreset("ALevelSequenceActor"))}; Created != nullptr) {
                 Actor = Created;
-                mActor = Actor->GetHandle();
+                mActor = CoreUObject::MakeObjectRef(Actor);
             }
         }
 
@@ -383,7 +383,7 @@ namespace Editor {
 
             for (const Core::FString& Candidate : mSequencePaths) {
                 if (ImGui::Selectable(Candidate.c_str(), Candidate == Path)) {
-                    Context->EditProperty(Actor->GetHandle(), Property, CoreUObject::FPropertyValue{Candidate});
+                    Context->EditProperty(CoreUObject::MakeObjectRef(Actor), Property, CoreUObject::FPropertyValue{Candidate});
                 }
             }
 
@@ -396,7 +396,7 @@ namespace Editor {
             std::filesystem::path Created{};
 
             if (Assets->CreateSequence(Actor->GetName(), Created, Error) != nullptr) {
-                Context->EditProperty(Actor->GetHandle(), Property, CoreUObject::FPropertyValue{Core::FilePath::ToGenericUtf8(Created)});
+                Context->EditProperty(CoreUObject::MakeObjectRef(Actor), Property, CoreUObject::FPropertyValue{Core::FilePath::ToGenericUtf8(Created)});
             } else {
                 Context->AddLog(Error);
             }
@@ -540,7 +540,7 @@ namespace Editor {
             if (!Bound) {
                 Asset::FSequenceBinding& Binding{Bindings.emplace_back()};
                 Binding.SetName(Selected->GetName());
-                Actor->SetBindingTarget(Binding.GetId(), Selected->GetGuid());
+                Actor->SetBindingTarget(Binding.GetId(), Selected);
                 Context->MarkSceneDirty();
 
                 mActiveBinding = static_cast<Core::Int32>(Bindings.size()) - 1;

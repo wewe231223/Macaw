@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include "Engine/EWorldType.h"
@@ -21,6 +23,8 @@ namespace RenderCore {
 }
 
 namespace Engine {
+
+    class AActor;
 
     class UWorld;
     class FProject;
@@ -128,7 +132,7 @@ namespace Engine {
          * @return 액터 삭제 요청을 수락하면 true입니다.
          * @note 월드 콜백 중 실제 해제는 가장 바깥 전달 범위가 끝날 때까지 지연됩니다.
          */
-        bool DestroyActor(CoreUObject::FObjectHandle Handle);
+        bool DestroyActor(CoreUObject::TObjectRef<Engine::AActor> Handle);
 
         /**
          * @brief 기존 편집 경로에서 사용하는 현재 월드 선택을 반환합니다.

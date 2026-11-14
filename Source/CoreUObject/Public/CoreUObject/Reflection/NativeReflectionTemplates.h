@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "Core/Types.h"
+#include "CoreUObject/FObjectReference.h"
+
 namespace CoreUObject {
 
     /**
@@ -55,7 +58,7 @@ namespace CoreUObject {
             return CoreUObject::EPropertyType::Box;
         } else if constexpr (std::is_same_v<T, Core::FRay>) {
             return CoreUObject::EPropertyType::Ray;
-        } else if constexpr (std::is_same_v<T, CoreUObject::FObjectReference>) {
+        } else if constexpr (CoreUObject::TIsObjectRef<T>::value || std::is_same_v<T, CoreUObject::FObjectReference>) {
             return CoreUObject::EPropertyType::ObjectReference;
         } else if constexpr (std::is_enum_v<T>) {
             return CoreUObject::EPropertyType::Enum;
@@ -123,6 +126,8 @@ namespace CoreUObject {
             return static_cast<Core::Int32>(Value);
         } else if constexpr (std::is_same_v<FValue, Core::Uint8>) {
             return static_cast<Core::Uint32>(Value);
+        } else if constexpr (CoreUObject::TIsObjectRef<FValue>::value) {
+            return CoreUObject::FObjectReference{Value};
         } else {
             return CoreUObject::FPropertyValue{Value};
         }
@@ -133,7 +138,7 @@ namespace CoreUObject {
      */
     template <typename FValue>
     std::optional<FValue> FromPropertyValue(const CoreUObject::FPropertyValue& Value) {
-        using FStoredValue = std::conditional_t<std::is_enum_v<FValue>, Core::Int32, std::conditional_t<std::is_same_v<FValue, Core::Uint8>, Core::Uint32, FValue>>;
+        using FStoredValue = std::conditional_t<std::is_enum_v<FValue>, Core::Int32, std::conditional_t<std::is_same_v<FValue, Core::Uint8>, Core::Uint32, std::conditional_t<CoreUObject::TIsObjectRef<FValue>::value, CoreUObject::FObjectReference, FValue>>>;
         const FStoredValue* Typed{std::get_if<FStoredValue>(&Value)};
 
         if (Typed == nullptr) {
@@ -146,7 +151,11 @@ namespace CoreUObject {
             }
         }
 
-        return static_cast<FValue>(*Typed);
+        if constexpr (CoreUObject::TIsObjectRef<FValue>::value) {
+            return Typed->template ToObjectRef<typename FValue::FObjectType>();
+        } else {
+            return static_cast<FValue>(*Typed);
+        }
     }
 
     /**
@@ -327,5 +336,4 @@ namespace CoreUObject {
         Information.AddProperty(std::make_unique<CoreUObject::FProperty>(std::move(Name), CoreUObject::EPropertyType::Array, Flags, &CoreUObject::ReadArrayProperty<Member, Getter>, &CoreUObject::WriteArrayProperty<Member, Getter, Setter>, nullptr, Core::TArray<CoreUObject::FEnumValue>{}, nullptr, CoreUObject::GetNativeType<FValue>(), CoreUObject::GetArrayOps<FValue>()));
     }
 
-}#include "Core/Types.h"
-
+}

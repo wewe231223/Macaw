@@ -8,6 +8,7 @@
 #include "Cascade/FParticleEmitterInstance.h"
 #include "Cascade/UParticleEmitter.h"
 #include "Cascade/UParticleModule.h"
+#include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
 
 #include <cstring>
@@ -39,7 +40,7 @@ FParticleEmitterInstance::~FParticleEmitterInstance() = default;
  * @brief 원본 Emitter 참조를 교체하고 기존 페이로드와 배치 스냅샷을 비웁니다.
  */
 void FParticleEmitterInstance::InitParameters(UParticleEmitter* Template) {
-    mTemplate = CoreUObject::FObjectReference{Template};
+    mTemplate = Template;
     mModules.clear();
     mModuleDataOffsets.clear();
     mModuleInstanceDataOffsets.clear();
@@ -87,7 +88,7 @@ IParticleEmitterInstanceOwner& FParticleEmitterInstance::GetOwner() const {
  * @brief 세대 핸들로 원본 Emitter 참조를 해석합니다.
  */
 UParticleEmitter* FParticleEmitterInstance::GetTemplate() const {
-    return CoreUObject::Cast<UParticleEmitter>(mTemplate.Resolve());
+    return mTemplate.Get();
 }
 
 /**

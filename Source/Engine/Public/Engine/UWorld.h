@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include "Engine/EWorldType.h"
@@ -35,6 +37,8 @@ namespace Engine {
     class FSceneInterface;
     class AStaticMeshActor;
     class UCameraComponent;
+    class UPrimitiveComponent;
+    class UShapeComponent;
     class APlayerCameraManager;
     struct FWorldHit;
 
@@ -290,13 +294,13 @@ namespace Engine {
          * @param[in] Handle 제거할 액터의 핸들입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
-        bool DestroyActor(CoreUObject::FObjectHandle Handle);
+        bool DestroyActor(CoreUObject::TObjectRef<Engine::AActor> Handle);
 
         /**
          * @brief 컴포넌트 핸들을 프레임 말 렌더 갱신 큐에 추가합니다.
          * @param[in] Handle 렌더 갱신을 예약할 프리미티브 컴포넌트의 핸들입니다.
          */
-        void EnqueueRenderUpdate(CoreUObject::FObjectHandle Handle);
+        void EnqueueRenderUpdate(CoreUObject::TObjectRef<Engine::UPrimitiveComponent> Handle);
 
         /**
          * @brief 큐에 쌓인 컴포넌트 핸들을 해석하여 지연된 렌더 갱신을 반영합니다.
@@ -426,14 +430,14 @@ namespace Engine {
          * @brief 컨테이너 변경에 영향받지 않는 액터 핸들 스냅샷을 만듭니다.
          * @return 영속 레벨에 속한 액터의 전역 핸들 목록입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> GetActorHandles() const;
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> GetActorRefs() const;
 
         /**
          * @brief 전역 핸들을 해석하고 이 월드의 액터인지 확인합니다.
          * @param[in] Handle 전역 레지스트리에서 조회할 객체 핸들입니다.
          * @return 소속이 일치하는 액터의 비소유 주소이며 없으면 nullptr입니다.
          */
-        Engine::AActor* ResolveActor(CoreUObject::FObjectHandle Handle) const;
+        Engine::AActor* ResolveActor(CoreUObject::TObjectRef<Engine::AActor> Handle) const;
 
     private:
 
@@ -445,12 +449,12 @@ namespace Engine {
         /**
          * @brief 활성 카메라 컴포넌트의 비소유 객체 핸들입니다.
          */
-        CoreUObject::FObjectHandle mActiveCamera{};
+        CoreUObject::TObjectRef<Engine::UCameraComponent> mActiveCamera{};
 
         /**
          * @brief 실행 중에만 영속 레벨에 존재하는 카메라 관리자 액터의 핸들입니다.
          */
-        CoreUObject::FObjectHandle mPlayerCameraManager{};
+        CoreUObject::TObjectRef<Engine::APlayerCameraManager> mPlayerCameraManager{};
 
         /**
          * @brief 프로젝트 에셋을 조회할 관리자의 비소유 주소입니다.
@@ -460,7 +464,7 @@ namespace Engine {
         /**
          * @brief 뷰포트 입력을 전달할 액터의 비소유 객체 핸들입니다.
          */
-        CoreUObject::FObjectHandle mInputTarget{};
+        CoreUObject::TObjectRef<Engine::AActor> mInputTarget{};
 
         /**
          * @brief 엔진이 발급한 이 월드의 비소유 식별자입니다.
@@ -490,12 +494,12 @@ namespace Engine {
         /**
          * @brief 프레임 말 갱신을 기다리는 컴포넌트 핸들입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> mDirtyComponents{};
+        Core::TArray<CoreUObject::TObjectRef<Engine::UPrimitiveComponent>> mDirtyComponents{};
 
         /**
          * @brief 가장 바깥 콜백 전달 종료 후 제거할 액터 핸들입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> mPendingActors{};
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> mPendingActors{};
 
         /**
          * @brief 기본 액터 이름 생성용 일련번호입니다.
@@ -510,7 +514,7 @@ namespace Engine {
         /**
          * @brief 지난 갱신에서 겹쳐 있던 충돌 도형 쌍입니다.
          */
-        Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FObjectHandle>> mOverlaps{};
+        Core::TArray<std::pair<CoreUObject::TObjectRef<Engine::UShapeComponent>, CoreUObject::TObjectRef<Engine::UShapeComponent>>> mOverlaps{};
 
         /**
          * @brief 마지막 BeginPlay 이후 실제 처리한 게임 갱신 횟수입니다.

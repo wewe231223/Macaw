@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "CoreUObject/UObject.h"
 #include "Core/Math/FVector4.h"
@@ -335,7 +337,7 @@ namespace Asset {
         /**
          * @brief 로드한 노멀 맵 텍스처의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mNormalMapTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mNormalMapTexture{};
 
         /**
          * @brief 정반사 성분의 밝기 배율입니다.
@@ -364,7 +366,7 @@ namespace Asset {
         /**
          * @brief 기본색 텍스처의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mBaseColorTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mBaseColorTexture{};
 
         /**
          * @brief 정반사 색상 값 또는 참조입니다.
@@ -405,7 +407,7 @@ namespace Asset {
         /**
          * @brief 정반사 텍스처 값 또는 참조입니다.
          */
-        Asset::UTexture2D* mSpecularTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mSpecularTexture{};
 
         /**
          * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
@@ -416,7 +418,7 @@ namespace Asset {
         /**
          * @brief 자체 발광 텍스처 값 또는 참조입니다.
          */
-        Asset::UTexture2D* mEmissiveTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mEmissiveTexture{};
 
         /**
          * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
@@ -427,7 +429,7 @@ namespace Asset {
         /**
          * @brief 환경 반사 텍스처 값 또는 참조입니다.
          */
-        Asset::UTexture2D* mReflectionTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mReflectionTexture{};
 
         /**
          * @brief GPU 상수 버퍼입니다.

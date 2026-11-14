@@ -8,7 +8,7 @@
 
 #include "Core/Guid.h"
 #include "Core/ReflectionMacros.h"
-#include "CoreUObject/FObjectReference.h"
+#include "CoreUObject/TObjectRef.h"
 #include "FSequenceBindingTarget.generated.h"
 
 namespace Engine {
@@ -32,7 +32,7 @@ namespace Engine {
          * @brief 연결할 액터 또는 공간 컴포넌트입니다.
          */
         UPROPERTY(Serialize)
-        CoreUObject::FObjectReference mObject{};
+        CoreUObject::TObjectRef<CoreUObject::UObject> mObject{};
     };
 
 }

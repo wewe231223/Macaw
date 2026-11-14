@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "FAnimSequenceTimeline.h"
 #include "Editor/FAssetPicker.h"
@@ -187,7 +189,7 @@ namespace Editor {
         /**
          * @brief 에셋 관리자가 소유하는 원본 시퀀스입니다.
          */
-        const Asset::UAnimSequence* mSource{};
+        CoreUObject::TObjectRef<const Asset::UAnimSequence> mSource{};
 
         /**
          * @brief 원본을 보존하면서 설정을 편집할 시퀀스 복사본입니다.

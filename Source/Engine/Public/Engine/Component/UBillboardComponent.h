@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/FDrawSprite.h"
 #include "UBillboardComponent.generated.h"
@@ -194,7 +196,7 @@ namespace Engine {
         /**
          * @brief 텍스처의 비소유 주소입니다.
          */
-        Asset::UTexture* mSprite{};
+        CoreUObject::TObjectRef<Asset::UTexture> mSprite{};
     };
 
 }

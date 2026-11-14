@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Engine/AActor.h"
 #include "Engine/Sequence/FSequencePlayer.h"
 #include "ALevelSequenceActor.generated.h"
@@ -66,7 +68,7 @@ namespace Engine {
          * @param[in] BindingId 시퀀스 바인딩 ID입니다.
          * @param[in] ObjectId 연결할 액터 또는 공간 컴포넌트의 GUID입니다.
          */
-        void SetBindingTarget(const Core::FGuid& BindingId, const Core::FGuid& ObjectId);
+        void SetBindingTarget(const Core::FGuid& BindingId, CoreUObject::TObjectRef<CoreUObject::UObject> Object);
 
         /**
          * @brief 바인딩의 연결을 제거합니다.

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "Core/Math/FTransform.h"
 #include "Core/Math/FVector.h"
@@ -93,7 +95,7 @@ namespace Engine {
      * UPROPERTY(Edit, Serialize) 멤버는 컴포넌트에 저장되어 에셋 경로 같은 설정을 받습니다.
      *
      * 애니메이션 시퀀스는 스켈레톤을 참조하지 않고 트랙을 본 이름으로 가리키므로, 시퀀스마다 트랙을 스켈레톤 본 인덱스로 바꾸는 표를 만들어 둡니다.
-     * 스켈레톤에 없는 트랙은 무시하고, 트랙이 없는 본은 레퍼런스 포즈를 유지합니다. 캐시된 시퀀스는 바뀌지 않으므로 표는 시퀀스 주소로 찾습니다.
+     * 스켈레톤에 없는 트랙은 무시하고, 트랙이 없는 본은 레퍼런스 포즈를 유지합니다. 표는 시퀀스 세대 핸들로 찾습니다.
      *
      * 스켈레톤은 저장하지 않고 소유 컴포넌트에서 조회합니다. 컴포넌트가 메시나 스켈레톤이 바뀐 것을 감지하면 InitializeAnimation을 다시 호출하고,
      * 이때 매핑 표를 비우고 그래프를 다시 만듭니다.
@@ -405,7 +407,7 @@ namespace Engine {
          * @brief 시퀀스별로 트랙 인덱스를 스켈레톤 본 인덱스로 바꾸는 표이며, 스켈레톤에 없는 트랙은 -1입니다.
          * @details 시퀀스를 처음 평가할 때 만들고, 스켈레톤이 바뀌면 InitializeAnimation이 비웁니다.
          */
-        Core::TMap<const Asset::UAnimSequence*, FSequenceBoneMapping> mTrackToBone{};
+        Core::TMap<CoreUObject::TObjectRef<const Asset::UAnimSequence>, FSequenceBoneMapping, CoreUObject::TObjectRefHash<const Asset::UAnimSequence>> mTrackToBone{};
 
         /**
          * @brief 샘플링 결과를 담는 트랙 순서의 임시 포즈입니다.

@@ -10,7 +10,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Editor/FConsoleCommandRegistry.h"
 #include "Editor/FViewportStatistics.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "Engine/FWorldHandle.h"
 #include "Engine/FEditorCameraState.h"
@@ -23,6 +23,7 @@ namespace Script {
 }
 
 namespace Engine {
+    class ALevelSequenceActor;
     class UEngine;
     class FProject;
     class UWorld;
@@ -32,6 +33,7 @@ namespace Engine {
     class ACameraActor;
     class UCameraComponent;
     class UActorComponent;
+    class USceneComponent;
     class FWorldContext;
 
     enum class EPrimitiveType : Core::Uint8;
@@ -314,34 +316,34 @@ namespace Editor {
          * @brief 편집 월드에서 살아 있는 액터 핸들의 스냅샷을 만듭니다.
          * @return 삭제 예정 액터를 제외한 핸들 목록입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> GetActorHandles() const;
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> GetActorRefs() const;
 
         /**
          * @brief 프로퍼티 패널이 표시할 객체 핸들의 스냅샷을 만듭니다.
          * @return 액터 선택 시 액터와 컴포넌트 목록이며 개별 객체 선택 시 해당 객체입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> GetDetailsObjects() const;
+        Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> GetDetailsObjects() const;
 
         /**
          * @brief 전역 핸들과 편집 월드 소속을 함께 검사합니다.
          * @param[in] Handle 조회할 객체 핸들입니다.
          * @return 해당 월드 객체의 비소유 주소이며 검증에 실패하면 nullptr입니다.
          */
-        CoreUObject::UObject* ResolveObject(CoreUObject::FObjectHandle Handle) const;
+        CoreUObject::UObject* ResolveObject(CoreUObject::TObjectRef<CoreUObject::UObject> Handle) const;
 
         /**
          * @brief 유효한 액터를 선택하고 액터를 편집 대상으로 지정합니다.
          * @param[in] Handle 같은 편집 월드의 액터 핸들입니다.
          * @return 선택을 수락하면 true이며 잘못된 요청은 기존 선택을 유지합니다.
          */
-        bool SelectActor(CoreUObject::FObjectHandle Handle);
+        bool SelectActor(CoreUObject::TObjectRef<Engine::AActor> Handle);
 
         /**
          * @brief 객체를 선택하고 컴포넌트의 경우 소유 액터도 함께 선택합니다.
          * @param[in] Handle 같은 편집 월드의 객체 핸들입니다.
          * @return 선택을 수락하면 true입니다.
          */
-        bool SelectObject(CoreUObject::FObjectHandle Handle);
+        bool SelectObject(CoreUObject::TObjectRef<CoreUObject::UObject> Handle);
 
         /**
          * @brief 액터와 객체 선택을 해제합니다.
@@ -358,27 +360,27 @@ namespace Editor {
          * @brief 아직 살아 있는 선택 액터들의 세대 핸들을 수집합니다.
          * @return 대상 객체들의 세대 핸들을 담은 배열입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> GetSelectedActors() const;
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> GetSelectedActors() const;
 
         /**
          * @brief 선택 컴포넌트 또는 선택 액터들의 루트 변환 대상을 수집합니다.
          * @return 대상 객체들의 세대 핸들을 담은 배열입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> GetTransformTargets() const;
+        Core::TArray<CoreUObject::TObjectRef<Engine::USceneComponent>> GetTransformTargets() const;
 
         /**
          * @brief 유효한 액터 핸들들로 현재 다중 선택을 교체합니다.
          * @param[in] Actors 선택하거나 복제할 액터들의 세대 핸들입니다.
          * @return 조건을 만족하거나 변경을 적용하면 true입니다.
          */
-        bool SetSelectedActors(const Core::TArray<CoreUObject::FObjectHandle>& Actors);
+        bool SetSelectedActors(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors);
 
         /**
          * @brief 지정 액터의 다중 선택 포함 상태를 반전합니다.
          * @param[in] Actor 선택 상태를 반전할 액터의 핸들입니다.
          * @return 조건을 만족하거나 변경을 적용하면 true입니다.
          */
-        bool ToggleActorSelection(CoreUObject::FObjectHandle Actor);
+        bool ToggleActorSelection(CoreUObject::TObjectRef<Engine::AActor> Actor);
 
         /**
          * @brief 선택 대상 변경을 추적할 개정 번호를 반환합니다.
@@ -390,7 +392,7 @@ namespace Editor {
          * @brief 현재 선택 액터들을 새 GUID로 복제하고 복제본들을 선택합니다.
          * @return 대상 객체들의 세대 핸들을 담은 배열입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> DuplicateSelectedActors();
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> DuplicateSelectedActors();
 
         /**
          * @brief 현재 프로퍼티 편집 대상을 조회합니다.
@@ -477,7 +479,7 @@ namespace Editor {
          * @param Visible 설정할 액터 가시성입니다.
          * @return 액터의 가시성을 변경했으면 true입니다.
          */
-        bool SetActorsVisible(const Core::TArray<CoreUObject::FObjectHandle>& Actors, bool Visible);
+        bool SetActorsVisible(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, bool Visible);
 
         /**
          * @brief 객체 소속과 프로퍼티 편집 권한을 검사합니다.
@@ -485,7 +487,7 @@ namespace Editor {
          * @param[in] Property 객체 클래스의 프로퍼티입니다.
          * @return 현재 편집할 수 있으면 true입니다.
          */
-        bool CanEditProperty(CoreUObject::FObjectHandle Handle, const CoreUObject::FProperty* Property) const;
+        bool CanEditProperty(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const CoreUObject::FProperty* Property) const;
 
         /**
          * @brief 공통 검증과 변경 전후 알림을 거쳐 프로퍼티를 편집합니다.
@@ -496,7 +498,7 @@ namespace Editor {
          * @return 값 쓰기에 성공하면 true입니다.
          * @note 콜백 중 삭제와 재진입을 검사하며 성공한 변경은 장면을 수정 상태로 만듭니다.
          */
-        bool EditProperty(CoreUObject::FObjectHandle Handle, const CoreUObject::FProperty* Property, const CoreUObject::FPropertyValue& Value, bool Interactive = false);
+        bool EditProperty(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const CoreUObject::FProperty* Property, const CoreUObject::FPropertyValue& Value, bool Interactive = false);
 
         /**
          * @brief 액터 루트 또는 공간 컴포넌트의 변환을 공통 프로퍼티 편집 경로로 변경합니다.
@@ -505,7 +507,7 @@ namespace Editor {
          * @param[in] Interactive 연속 편집 여부입니다.
          * @return 변환을 적용하면 true입니다.
          */
-        bool ApplyTransform(CoreUObject::FObjectHandle Handle, const Core::FTransform& Transform, bool Interactive = false);
+        bool ApplyTransform(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const Core::FTransform& Transform, bool Interactive = false);
 
         /**
          * @brief 편집 월드를 장면 파일로 저장합니다.
@@ -560,20 +562,20 @@ namespace Editor {
          * @brief 시퀀스 액터를 시퀀서에서 여는 콜백을 설정합니다.
          * @param[in] Opener 시퀀스 액터의 핸들을 받아 패널을 여는 콜백이며 비어 있으면 해제합니다.
          */
-        void SetSequencerOpener(std::function<void(CoreUObject::FObjectHandle)> Opener);
+        void SetSequencerOpener(std::function<void(CoreUObject::TObjectRef<Engine::ALevelSequenceActor>)> Opener);
 
         /**
          * @brief 객체가 시퀀스 액터이면 시퀀서에서 엽니다.
          * @param[in] Handle 열 객체의 핸들입니다.
          * @return 시퀀서를 열었으면 true이며 시퀀스 액터가 아니거나 콜백이 없으면 false입니다.
          */
-        bool OpenInSequencer(CoreUObject::FObjectHandle Handle);
+        bool OpenInSequencer(CoreUObject::TObjectRef<Engine::ALevelSequenceActor> Handle);
 
         /**
          * @brief 원근 편집 뷰포트가 대신 사용할 시퀀서 프리뷰 카메라를 설정합니다.
          * @param[in] Camera 사용할 카메라 컴포넌트의 핸들이며 비어 있으면 편집 카메라로 돌아갑니다.
          */
-        void SetPreviewCamera(CoreUObject::FObjectHandle Camera);
+        void SetPreviewCamera(CoreUObject::TObjectRef<Engine::UCameraComponent> Camera);
 
         /**
          * @brief 시퀀서 프리뷰 카메라를 조회합니다.
@@ -703,7 +705,7 @@ namespace Editor {
          * @param Path Content 기준 재질 경로입니다.
          * @return 변경을 적용하면 true입니다.
          */
-        bool SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Index_t Slot, const Core::FString& Path);
+        bool SetMaterialOverride(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, Core::Index_t Slot, const Core::FString& Path);
 
         /**
          * @brief C# 스크립트 필드 값을 저장하고 장면을 수정 상태로 표시합니다.
@@ -711,7 +713,7 @@ namespace Editor {
          * @param Field 저장할 필드입니다.
          * @return 변경을 적용하면 true입니다.
          */
-        bool SetScriptField(CoreUObject::FObjectHandle Handle, const Script::FScriptField& Field);
+        bool SetScriptField(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const Script::FScriptField& Field);
 
         /**
          * @brief 저장된 C# 스크립트 필드를 지우고 장면을 수정 상태로 표시합니다.
@@ -719,7 +721,7 @@ namespace Editor {
          * @param Name C# 필드 이름입니다.
          * @return 변경을 적용하면 true입니다.
          */
-        bool RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name);
+        bool RemoveScriptField(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const Core::FString& Name);
 
     private:
 
@@ -745,14 +747,14 @@ namespace Editor {
          * @param[in] Object 편집 대상 핸들입니다.
          * @return 요청을 수락하면 true이며 잘못된 요청은 기존 선택을 유지합니다.
          */
-        bool SetSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object);
+        bool SetSelection(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, CoreUObject::TObjectRef<CoreUObject::UObject> Object);
 
         /**
          * @brief 검증한 선택 목록과 편집 대상을 저장하고 선택 변경 번호를 갱신합니다.
          * @param[in] Actors 마지막 항목을 대표 액터로 사용하는 선택 목록입니다.
          * @param[in] Object 프로퍼티 편집 대상입니다.
          */
-        void AssignSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object);
+        void AssignSelection(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, CoreUObject::TObjectRef<CoreUObject::UObject> Object);
 
         /**
          * @brief 현재 실행·전환 상태에서 에디터 장면을 수정할 수 있는지 확인합니다.
@@ -839,7 +841,7 @@ namespace Editor {
         /**
          * @brief 프로퍼티 편집 대상의 세대 핸들입니다.
          */
-        CoreUObject::FObjectHandle mSelectedObject{};
+        CoreUObject::TObjectRef<CoreUObject::UObject> mSelectedObject{};
 
         /**
          * @brief 현재 장면 파일 경로입니다.
@@ -934,7 +936,7 @@ namespace Editor {
         /**
          * @brief 마지막 항목을 주 대상으로 사용하는 편집 월드의 액터 선택 집합입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> mSelectedActors{};
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> mSelectedActors{};
 
         /**
          * @brief 선택 변경을 감지하거나 드래그 시작 시 선택을 검증하는 세대 값입니다.
@@ -964,12 +966,12 @@ namespace Editor {
         /**
          * @brief 시퀀스 액터를 시퀀서에서 여는 함수입니다.
          */
-        std::function<void(CoreUObject::FObjectHandle)> mSequencerOpener{};
+        std::function<void(CoreUObject::TObjectRef<Engine::ALevelSequenceActor>)> mSequencerOpener{};
 
         /**
          * @brief 원근 편집 뷰포트가 대신 사용할 시퀀서 프리뷰 카메라의 핸들입니다.
          */
-        CoreUObject::FObjectHandle mPreviewCamera{};
+        CoreUObject::TObjectRef<Engine::UCameraComponent> mPreviewCamera{};
     };
 
 }

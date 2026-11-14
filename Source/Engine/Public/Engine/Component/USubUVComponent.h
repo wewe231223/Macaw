@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "Engine/Component/UActorComponent.h"
 #include "USubUVComponent.generated.h"
@@ -229,7 +231,7 @@ namespace Engine {
         /**
          * @brief 같은 액터에서 자동 선택하거나 이름으로 지정한 UV 대상의 세대 핸들입니다.
          */
-        CoreUObject::FObjectHandle mTarget{};
+        CoreUObject::TObjectRef<Engine::UPrimitiveComponent> mTarget{};
 
         /**
          * @brief 소수 프레임을 포함한 현재 재생 위치입니다.

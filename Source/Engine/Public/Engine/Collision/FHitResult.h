@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/Math/FVector.h"
+#include "CoreUObject/TObjectRef.h"
 
 #include <cfloat>
 
@@ -56,6 +57,9 @@ namespace Engine {
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UPrimitiveComponent* GetComponent() const;
+
+        void SetActor(Engine::AActor* Actor);
+        void SetComponent(Engine::UPrimitiveComponent* Component);
 
         /**
          * @brief 상대 형상 관점으로 법선과 소유 대상을 반전한 충돌 결과를 만듭니다.
@@ -127,15 +131,16 @@ namespace Engine {
          */
         bool mStartPenetrating{};
 
+    private:
         /**
-         * @brief 적중 컴포넌트의 비소유 주소입니다.
+         * @brief 적중 컴포넌트의 비소유 세대 핸들입니다.
          */
-        Engine::UPrimitiveComponent* mHitComponent{};
+        CoreUObject::TObjectRef<Engine::UPrimitiveComponent> mHitComponent{};
 
         /**
-         * @brief 적중 액터의 비소유 주소입니다.
+         * @brief 적중 액터의 비소유 세대 핸들입니다.
          */
-        Engine::AActor* mHitActor{};
+        CoreUObject::TObjectRef<Engine::AActor> mHitActor{};
     };
 
 }

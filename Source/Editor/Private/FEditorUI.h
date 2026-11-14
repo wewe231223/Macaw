@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "Core/Math/FVector4.h"
@@ -676,7 +678,7 @@ namespace Editor {
         /**
          * @brief 미리보기에 사용하는 에셋 관리자 소유 텍스처의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mPreviewTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mPreviewTexture{};
 
         /**
          * @brief 텍스처 표시·확대에 사용하는 공통 뷰어의 소유 포인터입니다.
@@ -816,7 +818,7 @@ namespace Editor {
         /**
          * @brief 편집 중인 머티리얼의 독립 사본입니다.
          */
-        Asset::UMaterial* mEditingMaterial{};
+        CoreUObject::TObjectRef<Asset::UMaterial> mEditingMaterial{};
 
         /**
          * @brief Content 기준 머티리얼 파일 경로입니다.

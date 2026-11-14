@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "FMeshPass.h"
 
 namespace Asset {
@@ -60,7 +62,7 @@ namespace Renderer {
         /**
          * @brief 머티리얼이 없거나 준비에 실패한 SubMesh가 쓰는 기본 머티리얼입니다.
          */
-        Asset::UMaterial* mDefaultMaterial{};
+        CoreUObject::TObjectRef<Asset::UMaterial> mDefaultMaterial{};
     };
 
 }

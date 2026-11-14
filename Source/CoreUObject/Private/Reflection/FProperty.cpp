@@ -6,6 +6,7 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/FProperty.h"
+#include "CoreUObject/FObjectReference.h"
 #include "Core/Archive.h"
 #include "CoreUObject/Reflection/FArrayOps.h"
 #include "CoreUObject/Reflection/FEnumValue.h"
@@ -275,7 +276,7 @@ namespace CoreUObject {
                 // 핸들은 영속 상태가 아닌 캐시이므로 setter를 거치지 않고 원소를 직접 갱신합니다.
                 void* Array{const_cast<void*>(std::get<const void*>(ReadValue(Container)))};
 
-                for (Core::Index_t Index{}, Count{mArrayOps->mSize(Array)}; Index < Count; ++Index) {
+                for (Core::Uint32 Index{}, Count{mArrayOps->mSize(Array)}; Index < Count; ++Index) {
                     mArrayOps->mElement->BindObjectReferences(mArrayOps->mAt(Array, Index), Objects);
                 }
             }

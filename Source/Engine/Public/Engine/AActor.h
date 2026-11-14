@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include "AActor.generated.h"
@@ -224,7 +226,7 @@ namespace Engine {
          * @brief 콜백 중 컴포넌트 추가에 영향받지 않는 핸들 스냅샷을 만듭니다.
          * @return 현재 소유 컴포넌트의 전역 핸들 목록입니다.
          */
-        Core::TArray<CoreUObject::FObjectHandle> GetComponentHandles() const;
+        Core::TArray<CoreUObject::TObjectRef<Engine::UActorComponent>> GetComponentRefs() const;
 
     private:
         /**

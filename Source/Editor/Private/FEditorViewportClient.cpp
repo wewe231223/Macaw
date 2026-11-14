@@ -256,9 +256,9 @@ namespace Editor {
 
                 if (Actor != nullptr) {
                     if (Input.mControl) {
-                        mContext->ToggleActorSelection(Actor->GetHandle());
+                        mContext->ToggleActorSelection(CoreUObject::MakeObjectRef(Actor));
                     } else {
-                        mContext->SelectActor(Actor->GetHandle());
+                        mContext->SelectActor(CoreUObject::MakeObjectRef(Actor));
                     }
                 }
             } else if (Hit.mType == Engine::EHitProxyType::None && !Input.mControl) {
@@ -380,9 +380,9 @@ namespace Editor {
         const Engine::AActor* Actor{mContext->GetSelectedActor()};
         const auto* Component{Actor != nullptr ? CoreUObject::Cast<Engine::UPrimitiveComponent>(Actor->GetRootComponent()) : nullptr};
 
-        const auto* Light{Actor != nullptr ? CoreUObject::Cast<Engine::ULightComponentBase>(Actor->GetRootComponent()) : nullptr};
+        auto* Light{Actor != nullptr ? CoreUObject::Cast<Engine::ULightComponentBase>(Actor->GetRootComponent()) : nullptr};
 
-        const auto* Fog{Actor != nullptr ? CoreUObject::Cast<Engine::UHeightFogComponent>(Actor->GetRootComponent()) : nullptr};
+        auto* Fog{Actor != nullptr ? CoreUObject::Cast<Engine::UHeightFogComponent>(Actor->GetRootComponent()) : nullptr};
 
         if (Component == nullptr && Light == nullptr && Fog == nullptr) {
             return;
@@ -433,7 +433,7 @@ namespace Editor {
         }
 
         if (World->GetPersistentLevel() != nullptr) {
-            const Core::TArray<CoreUObject::FObjectHandle> SelectedActors{mContext->GetSelectedActors()};
+            const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> SelectedActors{mContext->GetSelectedActors()};
             const auto* SelectedComponent{CoreUObject::Cast<Engine::UActorComponent>(mContext->GetSelectedObject())};
 
             for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
@@ -441,7 +441,7 @@ namespace Editor {
                     continue;
                 }
 
-                const bool Highlight{std::find(SelectedActors.begin(), SelectedActors.end(), Actor->GetHandle()) != SelectedActors.end()};
+                const bool Highlight{std::find(SelectedActors.begin(), SelectedActors.end(), CoreUObject::MakeObjectRef(Actor)) != SelectedActors.end()};
 
                 if (Highlight && Actor->GetRootComponent() != nullptr) {
                     const auto* SelectedSceneComponent{SelectedComponent != nullptr && SelectedComponent->GetOwner() == Actor.get() ? CoreUObject::Cast<Engine::USceneComponent>(SelectedComponent) : nullptr};
@@ -450,7 +450,7 @@ namespace Editor {
                     bool HasBounds{};
 
                     for (const auto& Component : Actor->GetComponents()) {
-                        const auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
+                        auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
 
                         if (Primitive == nullptr || (SelectedSceneComponent != nullptr && Primitive != SelectedSceneComponent)) {
                             continue;
@@ -480,7 +480,7 @@ namespace Editor {
                 }
 
                 for (const auto& Component : Actor->GetComponents()) {
-                    const auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
+                    auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
 
                     if (Primitive != nullptr && Primitive->ShouldCreateRenderState() && (mShowFlags.mBounds || Highlight)) {
                         const bool DepthTest{!Highlight || CoreUObject::Cast<Engine::UBillboardComponent>(Primitive) != nullptr || CoreUObject::Cast<Engine::UBillboardTextComponent>(Primitive) != nullptr};
@@ -488,11 +488,11 @@ namespace Editor {
                         mDrawInterface.DrawBox(CalcComponentBounds(Primitive, View), Highlight ? Core::FVector{1.0f, 0.65f, 0.15f} : Core::FVector{0.25f, 0.8f, 0.95f}, DepthTest, mLineThickness);
                     }
 
-                    if (const auto* Light{CoreUObject::Cast<Engine::ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightVisualizers) {
+                    if (auto* Light{CoreUObject::Cast<Engine::ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightVisualizers) {
                         Light->DrawVisualization(mDrawInterface, Highlight);
                     }
 
-                    if (const auto* Fog{CoreUObject::Cast<Engine::UHeightFogComponent>(Component.get())}; Fog != nullptr && Highlight) {
+                    if (auto* Fog{CoreUObject::Cast<Engine::UHeightFogComponent>(Component.get())}; Fog != nullptr && Highlight) {
                         const Core::FVector Location{Fog->GetTransform().mLocation};
 
                         mDrawInterface.DrawBox(Core::FBox{Location - Core::FVector{0.5f, 0.5f, 0.5f}, Location + Core::FVector{0.5f, 0.5f, 0.5f}}, {1.0f, 0.65f, 0.15f}, true, mLineThickness);
@@ -904,25 +904,25 @@ namespace Editor {
             }
 
             for (const auto& Component : Actor->GetComponents()) {
-                if (const auto* Light{CoreUObject::Cast<Engine::ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightIcons && !Actor->IsPendingDestroy()) {
+                if (auto* Light{CoreUObject::Cast<Engine::ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightIcons && !Actor->IsPendingDestroy()) {
                     const Engine::FPrimitiveSceneProxy Proxy{Light->CreateLightProxy().CreateIconProxy()};
 
                     if (Engine::RaycastMesh(&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Plane), Engine::MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View), Ray, Closest)) {
-                        Result = {Engine::EHitProxyType::Object, Light->GetHandle()};
+                        Result = {Engine::EHitProxyType::Object, CoreUObject::MakeObjectRef(Light)};
                     }
                 }
 
-                if (const auto* Fog{CoreUObject::Cast<Engine::UHeightFogComponent>(Component.get())}; Fog != nullptr && mShowFlags.mFogIcons && !Actor->IsPendingDestroy()) {
+                if (auto* Fog{CoreUObject::Cast<Engine::UHeightFogComponent>(Component.get())}; Fog != nullptr && mShowFlags.mFogIcons && !Actor->IsPendingDestroy()) {
                     const Engine::FPrimitiveSceneProxy Proxy{Fog->CreateFogProxy().CreateIconProxy()};
 
                     if (Engine::RaycastMesh(&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Plane), Engine::MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View), Ray, Closest)) {
-                        Result = {Engine::EHitProxyType::Object, Fog->GetHandle()};
+                        Result = {Engine::EHitProxyType::Object, CoreUObject::MakeObjectRef(Fog)};
                     }
                 }
 
-                const auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
-                const auto* Sprite{CoreUObject::Cast<Engine::UBillboardComponent>(Component.get())};
-                const auto* Text{CoreUObject::Cast<Engine::UBillboardTextComponent>(Component.get())};
+                auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
+                auto* Sprite{CoreUObject::Cast<Engine::UBillboardComponent>(Component.get())};
+                auto* Text{CoreUObject::Cast<Engine::UBillboardTextComponent>(Component.get())};
 
                 if (!mShowFlags.mPrimitives || Actor->IsPendingDestroy() || Primitive == nullptr || !Primitive->ShouldCreateRenderState()) {
                     continue;
@@ -932,7 +932,7 @@ namespace Editor {
                     const Engine::FPrimitiveSceneProxy Proxy{Sprite->CreateSceneProxy()};
 
                     if (mShowFlags.mSprites && Engine::RaycastMesh(&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Plane), Engine::MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View), Ray, Closest)) {
-                        Result = {Engine::EHitProxyType::Object, Sprite->GetHandle()};
+                        Result = {Engine::EHitProxyType::Object, CoreUObject::MakeObjectRef(Sprite)};
                     }
 
                     continue;
@@ -940,7 +940,7 @@ namespace Editor {
 
                 if (Text == nullptr) {
                     if (Engine::RaycastMesh(&Primitive->GetMeshData(), Primitive->GetWorldMatrix(), Ray, Closest)) {
-                        Result = {Engine::EHitProxyType::Object, Primitive->GetHandle()};
+                        Result = {Engine::EHitProxyType::Object, CoreUObject::MakeObjectRef(Primitive)};
                     }
 
                     continue;
@@ -968,7 +968,7 @@ namespace Editor {
 
                 if (Distance < Closest && Horizontal >= Minimum.x && Horizontal <= Maximum.x && Vertical >= Minimum.y && Vertical <= Maximum.y) {
                     Closest = Distance;
-                    Result = {Engine::EHitProxyType::Object, Text->GetHandle()};
+                    Result = {Engine::EHitProxyType::Object, CoreUObject::MakeObjectRef(Text)};
                 }
             }
         }
@@ -980,13 +980,13 @@ namespace Editor {
      * @brief 텍스트·Billboard의 뷰 정렬을 반영한 월드 AABB를 계산합니다.
      */
     Core::FBox Editor::FEditorViewportClient::CalcComponentBounds(const Engine::UPrimitiveComponent* Component, const Engine::FSceneView& View) const {
-        if (const auto* Sprite{CoreUObject::Cast<Engine::UBillboardComponent>(Component)}) {
+        if (auto* Sprite{CoreUObject::Cast<Engine::UBillboardComponent>(Component)}) {
             const Engine::FPrimitiveSceneProxy Proxy{Sprite->CreateSceneProxy()};
 
             return Core::FBox{{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}}.Transformed(Engine::MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View));
         }
 
-        const auto* Text{CoreUObject::Cast<Engine::UBillboardTextComponent>(Component)};
+        auto* Text{CoreUObject::Cast<Engine::UBillboardTextComponent>(Component)};
         Core::FVector2 Minimum{};
         Core::FVector2 Maximum{};
 

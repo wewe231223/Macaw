@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Editor/FEditorContext.h"
 #include "Engine/FGameViewportClient.h"
 #include <utility>
@@ -127,14 +129,14 @@ namespace Editor {
          * @param[in] Original PIE 복제본을 조회할 원본 편집 객체의 핸들입니다.
          * @return 조회한 대상의 세대 핸들이며, 대상이 없으면 무효 핸들입니다.
          */
-        CoreUObject::FObjectHandle FindPlayObject(CoreUObject::FObjectHandle Original) const;
+        CoreUObject::TObjectRef<CoreUObject::UObject> FindPlayObject(CoreUObject::TObjectRef<CoreUObject::UObject> Original) const;
 
         /**
          * @brief PIE 복제 객체에 대응하는 원본 편집 객체의 핸들을 조회합니다.
          * @param[in] Duplicate 원본을 조회할 PIE 복제 객체의 핸들입니다.
          * @return 조회한 대상의 세대 핸들이며, 대상이 없으면 무효 핸들입니다.
          */
-        CoreUObject::FObjectHandle FindEditorObject(CoreUObject::FObjectHandle Duplicate) const;
+        CoreUObject::TObjectRef<CoreUObject::UObject> FindEditorObject(CoreUObject::TObjectRef<CoreUObject::UObject> Duplicate) const;
 
     private:
         /**
@@ -180,7 +182,7 @@ namespace Editor {
         /**
          * @brief 원본 편집 객체와 PIE 복제 객체 핸들의 대응 목록입니다.
          */
-        Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FObjectHandle>> mObjectPairs{};
+        Core::TArray<std::pair<CoreUObject::TObjectRef<CoreUObject::UObject>, CoreUObject::TObjectRef<CoreUObject::UObject>>> mObjectPairs{};
 
         /**
          * @brief PIE 시작 또는 종료 도중의 재진입을 막는 플래그입니다.

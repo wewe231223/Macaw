@@ -5,6 +5,7 @@
  */
 
 #include "Core/Types.h"
+#include "Asset/USkeletalMesh.h"
 #include "FShadowDepthPass.h"
 
 #include "FScenePrimitive.h"

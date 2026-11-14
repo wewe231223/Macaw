@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FLightSceneProxy.h"
 #include "ULightComponentBase.generated.h"
@@ -127,7 +129,7 @@ namespace Engine {
         /**
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mIcon{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mIcon{};
 
         /**
          * @brief 현재 아이콘을 제공한 에셋 관리자의 비소유 주소입니다.

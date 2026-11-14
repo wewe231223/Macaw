@@ -204,7 +204,7 @@ namespace Engine {
     /**
      * @brief 지정 월드에 액터들과 소유 컴포넌트를 새 식별자로 복제합니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Engine::FWorldCloner::DuplicateActors(Engine::UWorld* World, const Core::TArray<CoreUObject::FObjectHandle>& Actors, Core::FString& Error) {
+    Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Engine::FWorldCloner::DuplicateActors(Engine::UWorld* World, const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, Core::FString& Error) {
         Error.clear();
 
         if (World == nullptr || !World->CanAddActor() || World->IsDispatching() || Actors.empty()) {
@@ -216,8 +216,8 @@ namespace Engine {
         Engine::UWorld::FDispatchScope Scope{World};
         Core::TArray<Engine::AActor*> Sources{};
 
-        for (CoreUObject::FObjectHandle Handle : Actors) {
-            auto* Source{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
+        for (CoreUObject::TObjectRef<Engine::AActor> Handle : Actors) {
+            auto* Source{CoreUObject::Cast<Engine::AActor>(Handle.Get())};
 
             if (Source == nullptr || Source->GetWorld() != World || Source->IsPendingDestroy()) {
                 Error = "Invalid source actor";
@@ -283,13 +283,13 @@ namespace Engine {
             }
         }
 
-        Core::TArray<CoreUObject::FObjectHandle> Result{};
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Result{};
 
         for (auto& Copy : Copies) {
-            const CoreUObject::FObjectHandle Handle{Copy->GetHandle()};
+            const CoreUObject::TObjectRef<Engine::AActor> Handle{CoreUObject::MakeObjectRef(Copy)};
 
             if (!World->GetPersistentLevel()->AddActor(std::move(Copy))) {
-                for (CoreUObject::FObjectHandle Added : Result) {
+                for (CoreUObject::TObjectRef<Engine::AActor> Added : Result) {
                     World->DestroyActor(Added);
                 }
 

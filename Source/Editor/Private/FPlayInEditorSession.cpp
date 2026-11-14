@@ -65,15 +65,15 @@ namespace Editor {
         mPreviousWorld = mEngine->GetWorldHandle();
 
         Engine::UWorld* Source{mContext->GetWorld()};
-        Core::TArray<std::pair<const CoreUObject::UObject*, CoreUObject::FObjectHandle>> Originals{{Source, Source->GetHandle()}, {Source->GetPersistentLevel(), Source->GetPersistentLevel()->GetHandle()}};
+        Core::TArray<std::pair<const CoreUObject::UObject*, CoreUObject::TObjectRef<CoreUObject::UObject>>> Originals{{Source, CoreUObject::MakeObjectRef(Source)}, {Source->GetPersistentLevel(), CoreUObject::MakeObjectRef(Source->GetPersistentLevel())}};
 
-        for (CoreUObject::FObjectHandle Handle : mContext->GetActorHandles()) {
+        for (CoreUObject::TObjectRef<CoreUObject::UObject> Handle : mContext->GetActorRefs()) {
             const Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(mContext->ResolveObject(Handle))};
 
             Originals.push_back({Actor, Handle});
 
             for (const auto& Component : Actor->GetComponents()) {
-                Originals.push_back({Component.get(), Component->GetHandle()});
+                Originals.push_back({Component.get(), CoreUObject::MakeObjectRef(Component)});
             }
         }
 
@@ -90,24 +90,24 @@ namespace Editor {
                 CoreUObject::UObject* Duplicate{Duplication.FindDuplicate(Original)};
 
                 if (Duplicate != nullptr && mContext->ResolveObject(Handle) == Original) {
-                    mObjectPairs.push_back({Handle, Duplicate->GetHandle()});
+                    mObjectPairs.push_back({Handle, CoreUObject::MakeObjectRef(Duplicate)});
                 }
             }
 
-            Core::TArray<CoreUObject::FObjectHandle> Selection{};
+            Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Selection{};
 
-            for (CoreUObject::FObjectHandle Handle : mContext->GetSelectedActors()) {
-                const CoreUObject::FObjectHandle Copy{FindPlayObject(Handle)};
+            for (CoreUObject::TObjectRef<CoreUObject::UObject> Handle : mContext->GetSelectedActors()) {
+                const CoreUObject::TObjectRef<CoreUObject::UObject> Copy{FindPlayObject(Handle)};
 
                 if (Copy.IsValid()) {
-                    Selection.push_back(Copy);
+                    Selection.push_back(CoreUObject::Cast<Engine::AActor>(Copy.Get()));
                 }
             }
 
             mInspectionContext.SetSelectedActors(Selection);
 
-            if (const CoreUObject::UObject* Selected{mContext->GetSelectedObject()}) {
-                const CoreUObject::FObjectHandle Copy{FindPlayObject(Selected->GetHandle())};
+            if (CoreUObject::UObject* Selected{mContext->GetSelectedObject()}) {
+                const CoreUObject::TObjectRef<CoreUObject::UObject> Copy{FindPlayObject(CoreUObject::MakeObjectRef(Selected))};
 
                 if (Selection.size() <= 1 && Copy.IsValid()) {
                     mInspectionContext.SelectObject(Copy);
@@ -331,7 +331,7 @@ namespace Editor {
     /**
      * @brief 편집 객체에 대응하는 PIE 복제 객체의 핸들을 조회합니다.
      */
-    CoreUObject::FObjectHandle Editor::FPlayInEditorSession::FindPlayObject(CoreUObject::FObjectHandle Original) const {
+    CoreUObject::TObjectRef<CoreUObject::UObject> Editor::FPlayInEditorSession::FindPlayObject(CoreUObject::TObjectRef<CoreUObject::UObject> Original) const {
         for (const auto& [Source, Duplicate] : mObjectPairs) {
             if (Source == Original && mContext->ResolveObject(Source) != nullptr && mInspectionContext.ResolveObject(Duplicate) != nullptr) {
                 return Duplicate;
@@ -344,7 +344,7 @@ namespace Editor {
     /**
      * @brief PIE 복제 객체에 대응하는 원본 편집 객체의 핸들을 조회합니다.
      */
-    CoreUObject::FObjectHandle Editor::FPlayInEditorSession::FindEditorObject(CoreUObject::FObjectHandle Duplicate) const {
+    CoreUObject::TObjectRef<CoreUObject::UObject> Editor::FPlayInEditorSession::FindEditorObject(CoreUObject::TObjectRef<CoreUObject::UObject> Duplicate) const {
         for (const auto& [Source, Copy] : mObjectPairs) {
             if (Copy == Duplicate && mContext->ResolveObject(Source) != nullptr && mInspectionContext.ResolveObject(Copy) != nullptr) {
                 return Source;

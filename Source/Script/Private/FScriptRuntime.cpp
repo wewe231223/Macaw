@@ -514,7 +514,7 @@ namespace Script {
 
         // 액터 참조는 씬에 GUID로 저장되므로, 복제 월드에서 해석한 핸들을 문자열로 넘깁니다.
         if (Field.mType == "Actor") {
-            const CoreUObject::UObject* Object{Field.mObject.Resolve()};
+            const CoreUObject::UObject* Object{Field.mObject.Get()};
 
             if (Object == nullptr) {
                 return;
@@ -576,8 +576,8 @@ namespace Script {
     /**
      * @brief 스크립트 클래스의 인스턴스를 만듭니다.
      */
-    std::intptr_t Script::FScriptRuntime::CreateInstance(const Core::FString& ClassName, CoreUObject::FObjectHandle Owner) {
-        return EnsureScripts() ? mState->mManaged.mCreateInstance(ClassName.c_str(), Owner) : 0;
+    std::intptr_t Script::FScriptRuntime::CreateInstance(const Core::FString& ClassName, CoreUObject::TObjectRef<Engine::AActor> Owner) {
+        return EnsureScripts() ? mState->mManaged.mCreateInstance(ClassName.c_str(), Owner.GetHandle()) : 0;
     }
 
     /**
@@ -604,12 +604,12 @@ namespace Script {
     /**
      * @brief 겹침 시작이나 끝을 C# 인스턴스에 전달합니다.
      */
-    void Script::FScriptRuntime::OverlapInstance(std::intptr_t Instance, bool Begin, CoreUObject::FObjectHandle Other) {
-        mState->mManaged.mOverlap(Instance, Begin ? 1 : 0, Other);
+    void Script::FScriptRuntime::OverlapInstance(std::intptr_t Instance, bool Begin, CoreUObject::TObjectRef<const Engine::AActor> Other) {
+        mState->mManaged.mOverlap(Instance, Begin ? 1 : 0, Other.GetHandle());
     }
 
-    std::intptr_t Script::FScriptRuntime::CreateModifierInstance(const Core::FString& ClassName, CoreUObject::FObjectHandle Modifier) {
-        return EnsureScripts() ? mState->mManaged.mCreateModifier(ClassName.c_str(), Modifier) : 0;
+    std::intptr_t Script::FScriptRuntime::CreateModifierInstance(const Core::FString& ClassName, CoreUObject::TObjectRef<Engine::UCameraModifier> Modifier) {
+        return EnsureScripts() ? mState->mManaged.mCreateModifier(ClassName.c_str(), Modifier.GetHandle()) : 0;
     }
 
     bool Script::FScriptRuntime::ModifyCameraInstance(std::intptr_t Instance, float DeltaTime, Engine::FMinimalViewInfo& ViewInfo) {

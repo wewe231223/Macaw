@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "Asset/Animation/UAnimationAsset.h"
 #include "Core/Math/FVector.h"
@@ -80,7 +82,7 @@ namespace Asset {
         /**
          * @brief 경로를 해석한 시퀀스입니다. 에셋 관리자가 소유하며 저장하지 않습니다.
          */
-        const Asset::UAnimSequence* mAnimation{};
+        CoreUObject::TObjectRef<const Asset::UAnimSequence> mAnimation{};
 
         /**
          * @brief 블렌드 스페이스 좌표계에서 샘플의 위치입니다.

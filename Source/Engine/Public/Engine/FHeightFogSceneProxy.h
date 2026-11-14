@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Guid.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector4.h"
@@ -83,7 +85,7 @@ namespace Engine {
         /**
          * @brief 프로젝트 에셋 또는 대체 텍스처가 소유하는 언리얼 안개 아이콘의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mIcon{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mIcon{};
     };
 
 }

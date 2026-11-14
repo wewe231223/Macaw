@@ -5,6 +5,7 @@
  */
 
 #include "Core/Types.h"
+#include "Engine/ALevelSequenceActor.h"
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FAssetDragDrop.h"
@@ -465,19 +466,19 @@ namespace Editor {
         mAnimGraphOpener = std::move(Opener);
     }
 
-    void Editor::FDetailsPanel::DrawAnimInstance(const Core::TArray<CoreUObject::FObjectHandle>& Targets) {
+    void Editor::FDetailsPanel::DrawAnimInstance(const Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>>& Targets) {
         Editor::FEditorContext* Context{GetEditorContext()};
-        Core::TArray<CoreUObject::FObjectHandle> Instances{};
+        Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> Instances{};
 
-        for (const CoreUObject::FObjectHandle Target : Targets) {
+        for (const CoreUObject::TObjectRef<CoreUObject::UObject> Target : Targets) {
             const auto* Component{CoreUObject::Cast<Engine::USkeletalMeshComponent>(Context->ResolveObject(Target))};
-            const auto* Instance{Component != nullptr ? CoreUObject::Cast<Engine::UAnimGraphInstance>(Component->GetAnimInstance()) : nullptr};
+            auto* Instance{Component != nullptr ? CoreUObject::Cast<Engine::UAnimGraphInstance>(Component->GetAnimInstance()) : nullptr};
 
             if (Instance == nullptr) {
                 return;
             }
 
-            Instances.push_back(Instance->GetHandle());
+            Instances.push_back(CoreUObject::MakeObjectRef(Instance));
         }
 
         const auto* GraphProperty{Engine::UAnimGraphInstance::StaticClass()->FindClassProperty("AnimGraph")};
@@ -486,9 +487,9 @@ namespace Editor {
             DrawPropertyRow({GraphProperty, std::move(Instances), "Animation", "Anim Graph"});
         }
 
-        const CoreUObject::UObject* Selected{Context->GetSelectedObject()};
+        CoreUObject::UObject* Selected{Context->GetSelectedObject()};
 
-        if (Targets.size() == 1 && Selected != nullptr && Selected->GetHandle() == Targets.front() && mAnimGraphOpener && !mOnlyModified && MatchesSearch("Animation", "Debug Anim Graph")) {
+        if (Targets.size() == 1 && Selected != nullptr && CoreUObject::MakeObjectRef(Selected) == Targets.front() && mAnimGraphOpener && !mOnlyModified && MatchesSearch("Animation", "Debug Anim Graph")) {
             BeginPropertyRow("Debug");
             ImGui::TableSetColumnIndex(1);
 
@@ -503,7 +504,7 @@ namespace Editor {
      */
     void Editor::FDetailsPanel::DrawScriptFields(Script::UScriptComponent* Component) {
         Editor::FEditorContext* Context{GetEditorContext()};
-        const CoreUObject::FObjectHandle Handle{Component->GetHandle()};
+        const CoreUObject::TObjectRef<CoreUObject::UObject> Handle{CoreUObject::MakeObjectRef(Component)};
 
         if (mScriptBuilds != nullptr && !mScriptBuilds->HasProject()) {
             ImGui::TextWrapped("이 프로젝트에는 C# 프로젝트가 없습니다. Scripts 메뉴의 \"C# 프로젝트 열기\"로 만들 수 있으며, .NET 10 SDK가 필요합니다. 만든 스크립트는 콘텐츠 브라우저의 Scripts 폴더에서 더블클릭해 엽니다.");
@@ -548,19 +549,19 @@ namespace Editor {
                 ImGui::PushID(Info.mName.c_str());
 
                 if (Info.mType == "Actor") {
-                    const CoreUObject::UObject* Target{Field != nullptr ? Field->mObject.Resolve() : nullptr};
+                    const CoreUObject::UObject* Target{Field != nullptr ? Field->mObject.Get() : nullptr};
 
                     if (ImGui::BeginCombo(DrawFieldLabel(Info.mName.c_str()).c_str(), Target != nullptr ? Target->GetName().c_str() : "(없음)")) {
                         if (ImGui::Selectable("(없음)", Target == nullptr)) {
                             Context->RemoveScriptField(Handle, Info.mName);
                         }
 
-                        for (const CoreUObject::FObjectHandle ActorHandle : Context->GetActorHandles()) {
+                        for (const CoreUObject::TObjectRef<Engine::AActor> ActorHandle : Context->GetActorRefs()) {
                             const CoreUObject::UObject* Actor{Context->ResolveObject(ActorHandle)};
 
                             if (Actor != nullptr && ImGui::Selectable(Actor->GetName().c_str(), Actor == Target)) {
                                 Script::FScriptField Selected{Info.mName, Info.mType};
-                                Selected.mObject = CoreUObject::FObjectReference{Actor};
+                                Selected.mObject = ActorHandle;
 
                                 Context->SetScriptField(Handle, Selected);
                             }
@@ -629,10 +630,10 @@ namespace Editor {
      */
     void Editor::FDetailsPanel::DrawContent(float) {
         Editor::FEditorContext* Context{GetEditorContext()};
-        Core::TArray<CoreUObject::FObjectHandle> Targets{};
+        Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> Targets{};
 
         if (mLockedContext == Context) {
-            std::erase_if(mLockedTargets, [Context](CoreUObject::FObjectHandle Target) {
+            std::erase_if(mLockedTargets, [Context](CoreUObject::TObjectRef<CoreUObject::UObject> Target) {
                 return Context->ResolveObject(Target) == nullptr;
             });
         }
@@ -640,13 +641,14 @@ namespace Editor {
         if (mLockedContext != Context || mLockedTargets.empty()) {
             mLockedContext = nullptr;
             mLockedTargets.clear();
-            Targets = Context->GetSelectedActors();
+            const auto SelectedActors{Context->GetSelectedActors()};
+            Targets.assign(SelectedActors.begin(), SelectedActors.end());
 
             if (Targets.size() < 2) {
                 Targets.clear();
 
-                if (const CoreUObject::UObject* Selected{Context->GetSelectedObject()}) {
-                    Targets.push_back(Selected->GetHandle());
+                if (CoreUObject::UObject* Selected{Context->GetSelectedObject()}) {
+                    Targets.push_back(CoreUObject::MakeObjectRef(Selected));
                 }
             }
         } else {
@@ -661,12 +663,12 @@ namespace Editor {
             ImGui::SameLine();
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(Actor->GetName().c_str());
-            DrawComponentTree(Actor, Selected->GetHandle());
+            DrawComponentTree(Actor, CoreUObject::MakeObjectRef(Selected));
 
             if (mLockedContext != nullptr) {
                 Targets = mLockedTargets;
-            } else if (const CoreUObject::UObject* Current{Context->GetSelectedObject()}) {
-                Targets.front() = Current->GetHandle();
+            } else if (CoreUObject::UObject* Current{Context->GetSelectedObject()}) {
+                Targets.front() = CoreUObject::MakeObjectRef(Current);
             }
         } else if (Targets.size() > 1) {
             ImGui::Text("%zu Actors Selected", Targets.size());
@@ -686,7 +688,7 @@ namespace Editor {
         mExpandCategories.reset();
     }
 
-    void Editor::FDetailsPanel::DrawToolbar(Core::TArray<CoreUObject::FObjectHandle>& Targets) {
+    void Editor::FDetailsPanel::DrawToolbar(Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>>& Targets) {
         const bool Locked{mLockedContext != nullptr};
         const ImGuiStyle& Style{ImGui::GetStyle()};
         const float Buttons{ImGui::CalcTextSize("Unlock").x + ImGui::CalcTextSize("Options").x + Style.FramePadding.x * 4.0f + Style.ItemSpacing.x * 2.0f};
@@ -697,7 +699,7 @@ namespace Editor {
 
         if (ImGui::Button(Locked ? "Unlock###LockDetails" : "Lock###LockDetails")) {
             mLockedContext = Locked ? nullptr : GetEditorContext();
-            mLockedTargets = Locked ? Core::TArray<CoreUObject::FObjectHandle>{} : Targets;
+            mLockedTargets = Locked ? Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>>{} : Targets;
         }
 
         ImGui::EndDisabled();
@@ -872,18 +874,18 @@ namespace Editor {
     /**
      * @brief 선택한 액터 하나와 그 컴포넌트를 고르는 트리를 표시합니다.
      */
-    void Editor::FDetailsPanel::DrawComponentTree(Engine::AActor* Actor, CoreUObject::FObjectHandle Selected) {
+    void Editor::FDetailsPanel::DrawComponentTree(Engine::AActor* Actor, CoreUObject::TObjectRef<CoreUObject::UObject> Selected) {
         Editor::FEditorContext* Context{GetEditorContext()};
-        const CoreUObject::FObjectHandle ActorHandle{Actor->GetHandle()};
-        Core::TArray<CoreUObject::FObjectHandle> Components{};
+        const CoreUObject::TObjectRef<CoreUObject::UObject> ActorHandle{CoreUObject::MakeObjectRef(Actor)};
+        Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> Components{};
 
-        if (const auto* Root{Actor->GetRootComponent()}) {
-            Components.push_back(Root->GetHandle());
+        if (auto* Root{Actor->GetRootComponent()}) {
+            Components.push_back(CoreUObject::MakeObjectRef(Root));
         }
 
         for (const auto& Component : Actor->GetComponents()) {
             if (Component.get() != Actor->GetRootComponent()) {
-                Components.push_back(Component->GetHandle());
+                Components.push_back(CoreUObject::MakeObjectRef(Component));
             }
         }
 
@@ -893,7 +895,7 @@ namespace Editor {
         constexpr ImGuiTableFlags Flags{ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY};
 
         if (ImGui::BeginTable("##Components", 1, Flags, {0.0f, Height})) {
-            const auto DrawRow{[this, Context, Selected](CoreUObject::FObjectHandle Handle, float Indent) {
+            const auto DrawRow{[this, Context, Selected](CoreUObject::TObjectRef<CoreUObject::UObject> Handle, float Indent) {
                 CoreUObject::UObject* Object{Context->ResolveObject(Handle)};
 
                 if (Object == nullptr) {
@@ -913,7 +915,7 @@ namespace Editor {
                 }
 
                 if (CoreUObject::Cast<Engine::AActor>(Object) != nullptr && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                    Context->OpenInSequencer(Handle);
+                    Context->OpenInSequencer(CoreUObject::Cast<Engine::ALevelSequenceActor>(Object));
                 }
 
                 ImGui::SetItemTooltip("%s", ObjectRow::GetTypeLabel(Object).c_str());
@@ -922,7 +924,7 @@ namespace Editor {
 
             DrawRow(ActorHandle, 0.0f);
 
-            for (CoreUObject::FObjectHandle Handle : Components) {
+            for (CoreUObject::TObjectRef<CoreUObject::UObject> Handle : Components) {
                 DrawRow(Handle, ImGui::GetTreeNodeToLabelSpacing());
             }
 
@@ -933,7 +935,7 @@ namespace Editor {
     /**
      * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
      */
-    void Editor::FDetailsPanel::DrawReflectedObjects(const Core::TArray<CoreUObject::FObjectHandle>& Targets) {
+    void Editor::FDetailsPanel::DrawReflectedObjects(const Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>>& Targets) {
         Editor::FEditorContext* Context{GetEditorContext()};
         CoreUObject::UObject* Object{Context->ResolveObject(Targets.front())};
 
@@ -943,7 +945,7 @@ namespace Editor {
 
         const auto* CommonClass{Object->GetClass()};
 
-        for (const CoreUObject::FObjectHandle Handle : Targets) {
+        for (const CoreUObject::TObjectRef<CoreUObject::UObject> Handle : Targets) {
             const CoreUObject::UObject* Other{Context->ResolveObject(Handle)};
 
             if (Other == nullptr) {
@@ -957,16 +959,16 @@ namespace Editor {
 
         Core::TArray<const CoreUObject::UClass*> Classes{};
         Core::TArray<FDetailRow> Rows{};
-        Core::TArray<CoreUObject::FObjectHandle> Roots{};
+        Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> Roots{};
 
         const bool TransformMatches{MatchesSearch("Transform", "Location") || MatchesSearch("Transform", "Rotation") || MatchesSearch("Transform", "Scale")};
 
         if (TransformMatches && CommonClass->IsChildOf(Engine::AActor::StaticClass())) {
-            for (const CoreUObject::FObjectHandle Handle : Targets) {
+            for (const CoreUObject::TObjectRef<CoreUObject::UObject> Handle : Targets) {
                 const auto* Actor{CoreUObject::Cast<Engine::AActor>(Context->ResolveObject(Handle))};
 
                 if (Actor != nullptr && Actor->GetRootComponent() != nullptr) {
-                    Roots.push_back(Actor->GetRootComponent()->GetHandle());
+                    Roots.push_back(CoreUObject::MakeObjectRef(Actor->GetRootComponent()));
                 }
             }
 
@@ -977,7 +979,7 @@ namespace Editor {
         }
 
         const bool SkeletalMesh{CommonClass->IsChildOf(Engine::USkeletalMeshComponent::StaticClass())};
-        const auto IsGraphMode{[Context](CoreUObject::FObjectHandle Target) {
+        const auto IsGraphMode{[Context](CoreUObject::TObjectRef<CoreUObject::UObject> Target) {
             const auto* Component{CoreUObject::Cast<Engine::USkeletalMeshComponent>(Context->ResolveObject(Target))};
 
             return Component != nullptr && !Component->GetAnimClass().empty();
@@ -1106,7 +1108,7 @@ namespace Editor {
         }
 
         Editor::FEditorContext* Context{GetEditorContext()};
-        const CoreUObject::FObjectHandle Handle{Component->GetHandle()};
+        const CoreUObject::TObjectRef<CoreUObject::UObject> Handle{CoreUObject::MakeObjectRef(Component)};
         const Core::FString Override{Component->GetMaterialPath()};
         const Asset::FMeshData& Data{Component->GetStaticMesh()->GetMeshData()};
         const auto& Slots{Data.GetMaterialSlots()};
@@ -1168,14 +1170,14 @@ namespace Editor {
 
     void Editor::FDetailsPanel::DrawAnimationMode(const FDetailRow& Row) {
         Editor::FEditorContext* Context{GetEditorContext()};
-        const auto IsGraph{[Context, &Row](CoreUObject::FObjectHandle Target) {
+        const auto IsGraph{[Context, &Row](CoreUObject::TObjectRef<CoreUObject::UObject> Target) {
             return !std::get<Core::FString>(Row.mProperty->ReadValue(Context->ResolveObject(Target))).empty();
         }};
         const bool Graph{IsGraph(Row.mTargets.front())};
-        const bool Mixed{std::any_of(Row.mTargets.begin(), Row.mTargets.end(), [&IsGraph, Graph](CoreUObject::FObjectHandle Target) {
+        const bool Mixed{std::any_of(Row.mTargets.begin(), Row.mTargets.end(), [&IsGraph, Graph](CoreUObject::TObjectRef<CoreUObject::UObject> Target) {
             return IsGraph(Target) != Graph;
         })};
-        const bool Editable{std::all_of(Row.mTargets.begin(), Row.mTargets.end(), [Context, &Row](CoreUObject::FObjectHandle Target) {
+        const bool Editable{std::all_of(Row.mTargets.begin(), Row.mTargets.end(), [Context, &Row](CoreUObject::TObjectRef<CoreUObject::UObject> Target) {
             return Context->CanEditProperty(Target, Row.mProperty);
         })};
 
@@ -1241,7 +1243,7 @@ namespace Editor {
     bool Editor::FDetailsPanel::IsModified(const FDetailRow& Row) {
         Editor::FEditorContext* Context{GetEditorContext()};
 
-        return std::any_of(Row.mTargets.begin(), Row.mTargets.end(), [this, Context, &Row](CoreUObject::FObjectHandle Target) {
+        return std::any_of(Row.mTargets.begin(), Row.mTargets.end(), [this, Context, &Row](CoreUObject::TObjectRef<CoreUObject::UObject> Target) {
             const CoreUObject::UObject* Object{Context->ResolveObject(Target)};
 
             if (Object == nullptr) {
@@ -1263,7 +1265,7 @@ namespace Editor {
 
         const Core::Uint64 Token{Context->BeginSceneEdit()};
 
-        for (CoreUObject::FObjectHandle Target : Row.mTargets) {
+        for (CoreUObject::TObjectRef<CoreUObject::UObject> Target : Row.mTargets) {
             CoreUObject::UObject* Object{Context->ResolveObject(Target)};
 
             if (Object != nullptr && !EqualValues(Row.mProperty->ReadValue(Object), Value)) {
@@ -1276,7 +1278,7 @@ namespace Editor {
 
     void Editor::FDetailsPanel::DrawPropertyRow(const FDetailRow& Row) {
         Editor::FEditorContext* Context{GetEditorContext()};
-        const CoreUObject::FObjectHandle First{Row.mTargets.front()};
+        const CoreUObject::TObjectRef<CoreUObject::UObject> First{Row.mTargets.front()};
         const CoreUObject::UObject* Object{Context->ResolveObject(First)};
 
         if (Object == nullptr) {
@@ -1284,12 +1286,12 @@ namespace Editor {
         }
 
         CoreUObject::FPropertyValue Value{Row.mProperty->ReadValue(Object)};
-        Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FPropertyValue>> Defaults{};
+        Core::TArray<std::pair<CoreUObject::TObjectRef<CoreUObject::UObject>, CoreUObject::FPropertyValue>> Defaults{};
         bool Mixed{};
         bool Editable{true};
 
-        for (CoreUObject::FObjectHandle Target : Row.mTargets) {
-            const CoreUObject::UObject* Current{Context->ResolveObject(Target)};
+        for (CoreUObject::TObjectRef<CoreUObject::UObject> Target : Row.mTargets) {
+            CoreUObject::UObject* Current{Context->ResolveObject(Target)};
 
             if (Current == nullptr) {
                 return;
@@ -1374,7 +1376,7 @@ namespace Editor {
             return;
         }
 
-        const bool Editable{std::all_of(Row.mTargets.begin(), Row.mTargets.end(), [Context, &Row](CoreUObject::FObjectHandle Target) {
+        const bool Editable{std::all_of(Row.mTargets.begin(), Row.mTargets.end(), [Context, &Row](CoreUObject::TObjectRef<CoreUObject::UObject> Target) {
             return Context->CanEditProperty(Target, Row.mProperty);
         })};
         constexpr std::array Labels{"Location", "Rotation", "Scale"};
@@ -1402,8 +1404,8 @@ namespace Editor {
             std::array<bool, 3> Mixed{};
             bool Modified{};
 
-            for (CoreUObject::FObjectHandle Target : Row.mTargets) {
-                const CoreUObject::UObject* Current{Context->ResolveObject(Target)};
+            for (CoreUObject::TObjectRef<CoreUObject::UObject> Target : Row.mTargets) {
+                CoreUObject::UObject* Current{Context->ResolveObject(Target)};
 
                 if (Current == nullptr) {
                     continue;
@@ -1458,8 +1460,8 @@ namespace Editor {
 
                 const Core::Uint64 Token{Context->BeginSceneEdit()};
 
-                for (CoreUObject::FObjectHandle Target : Row.mTargets) {
-                    const CoreUObject::UObject* Current{Context->ResolveObject(Target)};
+                for (CoreUObject::TObjectRef<CoreUObject::UObject> Target : Row.mTargets) {
+                    CoreUObject::UObject* Current{Context->ResolveObject(Target)};
 
                     if (Current == nullptr) {
                         continue;

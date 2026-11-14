@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "Editor/FAssetPicker.h"
 
@@ -67,7 +69,7 @@ namespace Editor {
             /**
              * @brief 현재 보기에 대응하는 비소유 포즈 그래프 포인터입니다.
              */
-            Asset::UAnimGraph* mGraph{};
+            CoreUObject::TObjectRef<Asset::UAnimGraph> mGraph{};
 
             /**
              * @brief 포즈, 상태 머신, 전이 조건 중 현재 보기 종류입니다.
@@ -329,7 +331,7 @@ namespace Editor {
         /**
          * @brief 현재 중첩 보기에서 편집하는 비소유 그래프 포인터입니다.
          */
-        Asset::UAnimGraph* mEditing{};
+        CoreUObject::TObjectRef<Asset::UAnimGraph> mEditing{};
 
         /**
          * @brief 현재 활성 그래프 보기와 선택 상태입니다.

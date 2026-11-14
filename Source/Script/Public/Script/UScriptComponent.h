@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "CoreUObject/TDelegate.h"
 #include "Engine/Component/UActorComponent.h"
@@ -13,6 +15,10 @@
 
 #include <cstdint>
 #include "UScriptComponent.generated.h"
+
+namespace Engine {
+    class UShapeComponent;
+}
 
 namespace Script {
 
@@ -119,7 +125,7 @@ namespace Script {
             /**
              * @brief 충돌 도형의 핸들입니다.
              */
-            CoreUObject::FObjectHandle mShape{};
+            CoreUObject::TObjectRef<Engine::UShapeComponent> mShape{};
 
             /**
              * @brief 겹침 시작 이벤트의 등록 번호입니다.

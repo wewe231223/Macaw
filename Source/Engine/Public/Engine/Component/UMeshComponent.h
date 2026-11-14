@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "UMeshComponent.generated.h"
@@ -140,7 +142,7 @@ namespace Engine {
         /**
          * @brief 메시 전체 덮어쓰기 머티리얼의 비소유 주소입니다.
          */
-        Asset::UMaterial* mMaterial{};
+        CoreUObject::TObjectRef<Asset::UMaterial> mMaterial{};
 
         /**
          * @brief 슬롯별 머티리얼 덮어쓰기의 프로젝트 상대 경로입니다.

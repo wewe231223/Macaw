@@ -5,6 +5,7 @@
  */
 
 #include "Editor/Panel/FOutlinerPanel.h"
+#include "Engine/ALevelSequenceActor.h"
 #include "Editor/FEditorContext.h"
 #include "EditorStyle.h"
 #include "Engine/AActor.h"
@@ -127,11 +128,11 @@ namespace Editor {
         ImGui::InputTextWithHint("##Search", "검색", mSearch.data(), mSearch.size());
 
         const ImGuiTextFilter Filter{mSearch.data()};
-        const auto Actors{Context->GetActorHandles()};
-        const Core::TArray<CoreUObject::FObjectHandle> Selection{Context->GetSelectedActors()};
-        Core::TArray<CoreUObject::FObjectHandle> Visible{};
+        const auto Actors{Context->GetActorRefs()};
+        const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Selection{Context->GetSelectedActors()};
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Visible{};
 
-        for (CoreUObject::FObjectHandle Handle : Actors) {
+        for (CoreUObject::TObjectRef<Engine::AActor> Handle : Actors) {
             const Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(Context->ResolveObject(Handle))};
 
             if (Actor != nullptr && MatchesFilter(Filter, Actor)) {
@@ -151,7 +152,7 @@ namespace Editor {
             ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("DirectionalLightActor").x);
             ImGui::TableHeadersRow();
 
-            for (CoreUObject::FObjectHandle Handle : Visible) {
+            for (CoreUObject::TObjectRef<Engine::AActor> Handle : Visible) {
                 Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(Context->ResolveObject(Handle))};
 
                 if (Actor == nullptr) {
@@ -171,7 +172,7 @@ namespace Editor {
                 if (DrawVisibilityButton(Actor->IsVisible())) {
                     const bool ActorVisible{!Actor->IsVisible()};
 
-                    Context->SetActorsVisible(Selected ? Selection : Core::TArray<CoreUObject::FObjectHandle>{Handle}, ActorVisible);
+                    Context->SetActorsVisible(Selected ? Selection : Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>{Handle}, ActorVisible);
                 }
 
                 ImGui::EndDisabled();
@@ -190,7 +191,7 @@ namespace Editor {
                     } else if (ImGui::GetIO().KeyShift && Anchor != Visible.end()) {
                         // 클릭한 액터가 마지막에 오도록 앵커 방향으로 범위를 수집합니다.
                         const auto Clicked{std::find(Visible.begin(), Visible.end(), Handle)};
-                        Core::TArray<CoreUObject::FObjectHandle> Range{};
+                        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Range{};
 
                         if (Anchor <= Clicked) {
                             Range.assign(Anchor, Clicked + 1);
@@ -205,7 +206,7 @@ namespace Editor {
                 }
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                    Context->OpenInSequencer(Handle);
+                    Context->OpenInSequencer(CoreUObject::Cast<Engine::ALevelSequenceActor>(Context->ResolveObject(Handle)));
                 }
 
                 if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && !Selected) {

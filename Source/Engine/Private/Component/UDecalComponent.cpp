@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Component/UDecalComponent.h"
+#include "Asset/UTexture2D.h"
 
 #include "Asset/FAssetManager.h"
 #include "Core/Base/ErrorHandler.h"

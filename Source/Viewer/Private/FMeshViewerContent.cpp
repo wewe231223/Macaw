@@ -220,7 +220,7 @@ Engine::FSkeletalMeshPose& FMeshViewerContent::GetPose() {
     return mPose;
 }
 
-Core::TArray<Asset::UMaterial*>& FMeshViewerContent::GetMaterials() {
+Core::TArray<CoreUObject::TObjectRef<Asset::UMaterial>>& FMeshViewerContent::GetMaterials() {
     return mMaterials;
 }
 

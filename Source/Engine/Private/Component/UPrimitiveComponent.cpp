@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Component/UPrimitiveComponent.h"
+#include "Asset/UStaticMesh.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/UWorld.h"
@@ -112,7 +113,7 @@ namespace Engine {
         if (!mQueued && GetWorld() != nullptr) {
             mQueued = true;
 
-            GetWorld()->EnqueueRenderUpdate(GetHandle());
+            GetWorld()->EnqueueRenderUpdate(CoreUObject::MakeObjectRef(this));
         }
     }
 
@@ -201,8 +202,8 @@ namespace Engine {
     /**
      * @brief 다른 살아 있는 제어자의 변환을 덮어쓰지 않고 UV 배율과 오프셋을 적용합니다.
      */
-    bool Engine::UPrimitiveComponent::SetUVTransform(const Core::FVector2& Scale, const Core::FVector2& Offset, CoreUObject::FObjectHandle Source) {
-        if (!std::isfinite(Scale.x) || !std::isfinite(Scale.y) || !std::isfinite(Offset.x) || !std::isfinite(Offset.y) || CoreUObject::FObjectRegistry::Get()->Resolve(Source) == nullptr || (mUVSource != Source && CoreUObject::FObjectRegistry::Get()->Resolve(mUVSource) != nullptr)) {
+    bool Engine::UPrimitiveComponent::SetUVTransform(const Core::FVector2& Scale, const Core::FVector2& Offset, CoreUObject::TObjectRef<CoreUObject::UObject> Source) {
+        if (!std::isfinite(Scale.x) || !std::isfinite(Scale.y) || !std::isfinite(Offset.x) || !std::isfinite(Offset.y) || Source.Get() == nullptr || (mUVSource != Source && mUVSource.Get() != nullptr)) {
             return false;
         }
 
@@ -220,7 +221,7 @@ namespace Engine {
     /**
      * @brief 요청한 제어자가 설정한 UV만 기본 변환으로 복원합니다.
      */
-    void Engine::UPrimitiveComponent::ClearUVTransform(CoreUObject::FObjectHandle Source) {
+    void Engine::UPrimitiveComponent::ClearUVTransform(CoreUObject::TObjectRef<CoreUObject::UObject> Source) {
         if (mUVSource == Source) {
             mUVScale = {1.0f, 1.0f};
             mUVOffset = {};

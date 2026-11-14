@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Guid.h"
 #include "Core/Math/FMatrix.h"
 
@@ -39,7 +41,7 @@ namespace Engine {
         /**
          * @brief 에셋 관리자가 소유하는 데칼 색상 텍스처입니다.
          */
-        Asset::UTexture2D* mTexture{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mTexture{};
 
         /**
          * @brief 데칼 불투명도이며 범위는 0~1입니다.
@@ -54,7 +56,7 @@ namespace Engine {
         /**
          * @brief 에셋 관리자가 소유하는 데칼 노멀 텍스처입니다.
          */
-        Asset::UTexture2D* mNormalMap{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mNormalMap{};
 
         /**
          * @brief 데칼 노멀 혼합 강도이며 허용 범위는 0~8입니다.

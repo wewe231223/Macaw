@@ -102,12 +102,12 @@ namespace Engine {
     /**
      * @brief 바인딩에 씬 객체를 연결하고 기존 연결은 교체합니다.
      */
-    void Engine::ALevelSequenceActor::SetBindingTarget(const Core::FGuid& BindingId, const Core::FGuid& ObjectId) {
+    void Engine::ALevelSequenceActor::SetBindingTarget(const Core::FGuid& BindingId, CoreUObject::TObjectRef<CoreUObject::UObject> Object) {
         RemoveBindingTarget(BindingId);
 
         Engine::FSequenceBindingTarget Target{};
         Target.mBindingId = BindingId;
-        Target.mObject = CoreUObject::FObjectReference{ObjectId};
+        Target.mObject = Object;
 
         mBindingTargets.push_back(Target);
     }

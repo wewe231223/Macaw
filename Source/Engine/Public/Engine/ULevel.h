@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include "ULevel.generated.h"
@@ -47,7 +49,7 @@ namespace Engine {
          * @param[in] Handle 제거할 액터의 핸들입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
-        bool DestroyActor(CoreUObject::FObjectHandle Handle);
+        bool DestroyActor(CoreUObject::TObjectRef<Engine::AActor> Handle);
 
         /**
          * @brief 레벨이 소유한 액터 목록을 반환합니다.
@@ -72,7 +74,7 @@ namespace Engine {
          * @param[in] Handle 이 레벨에서 제거할 액터의 전역 핸들입니다.
          * @return 해당 액터를 찾아 제거하면 true입니다.
          */
-        bool RemoveActor(CoreUObject::FObjectHandle Handle);
+        bool RemoveActor(CoreUObject::TObjectRef<Engine::AActor> Handle);
 
     private:
         /**

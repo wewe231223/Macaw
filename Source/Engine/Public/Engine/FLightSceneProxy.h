@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Guid.h"
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FVector.h"
@@ -92,7 +94,7 @@ namespace Engine {
         /**
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.
          */
-        Asset::UTexture2D* mIcon{};
+        CoreUObject::TObjectRef<Asset::UTexture2D> mIcon{};
 
         /**
          * @brief 광원의 그림자 생성 여부입니다.

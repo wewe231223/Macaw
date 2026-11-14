@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Animation/FAnimGraphNodeRegistry.h"
+#include "Asset/Animation/UAnimSequence.h"
 #include "Asset/Animation/UAnimGraph.h"
 #include "Engine/Animation/FAnimNode_BlendSpacePlayer.h"
 #include "Engine/Animation/FAnimNode_SequencePlayer.h"

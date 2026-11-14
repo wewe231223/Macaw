@@ -8,7 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
 #include "FHitProxy.generated.h"
 
@@ -50,7 +50,7 @@ namespace Engine {
         /**
          * @brief Object에서는 메시 컴포넌트, GizmoAxis에서는 선택 액터의 전역 세대 핸들입니다.
          */
-        CoreUObject::FObjectHandle mObject{};
+        CoreUObject::TObjectRef<CoreUObject::UObject> mObject{};
 
         /**
          * @brief 기즈모 핸들을 X/Y/Z=0/1/2, XY/XZ/YZ=3/4/5, 화면=6, 균일 스케일=7로 나타내며 객체 피킹에서는 -1입니다.

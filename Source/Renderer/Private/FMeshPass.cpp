@@ -78,7 +78,7 @@ namespace Renderer {
                 continue;
             }
 
-            Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mMeshes)[static_cast<Core::Index_t>(Primitive.mProxy.mPrimitive)].get()};
+            Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh.Get() : (*mMeshes)[static_cast<Core::Index_t>(Primitive.mProxy.mPrimitive)].get()};
 
             if (Primitive.mProxy.mSkeletalMesh != nullptr && (!Primitive.mSkinBuffer.IsCreated() || !Primitive.mProxy.mSkeletalMesh->CreateResources(mDevice))) {
                 continue;

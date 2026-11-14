@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Asset/Animation/UAnimGraph.h"
 #include "Engine/Animation/UAnimInstance.h"
 
@@ -64,6 +66,14 @@ namespace Engine {
     UCLASS()
     class UAnimGraphInstance final : public Engine::UAnimInstance {
         GENERATED_BODY()
+
+    private:
+        struct FGraphSource {
+        public:
+            CoreUObject::TObjectRef<const Asset::UAnimGraph> mGraph{};
+            Core::Int32 mId{-1};
+            Core::FRevision mRevision{};
+        };
 
     public:
 
@@ -196,7 +206,7 @@ namespace Engine {
         /**
          * @brief 현재 실행 그래프의 원본 에셋에 대한 비소유 포인터입니다.
          */
-        const Asset::UAnimGraph* mSourceGraph{};
+        CoreUObject::TObjectRef<const Asset::UAnimGraph> mSourceGraph{};
 
         /**
          * @brief 실행 그래프를 구성할 때 확인한 원본 리비전입니다.
@@ -220,19 +230,14 @@ namespace Engine {
         Core::TArray<std::unique_ptr<Engine::FAnimValueNode_Base>> mValueNodes{};
 
         /**
-         * @brief 실행 포즈 노드에 대응하는 원본 노드의 비소유 포인터입니다.
+         * @brief 실행 포즈 노드에 대응하는 원본 그래프와 노드의 식별 정보입니다.
          */
-        Core::TArray<const Asset::FAnimGraphNode*> mNodeSources{};
+        Core::TArray<FGraphSource> mNodeSources{};
 
         /**
-         * @brief 실행 포즈 노드가 속한 원본 그래프의 비소유 포인터입니다.
+         * @brief 실행 값 노드에 대응하는 원본 그래프와 Getter의 식별 정보입니다.
          */
-        Core::TArray<const Asset::UAnimGraph*> mNodeGraphs{};
-
-        /**
-         * @brief 실행 값 노드에 대응하는 원본 Getter의 비소유 포인터입니다.
-         */
-        Core::TArray<const Asset::FAnimGraphVariableGetter*> mGetterSources{};
+        Core::TArray<FGraphSource> mGetterSources{};
 
         /**
          * @brief 그래프 변수입니다.

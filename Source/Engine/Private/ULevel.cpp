@@ -7,7 +7,7 @@
 #include "Engine/ULevel.h"
 #include "Engine/AActor.h"
 #include "Engine/UWorld.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 
 #include <algorithm>
 #include <utility>
@@ -65,16 +65,16 @@ namespace Engine {
     /**
      * @brief 핸들에 해당하는 액터의 컴포넌트를 등록 해제하고 액터를 제거합니다.
      */
-    bool Engine::ULevel::DestroyActor(CoreUObject::FObjectHandle Handle) {
+    bool Engine::ULevel::DestroyActor(CoreUObject::TObjectRef<Engine::AActor> Handle) {
         return mWorld != nullptr ? mWorld->DestroyActor(Handle) : RemoveActor(Handle);
     }
 
     /**
      * @brief 안전한 삭제 경계에서 실행을 종료하고 액터의 소유권을 해제합니다.
      */
-    bool Engine::ULevel::RemoveActor(CoreUObject::FObjectHandle Handle) {
+    bool Engine::ULevel::RemoveActor(CoreUObject::TObjectRef<Engine::AActor> Handle) {
         const auto Position{std::find_if(mActors.begin(), mActors.end(), [Handle](const auto& Actor) {
-            return Actor->GetHandle() == Handle;
+            return CoreUObject::MakeObjectRef(Actor) == Handle;
         })};
 
         if (Position == mActors.end()) {

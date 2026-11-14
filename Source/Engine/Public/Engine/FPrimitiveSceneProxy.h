@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 #include "Core/Guid.h"
 #include "Core/FRevision.h"
@@ -55,12 +57,12 @@ namespace Engine {
         /**
          * @brief 공통 드로에 사용할 형상이며 스켈레탈 메시에서는 바인드 형상입니다.
          */
-        Asset::UStaticMesh* mMesh{};
+        CoreUObject::TObjectRef<Asset::UStaticMesh> mMesh{};
 
         /**
          * @brief 스키닝할 공유 에셋이며 mMesh는 이 에셋의 바인드 형상을 가리킵니다.
          */
-        Asset::USkeletalMesh* mSkeletalMesh{};
+        CoreUObject::TObjectRef<Asset::USkeletalMesh> mSkeletalMesh{};
 
         /**
          * @brief 이 객체의 바인드 위치를 현재 메시 공간 위치로 옮기는 본 행렬입니다.
@@ -80,12 +82,12 @@ namespace Engine {
         /**
          * @brief 연결된 머티리얼의 비소유 주소입니다.
          */
-        Asset::UMaterial* mMaterial{};
+        CoreUObject::TObjectRef<Asset::UMaterial> mMaterial{};
 
         /**
          * @brief SubMesh의 재질 인덱스로 조회하는 슬롯별 비소유 재질 주소입니다.
          */
-        Core::TArray<Asset::UMaterial*> mMaterials{};
+        Core::TArray<CoreUObject::TObjectRef<Asset::UMaterial>> mMaterials{};
 
         /**
          * @brief 스프라이트 전용 렌더 데이터입니다.

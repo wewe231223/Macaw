@@ -170,7 +170,7 @@ namespace Script::Abi {
     CoreUObject::FObjectHandle* ResizeObjectBuffer(std::size_t Count);
 
     /**
-     * @brief 핸들을 객체로 바꿉니다. 파괴가 예약된 액터는 없는 것으로 봅니다.
+     * @brief 핸들을 객체로 바꿉니다. 자신 또는 Outer 액터의 파괴가 예약되었으면 없는 것으로 봅니다.
      * @tparam T 기대하는 객체 타입입니다.
      * @param[in] Handle 객체 핸들입니다.
      * @return 살아 있는 객체이며, 없으면 nullptr입니다.
@@ -179,20 +179,16 @@ namespace Script::Abi {
     T* Resolve(CoreUObject::FObjectHandle Handle) {
         CoreUObject::UObject* Object{CoreUObject::FObjectRegistry::Get()->Resolve(Handle)};
 
-        if constexpr (std::is_same_v<T, CoreUObject::UObject>) {
-            const auto* Actor{CoreUObject::Cast<Engine::AActor>(Object)};
-
-            return Actor != nullptr && Actor->IsPendingDestroy() ? nullptr : Object;
-        } else {
-            T* Typed{CoreUObject::Cast<T>(Object)};
-
-            if constexpr (std::is_base_of_v<Engine::AActor, T>) {
-                if (Typed != nullptr && Typed->IsPendingDestroy()) {
-                    return nullptr;
-                }
+        for (const CoreUObject::UObject* Current{Object}; Current != nullptr; Current = Current->GetOuter()) {
+            if (const Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(Current)}; Actor != nullptr && Actor->IsPendingDestroy()) {
+                return nullptr;
             }
+        }
 
-            return Typed;
+        if constexpr (std::is_same_v<T, CoreUObject::UObject>) {
+            return Object;
+        } else {
+            return CoreUObject::Cast<T>(Object);
         }
     }
 
@@ -221,9 +217,7 @@ namespace Script::Abi {
      * @param[in] Object 객체이며 nullptr일 수 있습니다.
      * @return 객체 핸들이며, 없으면 유효하지 않은 핸들입니다.
      */
-    inline CoreUObject::FObjectHandle ToHandle(const CoreUObject::UObject* Object) {
-        return Object != nullptr ? Object->GetHandle() : CoreUObject::FObjectHandle{};
-    }
+    CoreUObject::FObjectHandle ToHandle(const CoreUObject::UObject* Object);
 
     /**
      * @brief 객체 목록의 핸들을 다음 호출까지 보관합니다.
@@ -286,9 +280,7 @@ namespace Script::Abi {
      * @param[in] Value 엔진 값입니다.
      * @return 경계 값입니다.
      */
-    inline Script::Abi::FWorldHit ToAbi(const Engine::FWorldHit& Value) {
-        return {Value.mActor, Value.mComponent, Script::Abi::ToAbi(Value.mPosition), Value.mDistance};
-    }
+    Script::Abi::FWorldHit ToAbi(const Engine::FWorldHit& Value);
 
     /**
      * @brief 프로퍼티 값은 이미 경계 배치이므로 그대로 넘깁니다.

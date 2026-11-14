@@ -9,6 +9,7 @@
 #include "Asset/Animation/UAnimSequence.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/USkeletalMesh.h"
+#include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "Engine/ASkeletalMeshActor.h"
 #include "Engine/Animation/FAnimationRuntime.h"
@@ -37,7 +38,7 @@ bool FAnimationViewerContent::SetMesh(Asset::USkeletalMesh* Mesh, Asset::USkelet
     Error.clear();
 
     if (Mesh == nullptr) {
-        mComponent = nullptr;
+        mComponent = {};
         mScene.reset();
         mBounds = {};
 
@@ -78,7 +79,7 @@ bool FAnimationViewerContent::SetMesh(Asset::USkeletalMesh* Mesh, Asset::USkelet
 
     mScene = std::move(Scene);
     mComponent = Component;
-    mComponent->SetApplyRootMotionToActor(false);
+    Component->SetApplyRootMotionToActor(false);
     SetAnimation(mSequence);
     Seek(Position);
 
@@ -91,14 +92,19 @@ bool FAnimationViewerContent::SetMesh(Asset::USkeletalMesh* Mesh, Asset::USkelet
 
 void FAnimationViewerContent::SetAnimation(const Asset::UAnimSequence* Sequence) {
     mSequence = Sequence;
+    Engine::USkeletalMeshComponent* Component{GetComponent()};
 
-    if (mComponent == nullptr) {
+    if (Component == nullptr) {
         return;
     }
 
-    mComponent->PlayAnimation(Sequence, mLooping);
-    GetInstance()->InitializeAnimation(mComponent);
-    mComponent->SetPlayRate(mPlayRate);
+    Component->PlayAnimation(Sequence, mLooping);
+
+    if (Engine::UAnimSingleNodeInstance* Instance{GetInstance()}) {
+        Instance->InitializeAnimation(Component);
+    }
+
+    Component->SetPlayRate(mPlayRate);
     Pause();
     SetPreviewMode(mPreviewMode);
     Seek(0.0);
@@ -134,14 +140,15 @@ void FAnimationViewerContent::Seek(double Time) {
 }
 
 void FAnimationViewerContent::Tick(float DeltaTime) {
+    Engine::USkeletalMeshComponent* Component{GetComponent()};
     Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
-    if (Instance == nullptr || !Instance->IsPlaying()) {
+    if (Component == nullptr || Instance == nullptr || !Instance->IsPlaying()) {
         return;
     }
 
     Instance->SetLooping(mLooping);
-    mComponent->TickAnimation(std::isfinite(DeltaTime) ? std::max(DeltaTime, 0.0f) : 0.0f);
+    Component->TickAnimation(std::isfinite(DeltaTime) ? std::max(DeltaTime, 0.0f) : 0.0f);
 
     if (!mLooping && mSequence != nullptr && ((mPlayRate > 0.0f && GetPosition() >= mSequence->GetPlayLength()) || (mPlayRate < 0.0f && GetPosition() <= 0.0))) {
         Instance->Stop();
@@ -152,14 +159,15 @@ void FAnimationViewerContent::Tick(float DeltaTime) {
 }
 
 void FAnimationViewerContent::RefreshPose() {
+    Engine::USkeletalMeshComponent* Component{GetComponent()};
     Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
-    if (Instance == nullptr) {
+    if (Component == nullptr || Instance == nullptr) {
         return;
     }
 
     Instance->SetLooping(false);
-    mComponent->TickAnimation(0.0f);
+    Component->TickAnimation(0.0f);
     Instance->SetLooping(mLooping);
     UpdateRootMotion();
     SynchronizeScene();
@@ -184,46 +192,54 @@ void FAnimationViewerContent::SetPlayRate(float PlayRate) {
 void FAnimationViewerContent::SetPreviewMode(Core::Int32 Mode) {
     mPreviewMode = std::clamp(Mode, 0, 2);
 
-    if (mComponent != nullptr) {
-        mComponent->SetRootMotionMode(mPreviewMode == 0 ? Engine::ERootMotionMode::NoRootMotionExtraction : mPreviewMode == 1 ? Engine::ERootMotionMode::IgnoreRootMotion : Engine::ERootMotionMode::RootMotionFromEverything);
+    if (Engine::USkeletalMeshComponent* Component{GetComponent()}) {
+        Component->SetRootMotionMode(mPreviewMode == 0 ? Engine::ERootMotionMode::NoRootMotionExtraction : mPreviewMode == 1 ? Engine::ERootMotionMode::IgnoreRootMotion : Engine::ERootMotionMode::RootMotionFromEverything);
         RefreshPose();
     }
 }
 
 void FAnimationViewerContent::UpdateRootMotion() {
+    Engine::USkeletalMeshComponent* Component{GetComponent()};
     Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
-    if (Instance == nullptr || mComponent->GetOwner() == nullptr) {
+    if (Component == nullptr || Instance == nullptr || Component->GetOwner() == nullptr) {
         return;
     }
 
-    mComponent->GetOwner()->SetActorTransform({});
+    Component->GetOwner()->SetActorTransform({});
 
     if (mPreviewMode == 2 && mSequence != nullptr) {
         const Core::FTransform Motion{Instance->ExtractSequenceRootMotion(*mSequence, 0.0, GetPosition(), false)};
-        mComponent->GetOwner()->SetActorTransform(Engine::FAnimationRuntime::ApplyRootMotionToTransform(Motion, mComponent->GetTransform(), {}));
+        Component->GetOwner()->SetActorTransform(Engine::FAnimationRuntime::ApplyRootMotionToTransform(Motion, Component->GetTransform(), {}));
     }
 
     Instance->ResetRootMotion();
 }
 
 void FAnimationViewerContent::SynchronizeScene() {
-    const Core::FBox& BindBounds{mComponent->GetSkeletalMesh()->GetBounds()};
-    const Core::FMatrix World{mComponent->GetWorldMatrix()};
+    Engine::USkeletalMeshComponent* Component{GetComponent()};
+    Engine::UWorld* PreviewWorld{GetWorld()};
+
+    if (Component == nullptr || Component->GetSkeletalMesh() == nullptr || PreviewWorld == nullptr) {
+        return;
+    }
+
+    const Core::FBox& BindBounds{Component->GetSkeletalMesh()->GetBounds()};
+    const Core::FMatrix World{Component->GetWorldMatrix()};
 
     mBounds = BindBounds.Transformed(World);
 
-    for (const Core::FMatrix& Skin : mComponent->GetPose().GetSkinMatrices()) {
+    for (const Core::FMatrix& Skin : Component->GetPose().GetSkinMatrices()) {
         const Core::FBox Bounds{BindBounds.Transformed(Skin * World)};
 
         mBounds.mMinimum = mBounds.mMinimum.Min(Bounds.mMinimum);
         mBounds.mMaximum = mBounds.mMaximum.Max(Bounds.mMaximum);
     }
 
-    GetWorld()->SendAllEndOfFrameUpdates();
+    PreviewWorld->SendAllEndOfFrameUpdates();
 
-    if (Engine::FSceneInterface* Scene{GetWorld()->GetScene()}) {
-        Scene->UpdatePrimitiveTransform(mComponent->GetGuid(), World, mBounds);
+    if (Engine::FSceneInterface* Scene{PreviewWorld->GetScene()}) {
+        Scene->UpdatePrimitiveTransform(Component->GetGuid(), World, mBounds);
     }
 }
 
@@ -232,11 +248,13 @@ const Core::FBox& FAnimationViewerContent::GetBounds() const {
 }
 
 Engine::UAnimSingleNodeInstance* FAnimationViewerContent::GetInstance() const {
-    return mComponent != nullptr ? CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(mComponent->GetAnimInstance()) : nullptr;
+    Engine::USkeletalMeshComponent* Component{GetComponent()};
+
+    return Component != nullptr ? CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(Component->GetAnimInstance()) : nullptr;
 }
 
 bool FAnimationViewerContent::IsReady() const {
-    return mComponent != nullptr && mSequence != nullptr;
+    return GetComponent() != nullptr && mSequence != nullptr;
 }
 
 bool FAnimationViewerContent::IsPlaying() const {
@@ -268,7 +286,10 @@ Engine::UWorld* FAnimationViewerContent::GetWorld() const {
 }
 
 Engine::USkeletalMeshComponent* FAnimationViewerContent::GetComponent() const {
-    return mComponent;
+    const Engine::UWorld* World{GetWorld()};
+    Engine::USkeletalMeshComponent* Component{mComponent.Get()};
+
+    return World != nullptr && World->ContainsObject(Component) ? Component : nullptr;
 }
 
 Engine::FSceneInterface* FAnimationViewerContent::GetScene() const {

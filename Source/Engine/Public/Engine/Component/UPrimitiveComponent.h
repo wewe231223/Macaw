@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Core/Math/FVector2.h"
@@ -128,13 +130,13 @@ namespace Engine {
          * @param[in] Source UV 제어자의 유효한 세대 핸들입니다.
          * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
-        bool SetUVTransform(const Core::FVector2& Scale, const Core::FVector2& Offset, CoreUObject::FObjectHandle Source);
+        bool SetUVTransform(const Core::FVector2& Scale, const Core::FVector2& Offset, CoreUObject::TObjectRef<CoreUObject::UObject> Source);
 
         /**
          * @brief 요청한 제어자가 설정한 UV만 기본 변환으로 복원합니다.
          * @param[in] Source UV 제어자의 유효한 세대 핸들입니다.
          */
-        void ClearUVTransform(CoreUObject::FObjectHandle Source);
+        void ClearUVTransform(CoreUObject::TObjectRef<CoreUObject::UObject> Source);
 
         /**
          * @brief 기본 UV에 곱할 셀 크기를 반환합니다.
@@ -246,7 +248,7 @@ namespace Engine {
         /**
          * @brief 현재 UV 변환을 제어하는 컴포넌트 핸들입니다.
          */
-        CoreUObject::FObjectHandle mUVSource{};
+        CoreUObject::TObjectRef<CoreUObject::UObject> mUVSource{};
     };
 
 }

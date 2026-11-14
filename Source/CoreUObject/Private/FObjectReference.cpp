@@ -47,7 +47,7 @@ namespace CoreUObject {
     void CoreUObject::FObjectReference::Bind(const CoreUObject::FObjectGuidMap& Objects) {
         const auto Position{Objects.find(mGuid)};
 
-        mHandle = Position != Objects.end() ? Position->second->GetHandle() : CoreUObject::FObjectHandle{};
+        mHandle = Position != Objects.end() && Position->second != nullptr ? Position->second->GetHandle() : CoreUObject::FObjectHandle{};
     }
 
 }

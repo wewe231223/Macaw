@@ -271,7 +271,7 @@ namespace Editor {
             return false;
         }
 
-        for (CoreUObject::FObjectHandle Handle : GetSelectedActors()) {
+        for (CoreUObject::TObjectRef<Engine::AActor> Handle : GetSelectedActors()) {
             State.mSelectedActors.push_back(ResolveObject(Handle)->GetGuid());
         }
 
@@ -299,20 +299,20 @@ namespace Editor {
             return false;
         }
 
-        Core::TArray<CoreUObject::FObjectHandle> SelectedActors{};
-        CoreUObject::FObjectHandle SelectedObject{};
-        Core::TMap<Core::FGuid, CoreUObject::FObjectHandle, Core::FGuidHash> Actors{};
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> SelectedActors{};
+        CoreUObject::TObjectRef<CoreUObject::UObject> SelectedObject{};
+        Core::TMap<Core::FGuid, CoreUObject::TObjectRef<Engine::AActor>, Core::FGuidHash> Actors{};
 
         for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
-            Actors.emplace(Actor->GetGuid(), Actor->GetHandle());
+            Actors.emplace(Actor->GetGuid(), CoreUObject::MakeObjectRef(Actor));
 
             if (Actor->GetGuid() == State.mSelectedObject) {
-                SelectedObject = Actor->GetHandle();
+                SelectedObject = CoreUObject::MakeObjectRef(Actor);
             }
 
             for (const auto& Component : Actor->GetComponents()) {
                 if (Component->GetGuid() == State.mSelectedObject) {
-                    SelectedObject = Component->GetHandle();
+                    SelectedObject = CoreUObject::MakeObjectRef(Component);
                 }
             }
         }
@@ -392,14 +392,14 @@ namespace Editor {
     /**
      * @brief 패널 순회 중 액터 수명 변경을 분리할 핸들 스냅샷을 만듭니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Editor::FEditorContext::GetActorHandles() const {
-        Core::TArray<CoreUObject::FObjectHandle> Handles{};
+    Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Editor::FEditorContext::GetActorRefs() const {
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Handles{};
         const Engine::UWorld* World{GetWorld()};
 
         if (World != nullptr && World->GetPersistentLevel() != nullptr) {
             for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
                 if (!Actor->IsPendingDestroy()) {
-                    Handles.push_back(Actor->GetHandle());
+                    Handles.push_back(CoreUObject::MakeObjectRef(Actor));
                 }
             }
         }
@@ -410,19 +410,19 @@ namespace Editor {
     /**
      * @brief 선택에 대응하는 프로퍼티 표시 대상의 핸들 스냅샷을 만듭니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Editor::FEditorContext::GetDetailsObjects() const {
-        Core::TArray<CoreUObject::FObjectHandle> Handles{};
+    Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> Editor::FEditorContext::GetDetailsObjects() const {
+        Core::TArray<CoreUObject::TObjectRef<CoreUObject::UObject>> Handles{};
         CoreUObject::UObject* Object{GetSelectedObject()};
 
         if (Object == nullptr) {
             return Handles;
         }
 
-        Handles.push_back(Object->GetHandle());
+        Handles.push_back(CoreUObject::MakeObjectRef(Object));
 
         if (const auto* Actor{CoreUObject::Cast<Engine::AActor>(Object)}) {
             for (const auto& Component : Actor->GetComponents()) {
-                Handles.push_back(Component->GetHandle());
+                Handles.push_back(CoreUObject::MakeObjectRef(Component));
             }
         }
 
@@ -432,9 +432,9 @@ namespace Editor {
     /**
      * @brief 객체의 전역 식별과 실제 편집 월드 소속을 함께 검사합니다.
      */
-    CoreUObject::UObject* Editor::FEditorContext::ResolveObject(CoreUObject::FObjectHandle Handle) const {
+    CoreUObject::UObject* Editor::FEditorContext::ResolveObject(CoreUObject::TObjectRef<CoreUObject::UObject> Handle) const {
         Engine::UWorld* World{GetWorld()};
-        CoreUObject::UObject* Object{CoreUObject::FObjectRegistry::Get()->Resolve(Handle)};
+        CoreUObject::UObject* Object{Handle.Get()};
 
         return World != nullptr && World->ContainsObject(Object) ? Object : nullptr;
     }
@@ -442,14 +442,14 @@ namespace Editor {
     /**
      * @brief 유효한 액터를 선택하고 프로퍼티 편집 대상으로 지정합니다.
      */
-    bool Editor::FEditorContext::SelectActor(CoreUObject::FObjectHandle Handle) {
+    bool Editor::FEditorContext::SelectActor(CoreUObject::TObjectRef<Engine::AActor> Handle) {
         return SetSelection({Handle}, Handle);
     }
 
     /**
      * @brief 객체 선택과 소유 액터 선택을 함께 갱신합니다.
      */
-    bool Editor::FEditorContext::SelectObject(CoreUObject::FObjectHandle Handle) {
+    bool Editor::FEditorContext::SelectObject(CoreUObject::TObjectRef<CoreUObject::UObject> Handle) {
         CoreUObject::UObject* Object{ResolveObject(Handle)};
 
         if (Object == nullptr) {
@@ -462,7 +462,7 @@ namespace Editor {
             Actor = Component->GetOwner();
         }
 
-        return SetSelection(Actor != nullptr ? Core::TArray<CoreUObject::FObjectHandle>{Actor->GetHandle()} : Core::TArray<CoreUObject::FObjectHandle>{}, Handle);
+        return SetSelection(Actor != nullptr ? Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>{CoreUObject::MakeObjectRef(Actor)} : Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>{}, Handle);
     }
 
     /**
@@ -475,7 +475,7 @@ namespace Editor {
     /**
      * @brief 요청 대상이 유효한지 확인하고 선택을 적용합니다.
      */
-    bool Editor::FEditorContext::SetSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object) {
+    bool Editor::FEditorContext::SetSelection(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, CoreUObject::TObjectRef<CoreUObject::UObject> Object) {
         if (mPlayLocked || IsChangingState()) {
             return false;
         }
@@ -483,7 +483,7 @@ namespace Editor {
         FOperationScope Scope{&mChangingState};
 
         for (auto Position{Actors.begin()}; Position != Actors.end(); ++Position) {
-            const CoreUObject::FObjectHandle Handle{*Position};
+            const CoreUObject::TObjectRef<CoreUObject::UObject> Handle{*Position};
 
             if (CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle)) == nullptr || std::find(Actors.begin(), Position, Handle) != Position) {
                 return false;
@@ -504,7 +504,7 @@ namespace Editor {
     /**
      * @brief 검증한 선택 상태를 저장합니다.
      */
-    void Editor::FEditorContext::AssignSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object) {
+    void Editor::FEditorContext::AssignSelection(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, CoreUObject::TObjectRef<CoreUObject::UObject> Object) {
         mSelectedActors = Actors;
         mSelectedObject = Object;
         ++mSelectionRevision;
@@ -610,7 +610,7 @@ namespace Editor {
         Component->SetName("BillboardTextComponent");
 
         if (!Actor->AddComponent(std::move(Component))) {
-            World->DestroyActor(Actor->GetHandle());
+            World->DestroyActor(CoreUObject::MakeObjectRef(Actor));
 
             return nullptr;
         }
@@ -651,7 +651,7 @@ namespace Editor {
         Engine::UBillboardComponent* Billboard{Component.get()};
 
         if (!Actor->AddComponent(std::move(Component)) || !Billboard->SetTexturePath(SpritePath)) {
-            World->DestroyActor(Actor->GetHandle());
+            World->DestroyActor(CoreUObject::MakeObjectRef(Actor));
 
             return nullptr;
         }
@@ -678,7 +678,7 @@ namespace Editor {
         }
 
         if (!Actor->SetActorTransform(Placement)) {
-            GetWorld()->DestroyActor(Actor->GetHandle());
+            GetWorld()->DestroyActor(CoreUObject::MakeObjectRef(Actor));
 
             return false;
         }
@@ -690,7 +690,7 @@ namespace Editor {
      * @brief 생성한 액터를 선택하고 장면 변경 상태와 로그를 갱신합니다.
      */
     void Editor::FEditorContext::CompleteActorSpawn(Engine::AActor* Actor, const char* Action) {
-        AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
+        AssignSelection({CoreUObject::MakeObjectRef(Actor)}, CoreUObject::MakeObjectRef(Actor));
 
         NoteSceneEdit();
 
@@ -715,7 +715,7 @@ namespace Editor {
         FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Engine::AActor* Actor{GetSelectedActor()};
-        const CoreUObject::FObjectHandle ActorHandle{Actor->GetHandle()};
+        const CoreUObject::TObjectRef<Engine::AActor> ActorHandle{CoreUObject::MakeObjectRef(Actor)};
         auto Object{Class->CreateInstance()};
 
         if (Object == nullptr || Object->GetClass() != Class) {
@@ -744,7 +744,7 @@ namespace Editor {
             }
         }
 
-        const CoreUObject::FObjectHandle ComponentHandle{Component->GetHandle()};
+        const CoreUObject::TObjectRef<CoreUObject::UObject> ComponentHandle{CoreUObject::MakeObjectRef(Component)};
 
         if (!Actor->AddComponent(std::move(Component))) {
             return nullptr;
@@ -805,7 +805,7 @@ namespace Editor {
         return GetWorld()->SetInputTarget(Camera->GetOwner());
     }
 
-    bool Editor::FEditorContext::SetActorsVisible(const Core::TArray<CoreUObject::FObjectHandle>& Actors, bool Visible) {
+    bool Editor::FEditorContext::SetActorsVisible(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, bool Visible) {
         if (!CanModifyScene()) {
             return false;
         }
@@ -813,7 +813,7 @@ namespace Editor {
         FSceneEditScope Edit{*this};
         bool Changed{};
 
-        for (CoreUObject::FObjectHandle Handle : Actors) {
+        for (CoreUObject::TObjectRef<Engine::AActor> Handle : Actors) {
             if (auto* Actor{CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle))}; Actor != nullptr && Actor->IsVisible() != Visible) {
                 Actor->SetVisible(Visible);
                 Changed = true;
@@ -835,7 +835,7 @@ namespace Editor {
             return false;
         }
 
-        const Core::TArray<CoreUObject::FObjectHandle> Actors{GetSelectedActors()};
+        const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Actors{GetSelectedActors()};
 
         if (Actors.empty()) {
             return false;
@@ -846,7 +846,7 @@ namespace Editor {
         Engine::UWorld* World{GetWorld()};
         bool Removed{};
 
-        for (CoreUObject::FObjectHandle Handle : Actors) {
+        for (CoreUObject::TObjectRef<Engine::AActor> Handle : Actors) {
             Removed = World->DestroyActor(Handle) || Removed;
         }
 
@@ -864,7 +864,7 @@ namespace Editor {
     /**
      * @brief 편집 월드, 객체, 프로퍼티 소속과 편집 권한을 함께 검사합니다.
      */
-    bool Editor::FEditorContext::CanEditProperty(CoreUObject::FObjectHandle Handle, const CoreUObject::FProperty* Property) const {
+    bool Editor::FEditorContext::CanEditProperty(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const CoreUObject::FProperty* Property) const {
         CoreUObject::UObject* Object{ResolveObject(Handle)};
 
         return !mEditingProperty && CanEditWorld() && Object != nullptr && Property != nullptr && Object->GetClass()->FindClassProperty(Property->GetName()) == Property && Property->HasFlag(Core::EPropertyFlags::Edit) && !Property->HasFlag(Core::EPropertyFlags::ReadOnly);
@@ -873,7 +873,7 @@ namespace Editor {
     /**
      * @brief 프로퍼티 소속과 편집 권한을 확인하고 변경 전후 알림과 함께 값을 씁니다.
      */
-    bool Editor::FEditorContext::EditProperty(CoreUObject::FObjectHandle Handle, const CoreUObject::FProperty* Property, const CoreUObject::FPropertyValue& Value, bool Interactive) {
+    bool Editor::FEditorContext::EditProperty(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const CoreUObject::FProperty* Property, const CoreUObject::FPropertyValue& Value, bool Interactive) {
         if (!CanEditProperty(Handle, Property)) {
             return false;
         }
@@ -905,13 +905,13 @@ namespace Editor {
     /**
      * @brief 액터 루트의 변환 프로퍼티를 에디터 편집 경로로 변경합니다.
      */
-    bool Editor::FEditorContext::ApplyTransform(CoreUObject::FObjectHandle Handle, const Core::FTransform& Transform, bool Interactive) {
+    bool Editor::FEditorContext::ApplyTransform(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const Core::FTransform& Transform, bool Interactive) {
         CoreUObject::UObject* Object{ResolveObject(Handle)};
         Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(Object)};
         Engine::USceneComponent* Root{Actor != nullptr ? Actor->GetRootComponent() : CoreUObject::Cast<Engine::USceneComponent>(Object)};
         const CoreUObject::FProperty* Property{Root != nullptr ? Root->GetClass()->FindClassProperty("Transform") : nullptr};
 
-        return Property != nullptr && EditProperty(Root->GetHandle(), Property, CoreUObject::FPropertyValue{Transform}, Interactive);
+        return Property != nullptr && EditProperty(CoreUObject::MakeObjectRef(Root), Property, CoreUObject::FPropertyValue{Transform}, Interactive);
     }
 
     /**
@@ -1031,14 +1031,14 @@ namespace Editor {
     /**
      * @brief 시퀀스 액터를 시퀀서에서 여는 콜백을 설정합니다.
      */
-    void Editor::FEditorContext::SetSequencerOpener(std::function<void(CoreUObject::FObjectHandle)> Opener) {
+    void Editor::FEditorContext::SetSequencerOpener(std::function<void(CoreUObject::TObjectRef<Engine::ALevelSequenceActor>)> Opener) {
         mSequencerOpener = std::move(Opener);
     }
 
     /**
      * @brief 객체가 시퀀스 액터이면 시퀀서에서 엽니다.
      */
-    bool Editor::FEditorContext::OpenInSequencer(CoreUObject::FObjectHandle Handle) {
+    bool Editor::FEditorContext::OpenInSequencer(CoreUObject::TObjectRef<Engine::ALevelSequenceActor> Handle) {
         if (!mSequencerOpener || CoreUObject::Cast<Engine::ALevelSequenceActor>(ResolveObject(Handle)) == nullptr) {
             return false;
         }
@@ -1051,7 +1051,7 @@ namespace Editor {
     /**
      * @brief 원근 편집 뷰포트가 대신 사용할 시퀀서 프리뷰 카메라를 설정합니다.
      */
-    void Editor::FEditorContext::SetPreviewCamera(CoreUObject::FObjectHandle Camera) {
+    void Editor::FEditorContext::SetPreviewCamera(CoreUObject::TObjectRef<Engine::UCameraComponent> Camera) {
         mPreviewCamera = Camera;
     }
 
@@ -1073,7 +1073,7 @@ namespace Editor {
     /**
      * @brief 슬롯 재질을 변경하고 장면을 수정 상태로 표시합니다.
      */
-    bool Editor::FEditorContext::SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Index_t Slot, const Core::FString& Path) {
+    bool Editor::FEditorContext::SetMaterialOverride(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, Core::Index_t Slot, const Core::FString& Path) {
         if (!CanModifyScene()) {
             return false;
         }
@@ -1093,7 +1093,7 @@ namespace Editor {
     /**
      * @brief C# 스크립트 필드 값을 저장하고 장면을 수정 상태로 표시합니다.
      */
-    bool Editor::FEditorContext::SetScriptField(CoreUObject::FObjectHandle Handle, const Script::FScriptField& Field) {
+    bool Editor::FEditorContext::SetScriptField(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const Script::FScriptField& Field) {
         auto* Component{CoreUObject::Cast<Script::UScriptComponent>(ResolveObject(Handle))};
 
         if (!CanModifyScene() || Component == nullptr) {
@@ -1110,7 +1110,7 @@ namespace Editor {
     /**
      * @brief 저장된 C# 스크립트 필드를 지우고 장면을 수정 상태로 표시합니다.
      */
-    bool Editor::FEditorContext::RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name) {
+    bool Editor::FEditorContext::RemoveScriptField(CoreUObject::TObjectRef<CoreUObject::UObject> Handle, const Core::FString& Name) {
         auto* Component{CoreUObject::Cast<Script::UScriptComponent>(ResolveObject(Handle))};
 
         if (!CanModifyScene() || Component == nullptr) {
@@ -1229,7 +1229,7 @@ namespace Editor {
         }
 
         if (!Actor->GetStaticMeshComponent()->SetMeshPath(Project->GetAssets()->GetRelativePath(Path, Error))) {
-            GetWorld()->DestroyActor(Actor->GetHandle());
+            GetWorld()->DestroyActor(CoreUObject::MakeObjectRef(Actor));
 
             return nullptr;
         }
@@ -1273,7 +1273,7 @@ namespace Editor {
         }
 
         if (Actor->GetSkeletalMeshComponent() == nullptr || !Actor->GetSkeletalMeshComponent()->SetMeshPath(Assets->GetRelativePath(Path, Error))) {
-            GetWorld()->DestroyActor(Actor->GetHandle());
+            GetWorld()->DestroyActor(CoreUObject::MakeObjectRef(Actor));
 
             return nullptr;
         }
@@ -1355,10 +1355,10 @@ namespace Editor {
     /**
      * @brief 아직 살아 있는 선택 액터들의 세대 핸들을 수집합니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Editor::FEditorContext::GetSelectedActors() const {
-        Core::TArray<CoreUObject::FObjectHandle> Result{};
+    Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Editor::FEditorContext::GetSelectedActors() const {
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Result{};
 
-        for (CoreUObject::FObjectHandle Handle : mSelectedActors) {
+        for (CoreUObject::TObjectRef<Engine::AActor> Handle : mSelectedActors) {
             if (CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle)) != nullptr) {
                 Result.push_back(Handle);
             }
@@ -1370,18 +1370,18 @@ namespace Editor {
     /**
      * @brief 선택 컴포넌트 또는 선택 액터들의 루트 변환 대상을 수집합니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Editor::FEditorContext::GetTransformTargets() const {
+    Core::TArray<CoreUObject::TObjectRef<Engine::USceneComponent>> Editor::FEditorContext::GetTransformTargets() const {
         if (auto* Component{CoreUObject::Cast<Engine::USceneComponent>(GetSelectedObject())}; Component != nullptr) {
-            return {Component->GetHandle()};
+            return {CoreUObject::MakeObjectRef(Component)};
         }
 
-        Core::TArray<CoreUObject::FObjectHandle> Result{};
+        Core::TArray<CoreUObject::TObjectRef<Engine::USceneComponent>> Result{};
 
-        for (CoreUObject::FObjectHandle Handle : GetSelectedActors()) {
+        for (CoreUObject::TObjectRef<Engine::AActor> Handle : GetSelectedActors()) {
             const auto* Actor{CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle))};
 
             if (Actor->GetRootComponent() != nullptr) {
-                Result.push_back(Actor->GetRootComponent()->GetHandle());
+                Result.push_back(CoreUObject::MakeObjectRef(Actor->GetRootComponent()));
             }
         }
 
@@ -1391,15 +1391,15 @@ namespace Editor {
     /**
      * @brief 유효한 액터 핸들들로 현재 다중 선택을 교체합니다.
      */
-    bool Editor::FEditorContext::SetSelectedActors(const Core::TArray<CoreUObject::FObjectHandle>& Actors) {
-        return SetSelection(Actors, Actors.empty() ? CoreUObject::FObjectHandle{} : Actors.back());
+    bool Editor::FEditorContext::SetSelectedActors(const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors) {
+        return SetSelection(Actors, Actors.empty() ? CoreUObject::TObjectRef<CoreUObject::UObject>{} : Actors.back());
     }
 
     /**
      * @brief 지정 액터의 다중 선택 포함 상태를 반전합니다.
      */
-    bool Editor::FEditorContext::ToggleActorSelection(CoreUObject::FObjectHandle Actor) {
-        Core::TArray<CoreUObject::FObjectHandle> Actors{GetSelectedActors()};
+    bool Editor::FEditorContext::ToggleActorSelection(CoreUObject::TObjectRef<Engine::AActor> Actor) {
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Actors{GetSelectedActors()};
         const auto Position{std::find(Actors.begin(), Actors.end(), Actor)};
 
         if (Position != Actors.end()) {
@@ -1421,14 +1421,14 @@ namespace Editor {
     /**
      * @brief 현재 선택 액터들을 새 GUID로 복제하고 복제본들을 선택합니다.
      */
-    Core::TArray<CoreUObject::FObjectHandle> Editor::FEditorContext::DuplicateSelectedActors() {
+    Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Editor::FEditorContext::DuplicateSelectedActors() {
         if (!CanModifyScene()) {
             return {};
         }
 
         FSceneEditScope Edit{*this};
         Core::FString Error{};
-        Core::TArray<CoreUObject::FObjectHandle> Copies{};
+        Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> Copies{};
 
         {
             FOperationScope Scope{&mChangingState};
@@ -1485,7 +1485,7 @@ namespace Editor {
             Component->SetName(Text ? "BillboardTextComponent" : Billboard ? "BillboardComponent" : "SceneComponent");
 
             if (!Actor->AddComponent(std::move(Component))) {
-                World->DestroyActor(Actor->GetHandle());
+                World->DestroyActor(CoreUObject::MakeObjectRef(Actor));
 
                 return nullptr;
             }

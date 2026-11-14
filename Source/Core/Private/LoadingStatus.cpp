@@ -18,6 +18,12 @@ namespace Core {
         Core::LoadingStatus::ISink* GSink{};
     }
 
+    Core::LoadingStatus::ISink::~ISink() {
+        if (GSink == this) {
+            GSink = nullptr;
+        }
+    }
+
     /**
      * @brief 보고를 받을 수신자를 교체합니다.
      */

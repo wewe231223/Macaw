@@ -8,7 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
-#include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/TObjectRef.h"
 #include "Editor/Panel/FEditorPanel.h"
 #include "Engine/Sequence/FSequencePlayer.h"
 
@@ -191,17 +191,17 @@ namespace Editor {
         /**
          * @brief 편집 중인 시퀀스 액터의 핸들입니다.
          */
-        CoreUObject::FObjectHandle mActor{};
+        CoreUObject::TObjectRef<Engine::ALevelSequenceActor> mActor{};
 
         /**
          * @brief 플레이어에 연결된 액터의 핸들입니다.
          */
-        CoreUObject::FObjectHandle mBoundActor{};
+        CoreUObject::TObjectRef<Engine::ALevelSequenceActor> mBoundActor{};
 
         /**
          * @brief 플레이어에 연결된 시퀀스의 비소유 주소입니다.
          */
-        const Asset::ULevelSequence* mBoundSequence{};
+        CoreUObject::TObjectRef<const Asset::ULevelSequence> mBoundSequence{};
 
         /**
          * @brief 시퀀스 콤보에 표시할 Content 상대 경로 목록입니다.

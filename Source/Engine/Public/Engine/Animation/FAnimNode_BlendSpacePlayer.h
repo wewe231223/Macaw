@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
 #include "Asset/Animation/UBlendSpace.h"
 
@@ -57,7 +59,7 @@ namespace Engine {
         /**
          * @brief 재생할 블렌드 스페이스입니다. 에셋 관리자가 소유합니다.
          */
-        const Asset::UBlendSpace* mBlendSpace{};
+        CoreUObject::TObjectRef<const Asset::UBlendSpace> mBlendSpace{};
 
         /**
          * @brief X 축 입력입니다. mXInput이 연결되면 매 Update에서 값 노드의 출력으로 갱신합니다.

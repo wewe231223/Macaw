@@ -44,4 +44,9 @@ namespace CoreUObject {
         Core::Uint32 mGeneration{};
     };
 
+    struct FObjectHandleHash {
+    public:
+        std::size_t operator()(const CoreUObject::FObjectHandle& Handle) const;
+    };
+
 }

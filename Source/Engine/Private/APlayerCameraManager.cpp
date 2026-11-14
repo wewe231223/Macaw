@@ -52,13 +52,13 @@ namespace Engine {
     }
 
     bool Engine::APlayerCameraManager::SetViewTarget(Engine::AActor* Target) {
-        if (Target != nullptr && ResolveTarget(Target->GetHandle()) == nullptr) {
+        if (Target != nullptr && ResolveTarget(CoreUObject::MakeObjectRef(Target)) == nullptr) {
             return false;
         }
 
         mBlending = false;
         mPendingViewTarget = {};
-        mViewTarget = Target != nullptr ? Target->GetHandle() : CoreUObject::FObjectHandle{};
+        mViewTarget = Target;
 
         return true;
     }
@@ -68,7 +68,7 @@ namespace Engine {
             return SetViewTarget(Target);
         }
 
-        if (ResolveTarget(Target->GetHandle()) == nullptr) {
+        if (ResolveTarget(CoreUObject::MakeObjectRef(Target)) == nullptr) {
             return false;
         }
 
@@ -82,7 +82,7 @@ namespace Engine {
         }
 
         mBlendFrom = mBaseView;
-        mPendingViewTarget = Target->GetHandle();
+        mPendingViewTarget = CoreUObject::MakeObjectRef(Target);
         mBlendTime = BlendTime;
         mBlendElapsed = 0.0f;
         mBlendFunction = Function;
@@ -162,8 +162,8 @@ namespace Engine {
         return mCache;
     }
 
-    Engine::AActor* Engine::APlayerCameraManager::ResolveTarget(CoreUObject::FObjectHandle Handle) const {
-        auto* Actor{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
+    Engine::AActor* Engine::APlayerCameraManager::ResolveTarget(CoreUObject::TObjectRef<Engine::AActor> Handle) const {
+        auto* Actor{CoreUObject::Cast<Engine::AActor>(Handle.Get())};
 
         return Actor != nullptr && !Actor->IsPendingDestroy() && GetWorld() != nullptr && Actor->GetWorld() == GetWorld() ? Actor : nullptr;
     }

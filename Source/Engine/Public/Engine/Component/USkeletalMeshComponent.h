@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/Types.h"
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/Animation/UAnimInstance.h"
@@ -467,12 +469,12 @@ namespace Engine {
         /**
          * @brief 에셋 관리자가 소유하는 메시입니다.
          */
-        Asset::USkeletalMesh* mSkeletalMesh{};
+        CoreUObject::TObjectRef<Asset::USkeletalMesh> mSkeletalMesh{};
 
         /**
          * @brief 에셋 관리자가 소유하거나 미리보기 호출자가 수명을 보장하는 스켈레톤입니다.
          */
-        Asset::USkeleton* mSkeleton{};
+        CoreUObject::TObjectRef<Asset::USkeleton> mSkeleton{};
 
         /**
          * @brief EditorPreview 월드에서 경로 해석 대신 직접 에셋 참조를 유지하는지 여부입니다.

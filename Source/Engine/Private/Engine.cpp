@@ -395,8 +395,8 @@ namespace Engine {
     /**
      * @brief 월드 경계를 검증한 뒤 해당 월드에 액터 삭제를 요청합니다.
      */
-    bool Engine::UEngine::DestroyActor(CoreUObject::FObjectHandle Handle) {
-        Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
+    bool Engine::UEngine::DestroyActor(CoreUObject::TObjectRef<Engine::AActor> Handle) {
+        Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(Handle.Get())};
         Engine::UWorld* World{Actor != nullptr ? Actor->GetWorld() : nullptr};
 
         return World != nullptr && GetWorld(World->GetWorldHandle()) == World && World->DestroyActor(Handle);

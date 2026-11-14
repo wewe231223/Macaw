@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject/TObjectRef.h"
+
 #include "Core/ReflectionMacros.h"
 
 #include "Core/Types.h"
@@ -13,11 +15,14 @@
 
 namespace CoreUObject {
     class UObject;
-    struct FObjectHandle;
+    class UObject;
+    template <typename T> class TObjectRef;
     class FObjectDuplicationContext;
 }
 
 namespace Engine {
+
+    class AActor;
 
     class UWorld;
     class FWorldContext;
@@ -37,7 +42,7 @@ namespace Engine {
          * @param[out] Error 실패 원인을 받을 문자열입니다.
          * @return 복제본들의 핸들이며 실패하면 빈 배열입니다.
          */
-        static Core::TArray<CoreUObject::FObjectHandle> DuplicateActors(Engine::UWorld* World, const Core::TArray<CoreUObject::FObjectHandle>& Actors, Core::FString& Error);
+        static Core::TArray<CoreUObject::TObjectRef<Engine::AActor>> DuplicateActors(Engine::UWorld* World, const Core::TArray<CoreUObject::TObjectRef<Engine::AActor>>& Actors, Core::FString& Error);
 
         /**
          * @brief 월드, 영속 레벨, 액터와 컴포넌트를 독립 컨텍스트로 복제합니다.
