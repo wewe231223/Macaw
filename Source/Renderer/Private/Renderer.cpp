@@ -31,7 +31,8 @@
 #include "FMeshPassParameters.h"
 #include "FMeshDrawCommand.h"
 #include "FShadowDepthPass.h"
-#include "FBasePass.h"
+#include "FOpaqueMeshPass.h"
+#include "FTranslucencyMeshPass.h"
 #include "FDecalPass.h"
 #include "FDeferredLightingPass.h"
 #include "FMaterialPipeline.h"
@@ -53,7 +54,6 @@
 #include <span>
 #include <cmath>
 #include <cctype>
-#include <variant>
 
 namespace Renderer {
 
@@ -229,7 +229,8 @@ namespace Renderer {
         mMeshInstanceBuffer.Reset();
 
         mShadowDepthPass.reset();
-        mBasePass.reset();
+        mOpaqueMeshPass.reset();
+        mTranslucencyMeshPass.reset();
         mDecalPass.reset();
         mDeferredLightingPass.reset();
         mMaterialPipelines.clear();
@@ -437,17 +438,17 @@ namespace Renderer {
 
         constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
         const Renderer::FPassTarget SceneTarget{Target->GetSceneColor()->GetRenderTargetView(), Target->GetDepthView(), {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f}};
-        Renderer::FMeshPassParameters BaseParameters{};
-        BaseParameters.mTarget.mDepth = SceneTarget.mDepth;
-        BaseParameters.mTarget.mViewport = SceneTarget.mViewport;
-        BaseParameters.mViewProjection = Family.mView.mViewProjection;
+        Renderer::FMeshPassParameters OpaqueParameters{};
+        OpaqueParameters.mTarget.mDepth = SceneTarget.mDepth;
+        OpaqueParameters.mTarget.mViewport = SceneTarget.mViewport;
+        OpaqueParameters.mViewProjection = Family.mView.mViewProjection;
         std::array<ID3D11RenderTargetView*, Renderer::GBuffer::AttachmentCount> Attachments{};
 
         for (Core::Index_t Index{}; Index < Attachments.size(); ++Index) {
             Attachments[Index] = Target->GetGBuffer()[Index]->GetRenderTargetView();
         }
 
-        BaseParameters.mColorAttachments = Attachments;
+        OpaqueParameters.mColorAttachments = Attachments;
 
         ClearTarget(SceneTarget, ClearColor);
         const bool Visualization{Engine::IsBufferVisualization(Family.mViewMode)};
@@ -456,7 +457,7 @@ namespace Renderer {
         const bool MarkDecalReceivers{DrawDecals || Family.mViewMode == Engine::EViewMode::SceneStencil};
         const bool NeedsLighting{Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
 
-        if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters, MarkDecalReceivers)) {
+        if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mOpaqueMeshPass, *Scene, Family, OpaqueParameters, MarkDecalReceivers)) {
             if (DrawDecals) {
                 mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family, Scene->GetDecals());
             }
@@ -486,8 +487,12 @@ namespace Renderer {
 
         mLineViewBuffer.Update(mContext.Get(), LineView);
 
+        const Renderer::FTranslucencyMeshPass::FRenderParameters TranslucencyParameters{mSpriteRenderer.get(), mTextRenderer.get(), mOverlayBlend.Get(), mDepthReadOnly.Get(), mDepthDisabled.Get(), mRasterizer.Get(), mWireframeRasterizer.Get()};
+
         if (!Visualization) {
-            DrawTranslucency(Family, false);
+            const Core::Uint32 TranslucencyDrawCalls{mTranslucencyMeshPass->Render(Family, false, TranslucencyParameters)};
+            mStats.mDrawCalls += TranslucencyDrawCalls;
+            mStats.mVisiblePrimitives += TranslucencyDrawCalls;
         }
 
         mStats.mDrawCalls += mPostProcessResources->Render(mContext.Get(), *Target, Family, Scene->GetHeightFogs());
@@ -500,7 +505,10 @@ namespace Renderer {
         }
 
         mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
-        DrawTranslucency(Family, true);
+
+        const Core::Uint32 EditorDrawCalls{mTranslucencyMeshPass->Render(Family, true, TranslucencyParameters)};
+        mStats.mDrawCalls += EditorDrawCalls;
+        mStats.mVisiblePrimitives += EditorDrawCalls;
 
         if (Family.mEditorElements != nullptr) {
             DrawMeshes(Family.mEditorElements, true);
@@ -519,7 +527,7 @@ namespace Renderer {
             DrawLines(Family.mEditorElements, false);
         }
 
-        DrawOverlayTexts(Family);
+        mStats.mDrawCalls += mTranslucencyMeshPass->RenderOverlayTexts(Family, TranslucencyParameters);
 
         mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(Renderer::FObjectConstants) + sizeof(Core::FMatrix) + sizeof(Renderer::FEditorMeshConstants) + mLineBuffer.GetResourceBytes() + Target->GetResourceBytes();
         mStats.mGpuBytes += mTextRenderer != nullptr ? mTextRenderer->GetResourceBytes() : 0;
@@ -890,7 +898,8 @@ namespace Renderer {
         mLightingResources = std::make_unique<Renderer::FLightingResources>();
         mShadowResources = std::make_unique<Renderer::FShadowResources>();
         mShadowDepthPass = std::make_unique<Renderer::FShadowDepthPass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
-        mBasePass = std::make_unique<Renderer::FBasePass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
+        mOpaqueMeshPass = std::make_unique<Renderer::FOpaqueMeshPass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
+        mTranslucencyMeshPass = std::make_unique<Renderer::FTranslucencyMeshPass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
         mDecalPass = std::make_unique<Renderer::FDecalPass>();
         mDeferredLightingPass = std::make_unique<Renderer::FDeferredLightingPass>();
         mTextRenderer = std::make_unique<Renderer::FTextRenderer>();
@@ -1141,67 +1150,6 @@ namespace Renderer {
     }
 
     /**
-     * @brief 깊이 검사 없이 표시할 텍스트를 마지막 오버레이로 그립니다.
-     */
-    void Renderer::FRenderer::DrawOverlayTexts(const Engine::FSceneViewFamily& Family) {
-        mContext->RSSetState(mRasterizer.Get());
-
-        if (mTextRenderer == nullptr || !Family.mShowFlags.mText) {
-            return;
-        }
-
-        Core::TArray<Engine::FDrawText> Texts{};
-
-        if (Family.mShowFlags.mPrimitives) {
-            const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
-
-            for (const Renderer::FScenePrimitive& Primitive : Scene->GetPrimitives()) {
-                const Engine::FPrimitiveSceneProxy& Proxy{Primitive.mProxy};
-
-                if (Proxy.mText.has_value() && !Proxy.mText->mDepthTest) {
-                    Engine::FDrawText Text{*Proxy.mText};
-                    Text.mPosition = Proxy.mWorld.TransformPosition(Text.mPosition);
-                    Text.mScale.x *= Proxy.mWorld.TransformVector({0.0f, 1.0f, 0.0f}).Length();
-                    Text.mScale.y *= Proxy.mWorld.TransformVector({0.0f, 0.0f, 1.0f}).Length();
-
-                    Texts.push_back(std::move(Text));
-                }
-            }
-        }
-
-        if (Family.mEditorElements != nullptr) {
-            for (const Engine::FDrawText& Text : Family.mEditorElements->GetTexts()) {
-                if (!Text.mDepthTest) {
-                    Texts.push_back(Text);
-                }
-            }
-        }
-
-        std::stable_sort(Texts.begin(), Texts.end(), [&Family](const Engine::FDrawText& First, const Engine::FDrawText& Second) {
-            if (First.mScreenSpace != Second.mScreenSpace) {
-                return !First.mScreenSpace;
-            }
-
-            if (First.mScreenSpace) {
-                return First.mPosition.z > Second.mPosition.z;
-            }
-
-            return (First.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward) > (Second.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward);
-        });
-
-        mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
-        mContext->OMSetDepthStencilState(mDepthDisabled.Get(), 0);
-
-        for (const Engine::FDrawText& Text : Texts) {
-            if (mTextRenderer->Draw(mContext.Get(), Text, Family.mView)) {
-                ++mStats.mDrawCalls;
-            }
-        }
-
-        mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
-    }
-
-    /**
      * @brief 코드·패스·인스턴싱·스키닝 조합의 GPU 셰이더 인스턴스를 조회합니다.
      */
     std::shared_ptr<Renderer::FShaderInstance> Renderer::FRenderer::GetShaderInstance(const RenderCore::FShaderDescription& Description, Renderer::EMeshPass Pass, bool Instanced, bool Skinned) {
@@ -1317,12 +1265,12 @@ namespace Renderer {
         PixelDescription.mCompileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-        std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(VertexDescription, Renderer::EMeshPass::BasePass, !Skinned, Skinned)};
-        std::shared_ptr<Renderer::FShaderInstance> Pixel{GetShaderInstance(PixelDescription, Renderer::EMeshPass::BasePass, false, false)};
+        std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(VertexDescription, Renderer::EMeshPass::OpaqueMeshPass, !Skinned, Skinned)};
+        std::shared_ptr<Renderer::FShaderInstance> Pixel{GetShaderInstance(PixelDescription, Renderer::EMeshPass::OpaqueMeshPass, false, false)};
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr && Pixel != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), !Skinned, Skinned, WritesGBuffer);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::OpaqueMeshPass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), !Skinned, Skinned, WritesGBuffer);
 
             Core::FString Diagnostics{};
 
@@ -1393,103 +1341,6 @@ namespace Renderer {
         mMaterialPipelines.emplace(Key, std::move(Pipeline));
 
         return Result;
-    }
-
-    /**
-     * @brief 월드 글자와 스프라이트를 함께 깊이 역순으로 정렬하여 투명 영역을 합성합니다.
-     */
-    void Renderer::FRenderer::DrawTranslucency(const Engine::FSceneViewFamily& Family, bool EditorIcons) {
-        using FPrimitive = std::variant<const Engine::FPrimitiveSceneProxy*, Engine::FDrawText>;
-        using FCommand = std::pair<float, FPrimitive>;
-        Core::TArray<FCommand> Commands{};
-
-        const auto Depth{[&Family](const Core::FVector& Position, bool ScreenSpace) {
-            const Core::FVector4 Clip{Core::FVector4{Position, 1.0f} * Family.mView.mViewProjection};
-            const float Value{ScreenSpace ? Position.z : Clip.w > 0.0f ? Clip.z / Clip.w : -1.0f};
-
-            return std::isfinite(Value) ? Value : -1.0f;
-        }};
-
-        Core::TArray<Engine::FPrimitiveSceneProxy> LightIcons{};
-
-        if (EditorIcons && Family.mEditorElements != nullptr && (Family.mShowFlags.mLightIcons || Family.mShowFlags.mFogIcons)) {
-            const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
-
-            LightIcons.reserve(Scene->GetLights().size() + Scene->GetHeightFogs().size());
-
-            for (const Engine::FLightSceneProxy& Light : Scene->GetLights()) {
-                if (Family.mShowFlags.mLightIcons && Light.mVisible) {
-                    LightIcons.push_back(Light.CreateIconProxy());
-                }
-            }
-
-            for (const Engine::FHeightFogSceneProxy& Fog : Scene->GetHeightFogs()) {
-                if (Family.mShowFlags.mFogIcons && Fog.mVisible) {
-                    LightIcons.push_back(Fog.CreateIconProxy());
-                }
-            }
-
-            for (const Engine::FPrimitiveSceneProxy& Icon : LightIcons) {
-                Commands.emplace_back(Depth(Icon.mWorld.TransformPosition({}), false), FPrimitive{&Icon});
-            }
-        }
-
-        if (!EditorIcons && Family.mShowFlags.mPrimitives) {
-            const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
-
-            for (const Renderer::FScenePrimitive& Primitive : Scene->GetPrimitives()) {
-                const Engine::FPrimitiveSceneProxy& Proxy{Primitive.mProxy};
-
-                if (Proxy.mSprite.has_value() && Family.mShowFlags.mSprites) {
-                    Commands.emplace_back(Depth(Proxy.mWorld.TransformPosition({}), false), FPrimitive{&Proxy});
-                } else if (Proxy.mText.has_value() && Proxy.mText->mDepthTest && Family.mShowFlags.mText) {
-                    Engine::FDrawText Text{*Proxy.mText};
-                    Text.mPosition = Proxy.mWorld.TransformPosition(Text.mPosition);
-                    Text.mScale.x *= Proxy.mWorld.TransformVector({0.0f, 1.0f, 0.0f}).Length();
-                    Text.mScale.y *= Proxy.mWorld.TransformVector({0.0f, 0.0f, 1.0f}).Length();
-
-                    const float Value{Depth(Text.mPosition, Text.mScreenSpace)};
-
-                    Commands.emplace_back(Value, FPrimitive{std::move(Text)});
-                }
-            }
-        }
-
-        if (EditorIcons && Family.mEditorElements != nullptr && Family.mShowFlags.mText) {
-            for (const Engine::FDrawText& Text : Family.mEditorElements->GetTexts()) {
-                if (Text.mDepthTest) {
-                    Commands.emplace_back(Depth(Text.mPosition, Text.mScreenSpace), FPrimitive{Text});
-                }
-            }
-        }
-
-        std::stable_sort(Commands.begin(), Commands.end(), [](const FCommand& First, const FCommand& Second) {
-            return First.first > Second.first;
-        });
-
-        mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
-        mContext->OMSetDepthStencilState(mDepthReadOnly.Get(), 0);
-
-        for (const FCommand& Command : Commands) {
-            bool Drawn{};
-
-            if (const auto* Sprite{std::get_if<const Engine::FPrimitiveSceneProxy*>(&Command.second)}) {
-                mContext->RSSetState(Family.mViewMode == Engine::EViewMode::Wireframe ? mWireframeRasterizer.Get() : mRasterizer.Get());
-
-                Drawn = mSpriteRenderer != nullptr && mSpriteRenderer->Draw(mContext.Get(), **Sprite, Family.mView);
-            } else {
-                mContext->RSSetState(mRasterizer.Get());
-
-                Drawn = mTextRenderer != nullptr && mTextRenderer->Draw(mContext.Get(), std::get<Engine::FDrawText>(Command.second), Family.mView);
-            }
-
-            if (Drawn) {
-                ++mStats.mDrawCalls;
-                ++mStats.mVisiblePrimitives;
-            }
-        }
-
-        mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
     /**
@@ -1596,8 +1447,8 @@ namespace Renderer {
     bool Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters, bool MarkDecalReceivers) {
         static Core::FStat OpaquePassTime{"render", "Opaque mesh pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
         static Core::FStat ShadowPassTime{"shadow", "Shadow depth pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
-        const bool BasePass{Pass.GetType() == Renderer::EMeshPass::BasePass};
-        const Core::FScopedStatTimer StatTimer{BasePass ? OpaquePassTime : ShadowPassTime};
+        const bool OpaquePass{Pass.GetType() == Renderer::EMeshPass::OpaqueMeshPass};
+        const Core::FScopedStatTimer StatTimer{OpaquePass ? OpaquePassTime : ShadowPassTime};
 
         const Renderer::FPassTarget& Target{Parameters.mTarget};
         mContext->OMSetRenderTargets(static_cast<UINT>(Parameters.mColorAttachments.size()), Parameters.mColorAttachments.data(), Target.mDepth);
@@ -1620,14 +1471,14 @@ namespace Renderer {
         const bool Built{Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)};
 
         if (Built) {
-            ID3D11RasterizerState* Rasterizer{BasePass && Family.mViewMode == Engine::EViewMode::Wireframe ? mWireframeRasterizer.Get() : Parameters.mRasterizer};
+            ID3D11RasterizerState* Rasterizer{OpaquePass && Family.mViewMode == Engine::EViewMode::Wireframe ? mWireframeRasterizer.Get() : Parameters.mRasterizer};
             const Core::Uint32 DrawCalls{SubmitMeshCommands(Rasterizer, Pass.GetType(), Commands, MarkDecalReceivers)};
 
-            (BasePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
-            mStats.mVisiblePrimitives += BasePass ? Primitives : 0u;
+            (OpaquePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
+            mStats.mVisiblePrimitives += OpaquePass ? Primitives : 0u;
         }
 
-        if (BasePass) {
+        if (OpaquePass) {
             mStats.mTransformUpdates += Scene.TakeTransformUpdates();
         }
 
@@ -1638,7 +1489,7 @@ namespace Renderer {
      * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
      */
     Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(ID3D11RasterizerState* Rasterizer, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers) {
-        const bool BasePass{Pass == Renderer::EMeshPass::BasePass};
+        const bool OpaquePass{Pass == Renderer::EMeshPass::OpaqueMeshPass};
 
         if (std::any_of(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& Command) {
             return Command.mPipeline->IsInstanced();
@@ -1682,7 +1533,7 @@ namespace Renderer {
 
             const Core::Uint32 InstanceCount{static_cast<Core::Uint32>(End - First)};
 
-            if (BasePass) {
+            if (OpaquePass) {
                 const Core::Uint32 SurfaceStencil{Command.mPipeline->WritesGBuffer() ? Renderer::GBuffer::Surface : Renderer::GBuffer::Prelit};
                 const Core::Uint32 Stencil{SurfaceStencil | (MarkDecalReceivers && ReceivesDecals ? Renderer::GBuffer::ReceivesDecals : 0u)};
 
@@ -1700,7 +1551,7 @@ namespace Renderer {
             }
 
             if (LastPipeline != Command.mPipeline) {
-                if (BasePass) {
+                if (OpaquePass) {
                     Renderer::RendererStats::PipelineBinds.Add();
                 }
 
@@ -1738,7 +1589,7 @@ namespace Renderer {
             }
 
             if (LastMesh != Command.mMesh) {
-                if (BasePass) {
+                if (OpaquePass) {
                     Renderer::RendererStats::MeshBinds.Add();
                 }
 
@@ -1755,7 +1606,7 @@ namespace Renderer {
                 mContext->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
             }
 
-            if (BasePass) {
+            if (OpaquePass) {
                 Renderer::RendererStats::Triangles.Add(static_cast<double>(Command.mIndexCount / 3) * InstanceCount);
             }
 
@@ -1768,7 +1619,7 @@ namespace Renderer {
         Renderer::FScenePrimitive::FSkinBuffer::Unbind(mContext.Get(), RenderCore::EShaderStage::Vertex, 10);
 
 
-        if (BasePass) {
+        if (OpaquePass) {
             ID3D11ShaderResourceView* Empty{};
 
             mContext->PSSetShaderResources(0, 1, &Empty);

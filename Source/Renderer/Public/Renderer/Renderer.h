@@ -48,7 +48,8 @@ namespace Renderer {
     struct FEditorMeshConstants;
     class FMeshPass;
     class FShadowDepthPass;
-    class FBasePass;
+    class FOpaqueMeshPass;
+    class FTranslucencyMeshPass;
     class FDecalPass;
     class FDeferredLightingPass;
 
@@ -351,19 +352,6 @@ namespace Renderer {
         void DrawMeshes(const Engine::FPrimitiveDrawInterface* Elements, bool DepthTest);
 
         /**
-         * @brief 깊이 검사 없이 표시할 에디터 텍스트를 마지막 오버레이로 그립니다.
-         * @param[in] Family 출력 타깃·카메라·표시 필터를 포함한 뷰 요청입니다.
-         */
-        void DrawOverlayTexts(const Engine::FSceneViewFamily& Family);
-
-        /**
-         * @brief 월드 글자와 스프라이트를 함께 깊이 역순으로 정렬하여 투명 영역을 합성합니다.
-         * @param[in] EditorIcons true이면 후처리 뒤 에디터 아이콘·글자를, false이면 후처리 앞 월드 투명 프리미티브를 그립니다.
-         * @param[in] Family 출력 타깃·카메라·표시 필터를 포함한 뷰 요청입니다.
-         */
-        void DrawTranslucency(const Engine::FSceneViewFamily& Family, bool EditorIcons);
-
-        /**
          * @brief 장면 패스의 타일 조명 자원과 그림자 아틀라스를 업로드·바인딩합니다.
          * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
          * @return 필요한 조명 자원 준비에 성공하면 true입니다.
@@ -452,7 +440,9 @@ namespace Renderer {
         /**
          * @brief 보이는 메시를 머티리얼과 조명으로 장면 타깃에 그리는 메시 패스입니다.
          */
-        std::unique_ptr<Renderer::FBasePass> mBasePass{};
+        std::unique_ptr<Renderer::FOpaqueMeshPass> mOpaqueMeshPass{};
+
+        std::unique_ptr<Renderer::FTranslucencyMeshPass> mTranslucencyMeshPass{};
 
         /**
          * @brief 데칼 투영 패스의 소유 포인터입니다.

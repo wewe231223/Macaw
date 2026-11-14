@@ -1,5 +1,5 @@
 /**
- * @file FBasePass.h
+ * @file FOpaqueMeshPass.h
  * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록하는 메시 패스입니다.
  * @ingroup Renderer
  */
@@ -22,18 +22,18 @@ namespace Renderer {
      * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록하는 메시 패스입니다.
      * @note 장치·렌더러 연결을 구성하는 FMeshPass 생성자를 상속합니다.
      */
-    class FBasePass final : public Renderer::FMeshPass {
+    class FOpaqueMeshPass final : public Renderer::FMeshPass {
     public:
         using Renderer::FMeshPass::FMeshPass;
 
     public:
         /**
          * @brief 표면과 깊이를 기록하는 기본 패스 종류를 반환합니다.
-         * @return EMeshPass::BasePass입니다.
+         * @return EMeshPass::OpaqueMeshPass입니다.
          */
         Renderer::EMeshPass GetType() const override;
 
-    protected:
+    private:
         /**
          * @brief 머티리얼이 없거나 준비에 실패한 SubMesh가 쓸 기본 머티리얼과 파이프라인을 준비합니다.
          * @param[in] Family 파이프라인 변형을 고를 표시 모드를 가진 현재 뷰 요청입니다.

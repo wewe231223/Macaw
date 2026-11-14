@@ -24,7 +24,8 @@ namespace Renderer {
         /**
          * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록합니다.
          */
-        BasePass
+        OpaqueMeshPass,
+        TranslucencyMeshPass
     };
 
 }

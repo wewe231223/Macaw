@@ -1,10 +1,10 @@
 /**
- * @file FBasePass.cpp
+ * @file FOpaqueMeshPass.cpp
  * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록하는 메시 패스입니다.
  * @ingroup Renderer
  */
 
-#include "FBasePass.h"
+#include "FOpaqueMeshPass.h"
 #include "Asset/USkeletalMesh.h"
 
 #include "FScenePrimitive.h"
@@ -18,14 +18,14 @@ namespace Renderer {
     /**
      * @brief 표면과 깊이를 기록하는 기본 패스 종류를 반환합니다.
      */
-    Renderer::EMeshPass Renderer::FBasePass::GetType() const {
-        return Renderer::EMeshPass::BasePass;
+    Renderer::EMeshPass Renderer::FOpaqueMeshPass::GetType() const {
+        return Renderer::EMeshPass::OpaqueMeshPass;
     }
 
     /**
      * @brief 머티리얼이 없거나 준비에 실패한 SubMesh가 쓸 기본 머티리얼과 파이프라인을 준비합니다.
      */
-    bool Renderer::FBasePass::BeginCommands(const Engine::FSceneViewFamily& Family) {
+    bool Renderer::FOpaqueMeshPass::BeginCommands(const Engine::FSceneViewFamily& Family) {
         mDefaultMaterial = mRenderer->GetDefaultMaterial();
 
         Renderer::FMaterialPipeline* Pipeline{mDefaultMaterial != nullptr ? mRenderer->GetMaterialPipeline(*mDefaultMaterial, Family.mViewMode, false, Family.mShowFlags.mShadows) : nullptr};
@@ -36,14 +36,14 @@ namespace Renderer {
     /**
      * @brief 프리미티브 표시 플래그가 켜져 있으면 모든 메시 프리미티브를 대상으로 합니다.
      */
-    bool Renderer::FBasePass::Includes(const Renderer::FScenePrimitive&, const Engine::FSceneViewFamily& Family) const {
+    bool Renderer::FOpaqueMeshPass::Includes(const Renderer::FScenePrimitive&, const Engine::FSceneViewFamily& Family) const {
         return Family.mShowFlags.mPrimitives;
     }
 
     /**
      * @brief SubMesh마다 덮어쓰기·슬롯·기본 머티리얼 순으로 머티리얼을 정해 해당 파이프라인 드로를 추가합니다.
      */
-    void Renderer::FBasePass::AddCommands(const Renderer::FScenePrimitive& Primitive, Asset::UStaticMesh& Mesh, const Engine::FSceneViewFamily& Family, Core::TArray<Renderer::FMeshDrawCommand>& Commands) {
+    void Renderer::FOpaqueMeshPass::AddCommands(const Renderer::FScenePrimitive& Primitive, Asset::UStaticMesh& Mesh, const Engine::FSceneViewFamily& Family, Core::TArray<Renderer::FMeshDrawCommand>& Commands) {
         const bool Skinned{Primitive.mProxy.mSkeletalMesh != nullptr};
         const bool ReceiveShadows{Family.mShowFlags.mShadows && Primitive.mProxy.mReceiveShadow};
 
