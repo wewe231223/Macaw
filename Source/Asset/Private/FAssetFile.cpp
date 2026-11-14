@@ -69,7 +69,7 @@ namespace Asset {
             Input.read(reinterpret_cast<char*>(&TypeValue), sizeof(TypeValue));
             Input.read(reinterpret_cast<char*>(&Size), sizeof(Size));
 
-            if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Core::Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Core::Uint32>(Asset::EAssetType::AnimGraph) || Size == 0 || Size != FileSize - HeaderSize) {
+            if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Core::Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Core::Uint32>(Asset::EAssetType::ParticleSystem) || Size == 0 || Size != FileSize - HeaderSize) {
                 Error = "Invalid asset header, version or type";
 
                 return false;
@@ -92,12 +92,12 @@ namespace Asset {
     }
 
     /**
-     * @brief 에셋 종류와 페이로드 및 무결성 해시를 파일로 저장합니다.
+     * @brief 에셋 종류와 바이트 수를 담은 헤더 및 페이로드를 원자적으로 저장합니다.
      */
     bool Asset::FAssetFile::Save(const std::filesystem::path& Path, Asset::EAssetType Type, std::span<const Core::Uint8> Payload, Core::FString& Error) {
         Error.clear();
 
-        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::AnimGraph) {
+        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::ParticleSystem) {
             Error = "Invalid asset path, type or payload";
 
             return false;

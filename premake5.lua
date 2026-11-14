@@ -1,3 +1,16 @@
+--[[!
+@file premake5.lua
+@brief 모듈 의존성과 UObject 코드 생성 단계를 반영해 Visual Studio 프로젝트를 생성합니다.
+@details Cascade는 Core·CoreUObject에 의존하는 정적 라이브러리이며 Asset과 실행 파일에서 연결합니다. 모듈 의존성 및 문서용 설명은 별도 JSON 설정을 사용합니다.
+@see ModuleDependencies.json
+@see Docs/Modules.json
+]]
+
+--[[!
+@brief 모듈별 리플렉션 생성 코드의 출력 폴더를 반환합니다.
+@param[in] Module 생성 코드를 사용하는 모듈 이름입니다.
+@return 작업 공간 기준 Intermediate 하위 경로입니다.
+]]
 local function GetGeneratedDirectory(Module)
     return "Intermediate/" .. (Module == "App" and "Macaw" or Module) .. "/Generated"
 end
@@ -5,6 +18,10 @@ end
 -- 헤더 툴은 엔진에 의존하지 않는 단독 실행 파일입니다. 각 모듈은 빌드 전에 이 툴로 자기 generated.h와 등록 코드를 만듭니다.
 local HeaderTool = '"%{wks.location}/Binaries/%{cfg.buildcfg}/MacawHeaderTool.exe" "%{wks.location}."'
 
+--[[!
+@brief UObject 매크로를 사용하는 모듈에 헤더 툴 의존성과 빌드 전 생성 명령을 연결합니다.
+@param[in] Module 생성할 모듈 이름입니다.
+]]
 local function UseHeaderTool(Module)
     dependson { "MacawHeaderTool" }
     prebuildcommands { HeaderTool .. " " .. Module }
@@ -38,6 +55,11 @@ filter {}
 
 local Modules = json.decode(io.readfile("ModuleDependencies.json"))
 
+--[[!
+@brief 모듈과 공개 의존 모듈의 공개·생성 헤더 경로를 중복 없이 추가합니다.
+@param[in] Name 포함 경로를 추가할 모듈 이름입니다.
+@param[in,out] Visited 이미 처리한 모듈을 기록하는 이름 집합입니다.
+]]
 local function AddIncludes(Name, Visited)
     if Visited[Name] then
         return
@@ -56,6 +78,11 @@ local function AddIncludes(Name, Visited)
     end
 end
 
+--[[!
+@brief C++20 모듈과 실행 파일에 공통 출력 경로·컴파일러·런타임 설정을 적용합니다.
+@param[in] Name 프로젝트 이름입니다.
+@param[in] Kind 정적 라이브러리 또는 실행 파일 등의 Premake 프로젝트 종류입니다.
+]]
 local function Configure(Name, Kind)
     project(Name)
         kind(Kind)
@@ -81,7 +108,11 @@ Configure("MacawHeaderTool", "ConsoleApp")
     removedefines { "_DEBUG" }
     defines { "NDEBUG" }
 
-local ModuleNames = { "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Viewer", "Editor" }
+--[[!
+@var ModuleNames
+@brief UObject 기반 Cascade를 포함해 정적 라이브러리와 리플렉션 코드를 생성할 모듈 목록입니다.
+]]
+local ModuleNames = { "Core", "CoreUObject", "Cascade", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Viewer", "Editor" }
 
 for _, Name in ipairs(ModuleNames) do
     Configure(Name, "StaticLib")
@@ -126,6 +157,12 @@ Configure("Shaders", "Utility")
         buildaction "None"
     filter {}
 
+--[[!
+@brief 런타임 실행 파일에 엔진·파티클·렌더러·스크립트 모듈의 헤더와 링크 의존성을 연결합니다.
+@param[in] Name 실행 파일 프로젝트 이름입니다.
+@param[in] Kind Premake 실행 파일 종류입니다.
+@param[in] Directory 실행 파일의 원본 소스 폴더입니다.
+]]
 local function ConfigureRuntimeExecutable(Name, Kind, Directory)
     Configure(Name, Kind)
     files { Directory .. "/**.h", Directory .. "/**.cpp" }
@@ -135,7 +172,7 @@ local function ConfigureRuntimeExecutable(Name, Kind, Directory)
         AddIncludes(Module, {})
     end
 
-    links { "Script", "Engine", "Renderer", "Platform", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "Script", "Engine", "Renderer", "Platform", "Asset", "Cascade", "Serialization", "RenderCore", "CoreUObject", "Core", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
     debugdir "%{wks.location}"
 end
 

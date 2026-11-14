@@ -70,7 +70,12 @@ namespace Asset {
         /**
          * @brief 노드·링크·변수를 저장하는 애니메이션 그래프 에셋입니다.
          */
-        AnimGraph
+        AnimGraph,
+
+        /**
+         * @brief UObject Emitter와 모듈의 구성·설정을 JSON 본문으로 저장하는 파티클 시스템 에셋입니다.
+         */
+        ParticleSystem
     };
 
     /**
@@ -89,7 +94,7 @@ namespace Asset {
         static bool GetType(const std::filesystem::path& Path, Asset::EAssetType& Type, Core::FString& Error);
 
         /**
-         * @brief 에셋 종류와 페이로드 및 무결성 해시를 파일로 저장합니다.
+         * @brief 에셋 종류와 바이트 수를 담은 헤더 및 페이로드를 저장합니다.
          * @param[in] Path 저장할 에셋 파일의 경로입니다.
          * @param[in] Type 에셋 파일에 기록하거나 검사할 종류입니다.
          * @param[in] Payload 헤더를 제외한 에셋 본문의 바이트 데이터입니다.

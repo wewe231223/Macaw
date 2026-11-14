@@ -379,6 +379,11 @@ namespace Editor {
         void CreateAnimGraph();
 
         /**
+         * @brief 현재 콘텐츠 폴더에 빈 파티클 .masset을 만들고 콘텐츠 선택과 새로고침 상태를 갱신합니다.
+         */
+        void CreateParticleSystem();
+
+        /**
          * @brief 편집 중인 머티리얼의 프로퍼티와 저장 상태를 표시합니다.
          */
         void DrawMaterialEditor();

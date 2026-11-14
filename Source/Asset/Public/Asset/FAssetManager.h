@@ -1,6 +1,6 @@
 /**
  * @file FAssetManager.h
- * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시에 대한 선언입니다.
+ * @brief 프로젝트 콘텐츠 경로와 에셋 로드·저장·캐시 및 파티클 정의 관리의 선언입니다.
  * @ingroup Asset
  */
 
@@ -13,6 +13,10 @@
 
 #include <filesystem>
 #include <memory>
+
+namespace Cascade {
+    class UParticleSystem;
+}
 
 namespace CoreUObject {
 
@@ -256,6 +260,35 @@ namespace Asset {
         bool SaveAnimGraph(const std::filesystem::path& Path, Asset::UAnimGraph& Graph, Core::FString& Error);
 
         /**
+         * @brief 파티클 .masset의 JSON 정의를 복원하거나 기존 캐시 객체를 반환합니다.
+         * @param[in] Path Content 기준 상대 경로 또는 콘텐츠 내부의 절대 경로입니다.
+         * @param[out] Error 파일 읽기·형식·UClass 복원 오류를 받을 문자열입니다.
+         * @return 매니저가 소유하는 시스템의 비소유 주소이며 실패하면 nullptr입니다.
+         * @note 실행 인스턴스나 파티클 페이로드를 생성하지 않습니다.
+         */
+        Cascade::UParticleSystem* LoadParticleSystem(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 지정한 콘텐츠 폴더에 빈 파티클 시스템 에셋을 저장하고 캐시에 보관합니다.
+         * @param[in] Directory Content 기준 폴더이며 빈 경로나 점은 콘텐츠 루트입니다.
+         * @param[in] Name 파일 이름의 기본값이며 중복되면 숫자 접미사를 붙입니다.
+         * @param[out] Path 생성한 파일의 Content 상대 경로이며 실패하면 비어 있습니다.
+         * @param[out] Error 경로 해석 또는 파일 생성 오류를 받을 문자열입니다.
+         * @return 매니저가 소유하는 시스템의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Cascade::UParticleSystem* CreateParticleSystem(const std::filesystem::path& Directory, const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 시스템 정의를 JSON으로 직렬화하여 .masset에 저장하고 같은 경로의 캐시를 갱신합니다.
+         * @param[in] Path 저장할 콘텐츠 내부의 .masset 경로입니다.
+         * @param[in,out] System UObject와 Emitter·모듈 설정을 직렬화할 파티클 시스템입니다.
+         * @param[out] Error 직렬화·복원·파일 저장 오류를 받을 문자열입니다.
+         * @return 저장과 필요한 캐시 갱신에 성공하면 true이며 실패하면 false입니다.
+         * @details JSON을 후보 객체로 복원한 뒤 파일을 교체합니다. 외부 객체를 저장하면 기존 캐시 UObject의 주소를 유지하면서 Emitter 정의만 이전합니다.
+         */
+        bool SaveParticleSystem(const std::filesystem::path& Path, Cascade::UParticleSystem& System, Core::FString& Error);
+
+        /**
          * @brief 캐시 객체의 주소를 유지하면서 파일의 최신 설정을 다시 적용합니다.
          * @param[in] Path 다시 읽을 프로젝트 머티리얼 경로입니다.
          * @param[out] Error 실패 원인입니다.
@@ -438,6 +471,12 @@ namespace Asset {
          * @brief 경로별로 캐시한 애니메이션 그래프의 소유 저장소입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UAnimGraph>> mAnimGraphs{};
+
+        /**
+         * @brief 정규화한 콘텐츠 상대 경로별로 파티클 시스템 UObject를 단독 소유하는 캐시입니다.
+         * @note 캐시에서 은퇴한 객체는 기존 참조를 위해 mRetired로 이전합니다.
+         */
+        Core::TMap<Core::FString, std::unique_ptr<Cascade::UParticleSystem>> mParticleSystems{};
 
         /**
          * @brief 경로 캐시에서 빠졌지만 기존 참조를 위해 매니저 수명 동안 유지하는 에셋 객체입니다.
