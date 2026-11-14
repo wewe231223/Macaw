@@ -88,9 +88,16 @@ namespace Renderer {
                 continue;
             }
 
+            const auto PreviousCount{Commands.size()};
             AddCommands(Primitive, *Mesh, Family, Commands);
 
-            ++Primitives;
+            if (Commands.size() != PreviousCount) {
+                ++Primitives;
+            }
+        }
+
+        if (GetType() == Renderer::EMeshPass::TranslucencyMeshPass) {
+            return true;
         }
 
         std::stable_sort(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& First, const Renderer::FMeshDrawCommand& Second) {

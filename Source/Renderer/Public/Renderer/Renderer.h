@@ -290,6 +290,7 @@ namespace Renderer {
         void SetProjectPaths(const std::filesystem::path& ContentRoot, const std::filesystem::path& CacheDirectory);
 
     private:
+        friend class FTranslucencyMeshPass;
 
         /**
          * @brief 코드·패스·인스턴싱·스키닝 조합의 GPU 셰이더 인스턴스를 조회합니다.

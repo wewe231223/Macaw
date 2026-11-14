@@ -467,7 +467,6 @@ namespace Renderer {
             }
         }
 
-        FinishLighting();
         mContext->OMSetRenderTargets(1, &SceneTarget.mColor, SceneTarget.mDepth);
 
         if (Family.mShowFlags.mSky && !Family.mView.mOrthographic && Family.mViewMode != Engine::EViewMode::Wireframe && !Visualization) {
@@ -495,6 +494,7 @@ namespace Renderer {
             mStats.mVisiblePrimitives += TranslucencyDrawCalls;
         }
 
+        FinishLighting();
         mStats.mDrawCalls += mPostProcessResources->Render(mContext.Get(), *Target, Family, Scene->GetHeightFogs());
         RenderTarget = Target->GetRenderTargetView();
 
@@ -1199,7 +1199,10 @@ namespace Renderer {
         const Engine::EViewMode PixelMode{Unlit ? Engine::EViewMode::Unlit : Mode == Engine::EViewMode::Lit_Gouraud || Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::WorldNormal ? Mode : Engine::EViewMode::Lit_Phong};
         const bool Shadowed{ReceiveShadows && !Unlit && (Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::Lit_Phong)};
         const bool NormalMap{Material.GetNormalMapTexture() != nullptr};
-        const Core::FString Key{ShaderPath + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided") + "|" + std::to_string(static_cast<Core::Uint32>(PixelMode)) + (NormalMap ? "|NormalMap" : "|VertexNormal") + (Skinned ? "|Skinned" : "|Static") + (Shadowed ? "|Shadowed" : "|Unshadowed")};
+        const bool Translucent{Material.GetBlendMode() == Asset::EBlendMode::Translucent};
+        const Renderer::EMeshPass Pass{Translucent ? Renderer::EMeshPass::TranslucencyMeshPass : Renderer::EMeshPass::OpaqueMeshPass};
+        const bool Instanced{!Skinned};
+        const Core::FString Key{ShaderPath + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided") + "|" + std::to_string(static_cast<Core::Uint32>(PixelMode)) + (NormalMap ? "|NormalMap" : "|VertexNormal") + (Skinned ? "|Skinned" : "|Static") + (Shadowed ? "|Shadowed" : "|Unshadowed") + (Translucent ? "|Translucent" : "|Opaque")};
         const auto Existing{mMaterialPipelines.find(Key)};
 
         if (Existing != mMaterialPipelines.end()) {
@@ -1213,7 +1216,7 @@ namespace Renderer {
         const std::filesystem::path VertexSource{FindTextContent(mShaderDirectory.parent_path(), Skinned ? "Shaders/SkinnedMesh.vs.hlsl" : "Shaders/StaticMesh.vs.hlsl", true)};
         const bool Builtin{ShaderPath == "shaders/lit.hlsl" || ShaderPath == "shaders/unlit.hlsl" || ShaderPath == "shaders/mesh.hlsl"};
         const bool OverridePixel{Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::WorldNormal};
-        const bool WritesGBuffer{Builtin || OverridePixel};
+        const bool WritesGBuffer{!Translucent && (Builtin || OverridePixel)};
         const std::filesystem::path PixelSource{FindTextContent(mShaderDirectory.parent_path(), OverridePixel ? std::filesystem::path{"Shaders/Lit.hlsl"} : RelativePath, Builtin || OverridePixel)};
         RenderCore::FShaderDescription VertexDescription{};
         VertexDescription.mSourcePath = VertexSource;
@@ -1265,12 +1268,12 @@ namespace Renderer {
         PixelDescription.mCompileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-        std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(VertexDescription, Renderer::EMeshPass::OpaqueMeshPass, !Skinned, Skinned)};
-        std::shared_ptr<Renderer::FShaderInstance> Pixel{GetShaderInstance(PixelDescription, Renderer::EMeshPass::OpaqueMeshPass, false, false)};
+        std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(VertexDescription, Pass, Instanced, Skinned)};
+        std::shared_ptr<Renderer::FShaderInstance> Pixel{GetShaderInstance(PixelDescription, Pass, false, false)};
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr && Pixel != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::OpaqueMeshPass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), !Skinned, Skinned, WritesGBuffer);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Pass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Instanced, Skinned, WritesGBuffer);
 
             Core::FString Diagnostics{};
 
@@ -1490,6 +1493,7 @@ namespace Renderer {
      */
     Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(ID3D11RasterizerState* Rasterizer, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers) {
         const bool OpaquePass{Pass == Renderer::EMeshPass::OpaqueMeshPass};
+        const bool SurfacePass{Pass != Renderer::EMeshPass::ShadowDepth};
 
         if (std::any_of(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& Command) {
             return Command.mPipeline->IsInstanced();
@@ -1521,7 +1525,7 @@ namespace Renderer {
             const bool ReceivesDecals{Command.mPrimitive->mProxy.mReceivesDecals};
             Core::Index_t End{static_cast<Core::Index_t>(First + 1)};
 
-            if (Command.mPipeline->IsInstanced()) {
+            if (Command.mPipeline->IsInstanced() && Pass != Renderer::EMeshPass::TranslucencyMeshPass) {
                 while (End < Commands.size() && Commands[End].mPipeline == Command.mPipeline && Commands[End].mMaterial == Command.mMaterial && Commands[End].mMesh == Command.mMesh && Commands[End].mFirstIndex == Command.mFirstIndex && Commands[End].mIndexCount == Command.mIndexCount) {
                     if (MarkDecalReceivers && Commands[End].mPrimitive->mProxy.mReceivesDecals != ReceivesDecals) {
                         break;
@@ -1551,7 +1555,7 @@ namespace Renderer {
             }
 
             if (LastPipeline != Command.mPipeline) {
-                if (OpaquePass) {
+                if (SurfacePass) {
                     Renderer::RendererStats::PipelineBinds.Add();
                 }
 
@@ -1589,7 +1593,7 @@ namespace Renderer {
             }
 
             if (LastMesh != Command.mMesh) {
-                if (OpaquePass) {
+                if (SurfacePass) {
                     Renderer::RendererStats::MeshBinds.Add();
                 }
 
@@ -1606,7 +1610,7 @@ namespace Renderer {
                 mContext->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
             }
 
-            if (OpaquePass) {
+            if (SurfacePass) {
                 Renderer::RendererStats::Triangles.Add(static_cast<double>(Command.mIndexCount / 3) * InstanceCount);
             }
 
@@ -1619,7 +1623,7 @@ namespace Renderer {
         Renderer::FScenePrimitive::FSkinBuffer::Unbind(mContext.Get(), RenderCore::EShaderStage::Vertex, 10);
 
 
-        if (OpaquePass) {
+        if (SurfacePass) {
             ID3D11ShaderResourceView* Empty{};
 
             mContext->PSSetShaderResources(0, 1, &Empty);

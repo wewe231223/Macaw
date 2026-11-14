@@ -2771,6 +2771,12 @@ namespace Editor {
                 mMaterialDirty = true;
             }
 
+            int BlendMode{static_cast<int>(mEditingMaterial->GetBlendMode())};
+
+            if (ImGui::Combo("Blend Mode", &BlendMode, "Opaque\0Translucent\0") && mEditingMaterial->SetBlendMode(static_cast<Asset::EBlendMode>(BlendMode))) {
+                mMaterialDirty = true;
+            }
+
             bool TwoSided{mEditingMaterial->IsTwoSided()};
 
             if (ImGui::Checkbox("Two Sided", &TwoSided)) {

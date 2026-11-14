@@ -312,6 +312,7 @@ std::size_t FAssetThumbnailCache::MaterialSignature(const Asset::UMaterial* Mate
 
     Hash ^= std::hash<Core::FString>{}(Material->GetBaseColorTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
     Hash ^= std::hash<Core::FString>{}(Material->GetNormalMapTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+    Hash ^= static_cast<std::size_t>(Material->GetBlendMode()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
 
     for (const float Value : {Material->GetSpecularStrength(), Material->GetShininess(), Material->GetNormalStrength()}) {
         Hash ^= std::bit_cast<Core::Uint32>(Value) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);

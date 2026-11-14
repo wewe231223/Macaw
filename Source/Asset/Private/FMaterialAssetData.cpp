@@ -37,18 +37,19 @@ namespace Asset {
 		  mSpecularStrength{Material.GetSpecularStrength()},
 		  mShininess{Material.GetShininess()},
 		  mNormalStrength{Material.GetNormalStrength()},
-		  mTwoSided{Material.IsTwoSided()} {
+		  mTwoSided{Material.IsTwoSided()},
+		  mBlendMode{Material.GetBlendMode()} {
     }
 
     /**
      * @brief 재질 설정을 바이너리 아카이브에 기록하거나 읽고 지원하지 않는 버전을 거부합니다.
      */
     void Asset::FMaterialAssetData::Serialize(Serialization::FMemoryArchive& Archive) {
-        Core::Uint32 Version{2};
+        Core::Uint32 Version{3};
 
         Archive.Serialize("Version", Version);
 
-        if (Archive.HasError() || (Version != 1 && Version != 2)) {
+        if (Archive.HasError() || (Version != 1 && Version != 2 && Version != 3)) {
             Archive.SetError("Unsupported material asset version");
 
             return;
@@ -74,13 +75,28 @@ namespace Asset {
             Archive.Serialize("EmissiveTexture", mEmissiveTexturePath);
             Archive.Serialize("ReflectionTexture", mReflectionTexturePath);
         }
+
+        if (Version >= 3) {
+            Core::Uint32 BlendMode{static_cast<Core::Uint32>(mBlendMode)};
+            Archive.Serialize("BlendMode", BlendMode);
+
+            if (Archive.IsLoading()) {
+                if (BlendMode > static_cast<Core::Uint32>(Asset::EBlendMode::Translucent)) {
+                    Archive.SetError("Invalid material blend mode");
+
+                    return;
+                }
+
+                mBlendMode = static_cast<Asset::EBlendMode>(BlendMode);
+            }
+        }
     }
 
     /**
      * @brief 저장한 재질 설정을 각 Setter의 검증을 거쳐 런타임 재질에 적용합니다.
      */
     bool Asset::FMaterialAssetData::ApplyTo(Asset::UMaterial& Material, Core::FString& Error) const {
-        if (!Material.SetName(mName) || !Material.SetShaderPath(mShaderPath) || !Material.SetBaseColor(mBaseColor) || !Material.SetBaseColorTexturePath(mBaseColorTexturePath) || !Material.SetNormalMapTexturePath(mNormalMapTexturePath) || !Material.SetSpecularStrength(mSpecularStrength) || !Material.SetShininess(mShininess) || !Material.SetNormalStrength(mNormalStrength) || !Material.SetTwoSided(mTwoSided) || !Material.SetSpecularColor(mSpecularColor) || !Material.SetAmbientColor(mAmbientColor) || !Material.SetEmissiveColor(mEmissiveColor) || !Material.SetReflectionColor(mReflectionColor) || !Material.SetReflectionStrength(mReflectionStrength) || !Material.SetSpecularTexturePath(mSpecularTexturePath) || !Material.SetEmissiveTexturePath(mEmissiveTexturePath) || !Material.SetReflectionTexturePath(mReflectionTexturePath)) {
+        if (!Material.SetName(mName) || !Material.SetShaderPath(mShaderPath) || !Material.SetBaseColor(mBaseColor) || !Material.SetBlendMode(mBlendMode) || !Material.SetBaseColorTexturePath(mBaseColorTexturePath) || !Material.SetNormalMapTexturePath(mNormalMapTexturePath) || !Material.SetSpecularStrength(mSpecularStrength) || !Material.SetShininess(mShininess) || !Material.SetNormalStrength(mNormalStrength) || !Material.SetTwoSided(mTwoSided) || !Material.SetSpecularColor(mSpecularColor) || !Material.SetAmbientColor(mAmbientColor) || !Material.SetEmissiveColor(mEmissiveColor) || !Material.SetReflectionColor(mReflectionColor) || !Material.SetReflectionStrength(mReflectionStrength) || !Material.SetSpecularTexturePath(mSpecularTexturePath) || !Material.SetEmissiveTexturePath(mEmissiveTexturePath) || !Material.SetReflectionTexturePath(mReflectionTexturePath)) {
             Error = "Invalid material asset settings";
 
             return false;

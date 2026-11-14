@@ -4,6 +4,10 @@
 #include "FScenePrimitive.h"
 #include "FSpriteRenderer.h"
 #include "FTextRenderer.h"
+#include "Renderer/Renderer.h"
+#include "Asset/UMaterial.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/FSceneViewFamily.h"
 
@@ -19,9 +23,10 @@ namespace Renderer {
     }
 
     Core::Uint32 Renderer::FTranslucencyMeshPass::Render(const Engine::FSceneViewFamily& Family, bool EditorIcons, const Renderer::FTranslucencyMeshPass::FRenderParameters& Parameters) {
-        using FPrimitive = std::variant<const Engine::FPrimitiveSceneProxy*, Engine::FDrawText>;
+        using FPrimitive = std::variant<const Engine::FPrimitiveSceneProxy*, Engine::FDrawText, std::size_t>;
         using FCommand = std::pair<float, FPrimitive>;
         Core::TArray<FCommand> Commands{};
+        Core::TArray<Renderer::FMeshDrawCommand> MeshCommands{};
         Core::Uint32 DrawCalls{};
 
         const auto Depth{[&Family](const Core::FVector& Position, bool ScreenSpace) {
@@ -57,6 +62,15 @@ namespace Renderer {
 
         if (!EditorIcons && Family.mShowFlags.mPrimitives) {
             const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
+            Core::Uint32 Primitives{};
+
+            if (BuildCommands(*Scene, Family, Family.mView.mViewProjection, MeshCommands, Primitives)) {
+                for (std::size_t Index{}; Index < MeshCommands.size(); ++Index) {
+                    const Core::FBox& Bounds{MeshCommands[Index].mPrimitive->mProxy.mBounds};
+                    const Core::FVector Center{(Bounds.mMinimum + Bounds.mMaximum) * 0.5f};
+                    Commands.emplace_back(Depth(Center, false), FPrimitive{Index});
+                }
+            }
 
             for (const Renderer::FScenePrimitive& Primitive : Scene->GetPrimitives()) {
                 const Engine::FPrimitiveSceneProxy& Proxy{Primitive.mProxy};
@@ -90,6 +104,8 @@ namespace Renderer {
 
         mContext->OMSetBlendState(Parameters.mBlend, nullptr, 0xFFFFFFFFu);
         mContext->OMSetDepthStencilState(Parameters.mDepthReadOnly, 0);
+        mRenderer->mViewBuffer.Update(mContext, Family.mView.mViewProjection);
+        mRenderer->mViewBuffer.Bind(mContext, RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 1);
 
         for (const FCommand& Command : Commands) {
             bool Drawn{};
@@ -98,6 +114,12 @@ namespace Renderer {
                 mContext->RSSetState(Family.mViewMode == Engine::EViewMode::Wireframe ? Parameters.mWireframeRasterizer : Parameters.mRasterizer);
 
                 Drawn = Parameters.mSpriteRenderer != nullptr && Parameters.mSpriteRenderer->Draw(mContext, **Sprite, Family.mView);
+            } else if (const auto* MeshIndex{std::get_if<std::size_t>(&Command.second)}) {
+                const Renderer::FMeshDrawCommand& MeshCommand{MeshCommands[*MeshIndex]};
+                ID3D11RasterizerState* Rasterizer{Family.mViewMode == Engine::EViewMode::Wireframe ? Parameters.mWireframeRasterizer : nullptr};
+                mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+                Drawn = mRenderer->SubmitMeshCommands(Rasterizer, GetType(), std::span<const Renderer::FMeshDrawCommand>{&MeshCommand, 1}, false) != 0;
             } else {
                 mContext->RSSetState(Parameters.mRasterizer);
 
@@ -176,14 +198,31 @@ namespace Renderer {
     }
 
     bool Renderer::FTranslucencyMeshPass::BeginCommands(const Engine::FSceneViewFamily&) {
-        return false;
+        return true;
     }
 
-    bool Renderer::FTranslucencyMeshPass::Includes(const Renderer::FScenePrimitive&, const Engine::FSceneViewFamily&) const {
-        return false;
+    bool Renderer::FTranslucencyMeshPass::Includes(const Renderer::FScenePrimitive&, const Engine::FSceneViewFamily& Family) const {
+        return Family.mShowFlags.mPrimitives;
     }
 
-    void Renderer::FTranslucencyMeshPass::AddCommands(const Renderer::FScenePrimitive&, Asset::UStaticMesh&, const Engine::FSceneViewFamily&, Core::TArray<Renderer::FMeshDrawCommand>&) {
+    void Renderer::FTranslucencyMeshPass::AddCommands(const Renderer::FScenePrimitive& Primitive, Asset::UStaticMesh& Mesh, const Engine::FSceneViewFamily& Family, Core::TArray<Renderer::FMeshDrawCommand>& Commands) {
+        const bool Skinned{Primitive.mProxy.mSkeletalMesh != nullptr};
+        const bool ReceiveShadows{Family.mShowFlags.mShadows && Primitive.mProxy.mReceiveShadow};
+
+        for (const Asset::FSubMesh& SubMesh : Mesh.GetMeshData().GetSubMeshes()) {
+            Asset::UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
+            Asset::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial.Get() : SlotMaterial != nullptr ? SlotMaterial : mRenderer->GetDefaultMaterial()};
+
+            if (Material == nullptr || Material->GetBlendMode() != Asset::EBlendMode::Translucent || !Material->CreateResources(mDevice, mContext)) {
+                continue;
+            }
+
+            Renderer::FMaterialPipeline* Pipeline{mRenderer->GetMaterialPipeline(*Material, Family.mViewMode, Skinned, ReceiveShadows)};
+
+            if (Pipeline != nullptr) {
+                Commands.emplace_back(Pipeline, Material, &Mesh, &Primitive, SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
+            }
+        }
     }
 
 }

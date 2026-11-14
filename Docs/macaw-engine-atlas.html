@@ -2015,7 +2015,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       Graphs: [
         [&quot;렌더러 구현과 메시 패스&quot;, [
           [&quot;IRendererModule|프레임 제출 계약|RenderCore&quot;, &quot;FRenderer|D3D11 렌더러&quot;],
-          [&quot;FShadowDepthPass|그림자 깊이&quot;, &quot;FOpaqueMeshPass|불투명 표면&quot;, &quot;FTranslucencyMeshPass|스프라이트·텍스트&quot;],
+          [&quot;FShadowDepthPass|그림자 깊이&quot;, &quot;FOpaqueMeshPass|불투명 표면&quot;, &quot;FTranslucencyMeshPass|반투명 메시·스프라이트·텍스트&quot;],
           [&quot;FMeshPass|메시 드로 공통 기반&quot;]
         ], [[&quot;FRenderer&quot;, &quot;IRendererModule&quot;, &quot;Is&quot;], [&quot;FRenderer&quot;, &quot;FShadowDepthPass&quot;, &quot;Own&quot;], [&quot;FRenderer&quot;, &quot;FOpaqueMeshPass&quot;, &quot;Own&quot;], [&quot;FRenderer&quot;, &quot;FTranslucencyMeshPass&quot;, &quot;Own&quot;], [&quot;FShadowDepthPass&quot;, &quot;FMeshPass&quot;, &quot;Is&quot;], [&quot;FOpaqueMeshPass&quot;, &quot;FMeshPass&quot;, &quot;Is&quot;], [&quot;FTranslucencyMeshPass&quot;, &quot;FMeshPass&quot;, &quot;Is&quot;]]],
         [&quot;월드와 렌더 장면 사이의 경계&quot;, [
@@ -2291,7 +2291,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         [&quot;뷰포트 드로 경로&quot;, &quot;FRenderer&quot;, &quot;BeginRenderingViewFamily(Family)&quot;, &quot;장면·카메라·출력 타깃을 제출합니다.&quot;],
         [&quot;FRenderer&quot;, &quot;FShadowDepthPass&quot;, &quot;DrawMeshPass(…)&quot;, &quot;그림자가 필요한 경로에서 깊이 패스를 실행합니다.&quot;],
         [&quot;FRenderer&quot;, &quot;FOpaqueMeshPass&quot;, &quot;DrawMeshPass(…)&quot;, &quot;불투명 메시의 표면과 깊이를 기록합니다.&quot;],
-        [&quot;FRenderer&quot;, &quot;FTranslucencyMeshPass&quot;, &quot;Render(…) / RenderOverlayTexts(…)&quot;, &quot;스프라이트·텍스트를 정렬하고 투명 영역과 오버레이를 합성합니다.&quot;]
+        [&quot;FRenderer&quot;, &quot;FTranslucencyMeshPass&quot;, &quot;Render(…) / RenderOverlayTexts(…)&quot;, &quot;반투명 메시·스프라이트·텍스트를 정렬하고 투명 영역과 오버레이를 합성합니다.&quot;]
       ],
       Related: [&quot;Engine&quot;, &quot;Components&quot;, &quot;RenderCore&quot;, &quot;Renderer&quot;, &quot;Shaders&quot;],
       Sources: [&quot;Source/Engine/Private/Engine.cpp&quot;, &quot;Source/Engine/Private/Component/UPrimitiveComponent.cpp&quot;, &quot;Source/Renderer/Private/Renderer.cpp&quot;]

@@ -2013,6 +2013,7 @@ namespace Asset {
         Target.SetName(Source.GetName());
         Target.SetShaderPath(Source.GetShaderPath());
         Target.SetBaseColor(Source.GetBaseColor());
+        Target.SetBlendMode(Source.GetBlendMode());
         Target.SetBaseColorTexturePath(Source.GetBaseColorTexturePath());
         Target.SetNormalMapTexturePath(Source.GetNormalMapTexturePath());
         Target.SetSpecularStrength(Source.GetSpecularStrength());

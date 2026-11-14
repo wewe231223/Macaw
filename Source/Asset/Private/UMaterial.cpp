@@ -91,12 +91,45 @@ namespace Asset {
             return false;
         }
 
+        const Asset::EBlendMode PreviousBlendMode{GetBlendMode()};
+
         if (mBaseColor != Color) {
+            if (mBaseColor.w != Color.w) {
+                mBlendMode = Color.w == 1.0f ? Asset::EBlendMode::Opaque : Asset::EBlendMode::Translucent;
+            }
+
             mBaseColor = Color;
             mConstantsDirty = true;
         }
 
+        if (PreviousBlendMode != GetBlendMode()) {
+            mBlendModeRevision = Core::FRevision::Next();
+        }
+
         return true;
+    }
+
+    Asset::EBlendMode Asset::UMaterial::GetBlendMode() const {
+        return mBaseColor.w == 1.0f ? mBlendMode : Asset::EBlendMode::Translucent;
+    }
+
+    bool Asset::UMaterial::SetBlendMode(Asset::EBlendMode BlendMode) {
+        if (BlendMode != Asset::EBlendMode::Opaque && BlendMode != Asset::EBlendMode::Translucent) {
+            return false;
+        }
+
+        const Asset::EBlendMode PreviousBlendMode{GetBlendMode()};
+        mBlendMode = mBaseColor.w == 1.0f ? BlendMode : Asset::EBlendMode::Translucent;
+
+        if (PreviousBlendMode != GetBlendMode()) {
+            mBlendModeRevision = Core::FRevision::Next();
+        }
+
+        return true;
+    }
+
+    Core::FRevision Asset::UMaterial::GetBlendModeRevision() const {
+        return mBlendModeRevision;
     }
 
     /**

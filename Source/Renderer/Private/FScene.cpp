@@ -11,6 +11,7 @@
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/EPrimitiveType.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/UMaterial.h"
 #include "Asset/USkeletalMesh.h"
 #include "FObjectConstants.h"
 #include "FScenePrimitive.h"
@@ -231,7 +232,29 @@ namespace Renderer {
      * @brief 그림자 깊이 결과에 영향을 주는 캐스터 상태의 리비전을 반환합니다.
      */
     Core::FRevision Renderer::FScene::GetCasterRevision() const {
-        return mCasterRevision;
+        Core::FRevision Revision{mCasterRevision};
+
+        const auto IncludeMaterial{[&Revision](const Asset::UMaterial* Material) {
+            if (Material != nullptr && Material->GetBlendModeRevision().GetValue() > Revision.GetValue()) {
+                Revision = Material->GetBlendModeRevision();
+            }
+        }};
+
+        for (const Renderer::FScenePrimitive& Primitive : mPrimitives) {
+            if (!IsShadowCaster(Primitive.mProxy)) {
+                continue;
+            }
+
+            if (Primitive.mProxy.mMaterial != nullptr) {
+                IncludeMaterial(Primitive.mProxy.mMaterial.Get());
+            } else {
+                for (const auto& Material : Primitive.mProxy.mMaterials) {
+                    IncludeMaterial(Material.Get());
+                }
+            }
+        }
+
+        return Revision;
     }
 
     /**

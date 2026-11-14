@@ -48,6 +48,8 @@ namespace Renderer {
          */
         friend class FMeshPass;
 
+        friend class FTranslucencyMeshPass;
+
     private:
         /**
          * @brief 이번 메시 드로에 사용할 머티리얼 파이프라인입니다.

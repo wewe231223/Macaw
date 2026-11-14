@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Asset/EBlendMode.h"
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FVector4.h"
 
@@ -143,6 +144,8 @@ namespace Asset {
          * @brief 뒷면을 제거하지 않고 양면으로 그릴지 나타냅니다.
          */
         bool mTwoSided{};
+
+        Asset::EBlendMode mBlendMode{Asset::EBlendMode::Opaque};
     };
 
 }

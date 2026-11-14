@@ -9,6 +9,8 @@
 #include "CoreUObject/TObjectRef.h"
 
 #include "Core/Types.h"
+#include "Core/FRevision.h"
+#include "Asset/EBlendMode.h"
 #include "CoreUObject/UObject.h"
 #include "Core/Math/FVector4.h"
 #include "RenderCore/TConstantBuffer.h"
@@ -67,6 +69,11 @@ namespace Asset {
          * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetBaseColor(const Core::FVector4& Color);
+
+        Asset::EBlendMode GetBlendMode() const;
+        bool SetBlendMode(Asset::EBlendMode BlendMode);
+
+        Core::FRevision GetBlendModeRevision() const;
 
         /**
          * @brief Content 기준 기본색 텍스처 경로를 반환합니다.
@@ -321,6 +328,11 @@ namespace Asset {
          */
         UPROPERTY(Edit, Serialize, Getter = GetBaseColor, Setter = SetBaseColor)
         Core::FVector4 mBaseColor{1.0f, 1.0f, 1.0f, 1.0f};
+
+        UPROPERTY(Edit, Serialize, Getter = GetBlendMode, Setter = SetBlendMode)
+        Asset::EBlendMode mBlendMode{Asset::EBlendMode::Opaque};
+
+        Core::FRevision mBlendModeRevision{};
 
         /**
          * @brief Content 기준 기본색 텍스처 경로입니다.

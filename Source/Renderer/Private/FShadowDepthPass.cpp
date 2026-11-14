@@ -11,6 +11,7 @@
 #include "FScenePrimitive.h"
 #include "Renderer/Renderer.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/UMaterial.h"
 
 #include <utility>
 
@@ -81,6 +82,13 @@ namespace Renderer {
         }
 
         for (const Asset::FSubMesh& SubMesh : Mesh.GetMeshData().GetSubMeshes()) {
+            Asset::UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
+            Asset::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial.Get() : SlotMaterial};
+
+            if (Material != nullptr && Material->GetBlendMode() == Asset::EBlendMode::Translucent) {
+                continue;
+            }
+
             Commands.emplace_back(Pipeline, nullptr, &Mesh, &Primitive, SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
         }
     }

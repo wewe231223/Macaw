@@ -51,6 +51,10 @@ namespace Renderer {
             Asset::UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
             Asset::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial.Get() : SlotMaterial != nullptr ? SlotMaterial : mDefaultMaterial.Get()};
 
+            if (Material->GetBlendMode() != Asset::EBlendMode::Opaque) {
+                continue;
+            }
+
             if (!Material->CreateResources(mDevice, mContext)) {
                 Material = mDefaultMaterial;
             }

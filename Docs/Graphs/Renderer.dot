@@ -13,7 +13,7 @@ digraph Renderer {
     MeshPass [label="FMeshPass\n프리미티브 선별 · 드로 목록 생성"];
     ShadowDepthPass [label="FShadowDepthPass\n그림자 캐스터 · 깊이 전용"];
     OpaqueMeshPass [label="FOpaqueMeshPass\n불투명 메시 · 표면 기록"];
-    TranslucencyMeshPass [label="FTranslucencyMeshPass\n스프라이트 · 텍스트 · 깊이 정렬"];
+    TranslucencyMeshPass [label="FTranslucencyMeshPass\n반투명 메시 · 스프라이트 · 텍스트"];
     Shadow [label="FShadowResources\n아틀라스 타일 · 광원 행렬"];
     Family [label="FSceneViewFamily\n장면 · 카메라 · 출력 타깃", fillcolor="#f0f2f5"];
     Renderer -> Module [label="상속", arrowhead=empty];
