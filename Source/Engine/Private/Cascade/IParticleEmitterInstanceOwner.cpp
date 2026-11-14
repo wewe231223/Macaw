@@ -4,9 +4,9 @@
  * @ingroup Cascade
  */
 
-#include "Cascade/IParticleEmitterInstanceOwner.h"
+#include "Engine/Cascade/IParticleEmitterInstanceOwner.h"
 
-using namespace Cascade;
+using namespace Engine;
 
 /**
  * @brief 인스턴스 소유자 인터페이스의 다형적 소멸을 지원합니다.

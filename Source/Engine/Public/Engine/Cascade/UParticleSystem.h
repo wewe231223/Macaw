@@ -7,7 +7,7 @@
 /**
  * @defgroup Cascade 파티클 시스템
  * @brief UObject 기반 정의와 Context 기반 모듈 호출 및 인스턴스 페이로드를 제공합니다.
- * @details Core와 CoreUObject에 의존하며 에셋 파일 입출력과 렌더링은 외부 계층에서 담당합니다.
+ * @details Engine 모듈에서 Asset의 재질을 참조하며 에셋 파일 입출력은 FParticleSystemAssetManager에서 담당합니다.
  */
 
 #pragma once
@@ -27,7 +27,7 @@ namespace Core {
 /**
  * @brief 파티클 시스템 정의와 모듈 실행 컨텍스트 및 인스턴스 저장소를 제공합니다.
  */
-namespace Cascade {
+namespace Engine {
 
     class UParticleEmitter;
 
@@ -56,13 +56,13 @@ namespace Cascade {
          * @param[in] Emitter 추가할 Emitter의 공유 소유 참조입니다.
          * @return 추가하면 true이며 null·중복·다른 Outer·개수 제한 등으로 거부하면 false입니다.
          */
-        bool AddEmitter(const std::shared_ptr<Cascade::UParticleEmitter>& Emitter);
+        bool AddEmitter(const std::shared_ptr<Engine::UParticleEmitter>& Emitter);
         /**
          * @brief 지정한 Emitter의 Outer 연결과 목록 소유 참조를 제거합니다.
          * @param[in] Emitter 제거할 Emitter의 비소유 주소입니다.
          * @return 목록에서 제거했으면 true이며 대상이 없으면 false입니다.
          */
-        bool RemoveEmitter(const Cascade::UParticleEmitter* Emitter);
+        bool RemoveEmitter(const Engine::UParticleEmitter* Emitter);
         /**
          * @brief 모든 자식 Emitter의 Outer 연결을 끊고 시스템의 소유 목록을 비웁니다.
          * @note 다른 공유 참조가 있는 Emitter의 객체 수명은 해당 참조가 결정합니다.
@@ -73,20 +73,20 @@ namespace Cascade {
          * @param[in,out] Source Emitter 목록을 이전할 원본 시스템입니다. 자기 자신이면 아무 작업도 하지 않습니다.
          * @details 기존 목록을 비운 뒤 가져온 Emitter들의 Outer를 이 시스템으로 다시 연결합니다.
          */
-        void MoveEmittersFrom(Cascade::UParticleSystem& Source);
+        void MoveEmittersFrom(Engine::UParticleSystem& Source);
 
         /**
          * @brief 인덱스에 해당하는 Emitter의 수정 가능한 비소유 주소를 반환합니다.
          * @param[in] Index Emitter 목록의 0부터 시작하는 인덱스입니다.
          * @return 대상 Emitter의 주소이며 범위를 벗어나면 nullptr입니다.
          */
-        Cascade::UParticleEmitter* GetEmitter(Core::Index_t Index);
+        Engine::UParticleEmitter* GetEmitter(Core::Index_t Index);
         /**
          * @brief 인덱스에 해당하는 Emitter의 읽기 전용 비소유 주소를 반환합니다.
          * @param[in] Index Emitter 목록의 0부터 시작하는 인덱스입니다.
          * @return 대상 Emitter의 주소이며 범위를 벗어나면 nullptr입니다.
          */
-        const Cascade::UParticleEmitter* GetEmitter(Core::Index_t Index) const;
+        const Engine::UParticleEmitter* GetEmitter(Core::Index_t Index) const;
         /**
          * @brief 시스템이 보관하는 Emitter 정의의 개수를 반환합니다.
          * @return 현재 Emitter 목록의 원소 수입니다.
@@ -96,7 +96,7 @@ namespace Cascade {
          * @brief Emitter 정의를 공유 소유하는 목록을 읽기 전용으로 제공합니다.
          * @return 시스템이 보관하는 목록의 참조입니다.
          */
-        const Core::TArray<std::shared_ptr<Cascade::UParticleEmitter>>& GetEmitters() const;
+        const Core::TArray<std::shared_ptr<Engine::UParticleEmitter>>& GetEmitters() const;
 
         /**
          * @brief 시스템 형식 정보와 Emitter 클래스·설정 목록을 아카이브로 읽거나 기록합니다.
@@ -109,7 +109,7 @@ namespace Cascade {
         /**
          * @brief 시스템의 자식 Emitter 정의를 공유 소유하는 목록입니다.
          */
-        Core::TArray<std::shared_ptr<Cascade::UParticleEmitter>> mEmitters{};
+        Core::TArray<std::shared_ptr<Engine::UParticleEmitter>> mEmitters{};
     };
 
 }

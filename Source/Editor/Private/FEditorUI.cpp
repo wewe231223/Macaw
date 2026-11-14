@@ -17,6 +17,7 @@
 #include "Platform/WindowResources.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
+#include "Engine/Cascade/FParticleSystemAssetManager.h"
 #include "Asset/FAssetFile.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
@@ -1807,6 +1808,7 @@ namespace Editor {
             mSelectedContentPath = Destination;
         } else {
             // 옛 경로의 캐시 객체는 바뀌지 않으므로 은퇴시켜, 나중에 같은 경로를 다시 쓸 때 새로 로드하게 합니다.
+            mContext->GetProject()->GetParticleSystems()->RetireAssets(Absolute);
             mContext->GetProject()->GetAssets()->RetireAssets(Absolute);
 
             if (mMeshViewer != nullptr) {
@@ -1870,6 +1872,7 @@ namespace Editor {
             mScriptBuilds.RefreshScriptFiles();
         } else {
             // 지운 에셋을 참조하던 객체는 살려 두고, 같은 경로에 다시 임포트하면 새 객체를 로드하게 합니다.
+            mContext->GetProject()->GetParticleSystems()->RetireAssets(Absolute);
             mContext->GetProject()->GetAssets()->RetireAssets(Absolute);
 
             if (mMeshViewer != nullptr) {
@@ -2602,7 +2605,7 @@ namespace Editor {
         Core::FString Error{};
         std::filesystem::path Path{};
 
-        if (mContext->GetProject()->GetAssets()->CreateParticleSystem(mContentDirectory, "ParticleSystem", Path, Error) == nullptr) {
+        if (mContext->GetProject()->GetParticleSystems()->CreateParticleSystem(mContentDirectory, "ParticleSystem", Path, Error) == nullptr) {
             mContext->AddLog(Error.empty() ? "Cannot create the particle system" : Error);
 
             return;

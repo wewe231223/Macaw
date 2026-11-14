@@ -5,10 +5,11 @@
  */
 
 #include "Core/Types.h"
-#include "Cascade/FParticleEmitterInstance.h"
-#include "Cascade/FBaseParticle.h"
-#include "Cascade/UParticleEmitter.h"
-#include "Cascade/UParticleModule.h"
+#include "Engine/Cascade/FParticleEmitterInstance.h"
+#include "Engine/Cascade/FBaseParticle.h"
+#include "Engine/Cascade/UParticleEmitter.h"
+#include "Engine/Cascade/UParticleLODLevel.h"
+#include "Engine/Cascade/UParticleModule.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
 
@@ -19,7 +20,7 @@
 #include <stdexcept>
 #include <utility>
 
-using namespace Cascade;
+using namespace Engine;
 using namespace Core;
 
 /**
@@ -55,6 +56,8 @@ void FParticleEmitterInstance::InitParameters(UParticleEmitter* Template) {
  * @brief 기존 파티클을 비우고 원본 정의의 배치와 모듈별 인스턴스 페이로드를 준비합니다.
  */
 void FParticleEmitterInstance::Init() {
+    const Index_t LODIndex{mCurrentLODIndex >= 0 ? mCurrentLODIndex : 0};
+
     ResetRuntimeData();
 
     auto* Template{GetTemplate()};
@@ -64,11 +67,20 @@ void FParticleEmitterInstance::Init() {
     }
 
     Template->Build();
-    mModules = Template->GetModules();
+    mModules = Template->GetAllModules();
     mModuleDataOffsets = Template->GetModuleDataOffsets();
     mModuleInstanceDataOffsets = Template->GetModuleInstanceDataOffsets();
     mParticleStride = Template->GetParticleSize();
     mInstancePayloadSize = Template->GetInstancePayloadSize();
+
+    for (const auto& LODLevel : Template->GetLODLevels()) {
+        mLODLevels.push_back(LODLevel.get());
+        mLODModules.push_back(LODLevel->GetModules());
+    }
+
+    if (!SetCurrentLODIndex(LODIndex)) {
+        SetCurrentLODIndex(0);
+    }
 
     if (mInstancePayloadSize != 0) {
         mModuleInstancePayload.reset(static_cast<Uint8*>(::operator new(mInstancePayloadSize, std::align_val_t{16})));
@@ -96,6 +108,24 @@ IParticleEmitterInstanceOwner& FParticleEmitterInstance::GetOwner() const {
  */
 UParticleEmitter* FParticleEmitterInstance::GetTemplate() const {
     return mTemplate.Get();
+}
+
+UParticleLODLevel* FParticleEmitterInstance::GetCurrentLODLevel() const {
+    return mCurrentLODIndex >= 0 && static_cast<std::size_t>(mCurrentLODIndex) < mLODLevels.size() ? mLODLevels[mCurrentLODIndex].Get() : nullptr;
+}
+
+Index_t FParticleEmitterInstance::GetCurrentLODIndex() const {
+    return mCurrentLODIndex;
+}
+
+bool FParticleEmitterInstance::SetCurrentLODIndex(Index_t Index) {
+    if (Index < 0 || static_cast<std::size_t>(Index) >= mLODLevels.size() || !mLODLevels[Index].IsValid()) {
+        return false;
+    }
+
+    mCurrentLODIndex = Index;
+
+    return true;
 }
 
 /**
@@ -137,7 +167,9 @@ void FParticleEmitterInstance::ReserveParticles(Uint32 Capacity) {
  * @brief 기본 데이터와 0으로 채운 추가 데이터를 생성하고 Spawn 컨텍스트로 모듈을 초기화합니다.
  */
 Index_t FParticleEmitterInstance::SpawnParticle(float SpawnTime) {
-    if (mParticleStride == 0) {
+    const UParticleLODLevel* LODLevel{GetCurrentLODLevel()};
+
+    if (mParticleStride == 0 || LODLevel == nullptr || !LODLevel->GetEnabled()) {
         return -1;
     }
 
@@ -161,7 +193,7 @@ Index_t FParticleEmitterInstance::SpawnParticle(float SpawnTime) {
     FBaseParticle* Particle{std::construct_at(reinterpret_cast<FBaseParticle*>(Record))};
     ++mParticleCount;
 
-    for (const auto& Reference : mModules) {
+    for (const auto& Reference : mLODModules[mCurrentLODIndex]) {
         UParticleModule* Module{Reference.Get()};
 
         if (Module != nullptr && Module->mEnabled && Module->mSpawnModule) {
@@ -310,4 +342,7 @@ void FParticleEmitterInstance::ResetRuntimeData() {
     mModuleDataOffsets.clear();
     mModuleInstanceDataOffsets.clear();
     mModules.clear();
+    mLODModules.clear();
+    mLODLevels.clear();
+    mCurrentLODIndex = -1;
 }

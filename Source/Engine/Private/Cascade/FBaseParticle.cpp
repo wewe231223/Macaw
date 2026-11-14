@@ -4,9 +4,9 @@
  * @ingroup Cascade
  */
 
-#include "Cascade/FBaseParticle.h"
+#include "Engine/Cascade/FBaseParticle.h"
 
-using namespace Cascade;
+using namespace Engine;
 using namespace Core;
 
 /**

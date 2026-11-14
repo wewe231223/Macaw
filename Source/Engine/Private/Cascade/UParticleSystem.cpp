@@ -5,8 +5,8 @@
  */
 
 #include "Core/Types.h"
-#include "Cascade/UParticleSystem.h"
-#include "Cascade/UParticleEmitter.h"
+#include "Engine/Cascade/UParticleSystem.h"
+#include "Engine/Cascade/UParticleEmitter.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/NewObject.h"
@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <utility>
 
-using namespace Cascade;
+using namespace Engine;
 using namespace Core;
 using namespace CoreUObject;
 
@@ -210,7 +210,7 @@ void UParticleSystem::Serialize(FArchive& Archive) {
 
     TArray<std::shared_ptr<UParticleEmitter>> Emitters{};
 
-    for (Core::Index_t Index{}; Index < Count && !Archive.HasError(); ++Index) {
+    for (Core::Index_t Index{}; Index < static_cast<Core::Index_t>(Count) && !Archive.HasError(); ++Index) {
         if (!Archive.BeginObject(std::to_string(Index))) {
             break;
         }

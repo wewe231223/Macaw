@@ -5,12 +5,14 @@
  */
 
 #include "Core/Types.h"
-#include "Cascade/UParticleModule.h"
-#include "Cascade/UParticleEmitter.h"
-#include "Cascade/FParticleEmitterInstance.h"
-#include "Cascade/IParticleEmitterInstanceOwner.h"
+#include "Engine/Cascade/UParticleModule.h"
+#include "Engine/Cascade/UParticleEmitter.h"
+#include "Engine/Cascade/FParticleEmitterInstance.h"
+#include "Engine/Cascade/IParticleEmitterInstanceOwner.h"
+#include "Core/Archive.h"
+#include "CoreUObject/Reflection/UClass.h"
 
-using namespace Cascade;
+using namespace Engine;
 using namespace Core;
 
 /**
@@ -160,5 +162,22 @@ void UParticleModule::Update(const FUpdateContext&) {
  * @brief 일반 갱신 뒤에 필요한 파티클 후처리를 수행하는 확장 지점입니다.
  */
 void UParticleModule::FinalUpdate(const FUpdateContext&) {
+}
+
+void UParticleModule::SerializeModule(FArchive& Archive) {
+    if (Archive.HasError()) {
+        return;
+    }
+
+    if (!Archive.IsLoading()) {
+        FString Type{GetClass()->GetName()};
+
+        Archive.Serialize("Type", Type);
+    }
+
+    if (Archive.BeginObject("Parameters")) {
+        Serialize(Archive);
+        Archive.EndObject();
+    }
 }
 

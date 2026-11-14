@@ -15,7 +15,7 @@ namespace Core {
 /**
  * @brief 파티클 시스템 정의와 모듈 실행 컨텍스트 및 인스턴스 저장소를 제공합니다.
  */
-namespace Cascade {
+namespace Engine {
 
     /**
      * @brief 엔진 컴포넌트 의존성 없이 인스턴스의 이름과 공간 변환을 제공하는 소유자 인터페이스입니다.

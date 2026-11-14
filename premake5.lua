@@ -1,7 +1,7 @@
 --[[!
 @file premake5.lua
 @brief 모듈 의존성과 UObject 코드 생성 단계를 반영해 Visual Studio 프로젝트를 생성합니다.
-@details Cascade는 Core·CoreUObject에 의존하는 정적 라이브러리이며 Asset과 실행 파일에서 연결합니다. 모듈 의존성 및 문서용 설명은 별도 JSON 설정을 사용합니다.
+@details 모듈 의존성 및 문서용 설명은 별도 JSON 설정을 사용합니다.
 @see ModuleDependencies.json
 @see Docs/Modules.json
 ]]
@@ -110,9 +110,9 @@ Configure("MacawHeaderTool", "ConsoleApp")
 
 --[[!
 @var ModuleNames
-@brief UObject 기반 Cascade를 포함해 정적 라이브러리와 리플렉션 코드를 생성할 모듈 목록입니다.
+@brief 정적 라이브러리와 리플렉션 코드를 생성할 모듈 목록입니다.
 ]]
-local ModuleNames = { "Core", "CoreUObject", "Cascade", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Viewer", "Editor" }
+local ModuleNames = { "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Viewer", "Editor" }
 
 for _, Name in ipairs(ModuleNames) do
     Configure(Name, "StaticLib")
@@ -158,7 +158,7 @@ Configure("Shaders", "Utility")
     filter {}
 
 --[[!
-@brief 런타임 실행 파일에 엔진·파티클·렌더러·스크립트 모듈의 헤더와 링크 의존성을 연결합니다.
+@brief 런타임 실행 파일에 엔진·렌더러·스크립트 모듈의 헤더와 링크 의존성을 연결합니다.
 @param[in] Name 실행 파일 프로젝트 이름입니다.
 @param[in] Kind Premake 실행 파일 종류입니다.
 @param[in] Directory 실행 파일의 원본 소스 폴더입니다.
@@ -172,7 +172,7 @@ local function ConfigureRuntimeExecutable(Name, Kind, Directory)
         AddIncludes(Module, {})
     end
 
-    links { "Script", "Engine", "Renderer", "Platform", "Asset", "Cascade", "Serialization", "RenderCore", "CoreUObject", "Core", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "Script", "Engine", "Renderer", "Platform", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
     debugdir "%{wks.location}"
 end
 
