@@ -12,28 +12,21 @@
 #include "CoreUObject/TObjectRef.h"
 #include "Editor/FAssetPicker.h"
 #include "Core/Types.h"
+#include "CoreUObject/Reflection/FProperty.h"
+#include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/UObject.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Engine/AActor.h"
+#include "Engine/Component/ULightComponent.h"
+#include "Engine/Component/UMeshComponent.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
 
 #include <functional>
 #include <optional>
 #include <string_view>
 
-namespace CoreUObject {
-    class FProperty;
-    class UClass;
-    class UObject;
-}
-
-namespace Engine {
-    class AActor;
-    class ULightComponent;
-    class UMeshComponent;
-    class USkeletalMeshComponent;
-}
-
 namespace Editor {
-
-    class FEditorAssetCatalog;
-    class FAssetThumbnailCache;
 
     /**
      * @brief 선택한 객체의 리플렉션 프로퍼티를 표시하고 편집합니다.

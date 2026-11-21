@@ -11,15 +11,9 @@
 #include "Editor/FEditorContext.h"
 #include "Editor/FEditorViewport.h"
 #include "Editor/FPlayInEditorSession.h"
+#include "Engine/FRenderTarget.h"
+#include "Platform/Window.h"
 #include "EditorEngine.generated.h"
-
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace Engine {
-    class FRenderTarget;
-}
 
 namespace Editor {
 

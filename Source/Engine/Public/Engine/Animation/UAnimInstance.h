@@ -12,13 +12,11 @@
 #include "Core/Math/FTransform.h"
 #include "Core/Math/FVector.h"
 #include "CoreUObject/UObject.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "Asset/Animation/UBlendSpace.h"
+#include "Asset/USkeleton.h"
+#include "Engine/Animation/FAnimNode_Base.h"
 #include "UAnimInstance.generated.h"
-
-namespace Asset {
-    class UAnimSequence;
-    class UBlendSpace;
-    class USkeleton;
-}
 
 namespace Engine {
 
@@ -46,10 +44,6 @@ namespace Engine {
     };
 
     class USkeletalMeshComponent;
-    struct FAnimNode_Base;
-    struct FAnimNodeValue;
-    struct FPoseLink;
-    struct FAnimationUpdateContext;
 
     /**
      * @brief 포즈 그래프 평가 중 방문한 노드, 부모 방문과 샘플별 가중치입니다.

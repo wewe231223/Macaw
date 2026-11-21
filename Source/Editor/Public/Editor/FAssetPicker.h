@@ -9,11 +9,10 @@
 #include "Core/ReflectionMacros.h"
 #include "Asset/FAssetFile.h"
 #include "Core/Types.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
 
 namespace Editor {
-
-    class FEditorAssetCatalog;
-    class FAssetThumbnailCache;
 
     /**
      * @brief 실제 상속 재질을 표시하며 타입이 맞는 에셋으로 교체하는 위젯입니다.

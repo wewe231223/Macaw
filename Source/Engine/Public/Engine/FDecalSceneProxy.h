@@ -10,10 +10,7 @@
 
 #include "Core/Guid.h"
 #include "Core/Math/FMatrix.h"
-
-namespace Asset {
-    class UTexture2D;
-}
+#include "Asset/UTexture2D.h"
 
 namespace Engine {
 

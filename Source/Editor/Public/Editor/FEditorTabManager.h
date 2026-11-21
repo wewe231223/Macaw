@@ -8,14 +8,12 @@
 
 #include "Core/Types.h"
 #include "Editor/FEditorTab.h"
+#include "Editor/Widget/FEditorWidget.h"
 
 #include <functional>
 #include <memory>
 
 namespace Editor {
-
-    class FEditorWidget;
-    class FEditorTab;
 
     /**
      * @brief 패널의 기본 도킹 배치 영역입니다.

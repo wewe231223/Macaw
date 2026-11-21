@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/UCameraComponent.h"
 #include "ACameraActor.generated.h"
 
 namespace Engine {
-
-    class UCameraComponent;
 
     /**
      * @brief 카메라 컴포넌트를 갖고 이동·회전 입력을 처리하는 액터를 담당합니다.

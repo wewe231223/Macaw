@@ -11,24 +11,17 @@
 #include "EMeshPass.h"
 #include "FMeshDrawCommand.h"
 #include "Core/Types.h"
+#include "Asset/UStaticMesh.h"
+#include "Engine/FSceneViewFamily.h"
+#include "FScene.h"
+#include "FScenePrimitive.h"
+#include "Renderer/Renderer.h"
 
 #include <memory>
 
 #include <d3d11.h>
 
-namespace Asset {
-    class UStaticMesh;
-}
-
-namespace Engine {
-    struct FSceneViewFamily;
-}
-
 namespace Renderer {
-
-    class FRenderer;
-    class FScene;
-    struct FScenePrimitive;
 
     /**
      * @brief 장면 프리미티브를 선별해 정렬된 메시 드로 목록을 만드는 메시 패스의 기반 클래스입니다.

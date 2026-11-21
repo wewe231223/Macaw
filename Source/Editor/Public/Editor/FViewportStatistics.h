@@ -8,18 +8,11 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "Core/Math/FVector2.h"
+#include "Engine/UWorld.h"
+#include "RenderCore/FRenderStats.h"
 
 #include <string_view>
-
-namespace Engine {
-    class UWorld;
-}
-
-namespace RenderCore {
-    struct FRenderStats;
-}
-
-struct FVector2;
 
 struct ImDrawList;
 

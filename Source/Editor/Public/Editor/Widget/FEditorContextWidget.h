@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Editor/Widget/FEditorWidget.h"
+#include "Editor/FEditorContext.h"
 
 namespace Editor {
-    class FEditorContext;
 
     class FEditorContextWidget : public Editor::FEditorWidget {
     public:

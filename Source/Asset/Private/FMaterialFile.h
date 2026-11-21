@@ -8,13 +8,12 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UMaterial.h"
 
 #include <filesystem>
 
 namespace Asset {
-
-    class FAssetManager;
-    class UMaterial;
 
     /**
      * @brief 프로젝트 상대 참조를 검증하며 재질 에셋을 읽고 기록합니다.

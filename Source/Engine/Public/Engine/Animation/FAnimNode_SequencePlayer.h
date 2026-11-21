@@ -9,10 +9,7 @@
 #include "CoreUObject/TObjectRef.h"
 
 #include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
-
-namespace Asset {
-    class UAnimSequence;
-}
+#include "Asset/Animation/UAnimSequence.h"
 
 namespace Engine {
 

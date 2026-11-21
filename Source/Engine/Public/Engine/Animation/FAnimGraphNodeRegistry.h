@@ -7,19 +7,15 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Asset/Animation/UAnimGraph.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "Asset/Animation/UBlendSpace.h"
+#include "Engine/Animation/FAnimNode_Base.h"
 
 #include <functional>
 #include <memory>
 
-namespace Asset {
-    class UAnimSequence;
-    class UBlendSpace;
-    struct FAnimGraphNode;
-}
-
 namespace Engine {
-
-    struct FAnimNode_Base;
 
     /**
      * @brief 노드 파라미터 값의 종류입니다.

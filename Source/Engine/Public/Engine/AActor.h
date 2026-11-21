@@ -12,22 +12,17 @@
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include "Engine/Tick/FTickFunction.h"
+#include "Core/Input.h"
+#include "Core/Math/FTransform.h"
+#include "Engine/Collision/FHitResult.h"
+#include "Engine/Component/UActorComponent.h"
+#include "Engine/Component/UPrimitiveComponent.h"
+#include "Engine/Component/USceneComponent.h"
+#include "Engine/ULevel.h"
+#include "Engine/UWorld.h"
 #include "AActor.generated.h"
 
-struct FTransform;
-
-namespace Core {
-    class FInput;
-}
-
 namespace Engine {
-
-    class UWorld;
-    class ULevel;
-    class UActorComponent;
-    class USceneComponent;
-    class UPrimitiveComponent;
-    struct FHitResult;
 
     /**
      * @brief 컴포넌트를 소유하고 루트 컴포넌트를 통해 공간 변환을 제공하는 월드 객체입니다.

@@ -8,11 +8,10 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "CoreUObject/Reflection/FProperty.h"
+#include "CoreUObject/Reflection/UStruct.h"
 
 namespace CoreUObject {
-
-    class UStruct;
-    class FProperty;
 
     /**
      * @brief 생성된 등록 코드가 소유 타입에 프로퍼티를 추가하는 진입점입니다.

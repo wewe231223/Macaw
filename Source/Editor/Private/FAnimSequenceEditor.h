@@ -11,30 +11,19 @@
 #include "Core/Types.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Editor/FAssetPicker.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "Asset/FAssetManager.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FEditorTab.h"
+#include "FAnimSequenceViewportClient.h"
+#include "RenderCore/IRendererModule.h"
+#include "Viewer/FAnimationViewerContent.h"
 #include <filesystem>
 #include <memory>
 #include <optional>
 
-namespace Asset {
-    class FAssetManager;
-    class UAnimSequence;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
-
-namespace Viewer {
-    class FAnimationViewerContent;
-}
-
 namespace Editor {
-
-    class FEditorTab;
-
-    class FAnimSequenceViewportClient;
-    class FAssetThumbnailCache;
-    class FEditorAssetCatalog;
 
     /**
      * @brief 애니메이션 시퀀스의 복사본을 편집하고 독립 뷰어에서 재생하는 에디터입니다.

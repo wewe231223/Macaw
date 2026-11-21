@@ -14,36 +14,26 @@
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "Engine/FWorldHandle.h"
 #include "Engine/FEditorCameraState.h"
+#include "CoreUObject/Reflection/FProperty.h"
+#include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/UObject.h"
+#include "Engine/AActor.h"
+#include "Engine/ACameraActor.h"
+#include "Engine/ALevelSequenceActor.h"
+#include "Engine/ASkeletalMeshActor.h"
+#include "Engine/AStaticMeshActor.h"
+#include "Engine/Component/UActorComponent.h"
+#include "Engine/Component/UCameraComponent.h"
+#include "Engine/Component/USceneComponent.h"
+#include "Engine/Engine.h"
+#include "Engine/EPrimitiveType.h"
+#include "Engine/FProject.h"
+#include "Engine/FWorldContext.h"
+#include "Engine/UWorld.h"
+#include "RenderCore/IRendererModule.h"
 
 #include <filesystem>
 #include <functional>
-
-namespace Engine {
-    class ALevelSequenceActor;
-    class UEngine;
-    class FProject;
-    class UWorld;
-    class AActor;
-    class AStaticMeshActor;
-    class ASkeletalMeshActor;
-    class ACameraActor;
-    class UCameraComponent;
-    class UActorComponent;
-    class USceneComponent;
-    class FWorldContext;
-
-    enum class EPrimitiveType : Uint8;
-}
-
-namespace CoreUObject {
-    class UObject;
-    class UClass;
-    class FProperty;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
 
 namespace Editor {
 

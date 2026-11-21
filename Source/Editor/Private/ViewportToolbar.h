@@ -7,12 +7,11 @@
 #pragma once
 
 #include "Editor/EEditorViewportType.h"
+#include "Editor/FEditorViewportClient.h"
 
 #include <functional>
 
 namespace Editor {
-
-    class FEditorViewportClient;
 
     /**
      * @brief 뷰포트의 변환 도구, 좌표계와 그리드 설정 UI를 구성합니다.

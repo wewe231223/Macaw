@@ -10,13 +10,10 @@
 #include "Core/FName.h"
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/FObjectHandle.h"
+#include "Core/Archive.h"
 
 #include <new>
 #include "UObject.generated.h"
-
-namespace Core {
-    class FArchive;
-}
 
 namespace CoreUObject {
 

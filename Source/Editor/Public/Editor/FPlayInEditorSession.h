@@ -10,15 +10,12 @@
 
 #include "Editor/FEditorContext.h"
 #include "Engine/FGameViewportClient.h"
+#include "Editor/FEditorViewport.h"
+#include "Engine/Engine.h"
 #include <utility>
-
-namespace Engine {
-    class UEngine;
-}
 
 namespace Editor {
 
-    class FEditorViewport;
     class FPlayInEditorWindow;
 
     /**

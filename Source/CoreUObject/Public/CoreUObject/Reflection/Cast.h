@@ -12,8 +12,6 @@
 
 namespace CoreUObject {
 
-    class UObject;
-
     /**
      * @brief null 및 리플렉션 타입을 검사한 뒤 요청한 UObject 파생 포인터로 변환합니다.
      * @tparam T 적용할 네이티브 타입입니다.

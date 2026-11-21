@@ -9,8 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "Engine/FHitProxy.h"
-
-struct FVector2;
+#include "Core/Math/FVector2.h"
 
 namespace Engine {
 

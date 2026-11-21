@@ -7,12 +7,9 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Core/Archive.h"
 
 #include <memory>
-
-namespace Core {
-    class FArchive;
-}
 
 namespace Asset {
 

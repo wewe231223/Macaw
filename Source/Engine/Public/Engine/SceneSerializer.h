@@ -9,20 +9,13 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "Engine/EWorldType.h"
+#include "Asset/FAssetManager.h"
+#include "Core/Archive.h"
+#include "Engine/FWorldContext.h"
 
 #include <filesystem>
 
-namespace Asset {
-    class FAssetManager;
-}
-
-namespace Core {
-    class FArchive;
-}
-
 namespace Engine {
-
-    class FWorldContext;
 
     /**
      * @brief 리플렉션 프로퍼티를 사용하여 월드와 액터·컴포넌트를 JSON으로 저장하고 복원합니다.

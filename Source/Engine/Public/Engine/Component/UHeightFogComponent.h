@@ -10,12 +10,9 @@
 
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FHeightFogSceneProxy.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UTexture2D.h"
 #include "UHeightFogComponent.generated.h"
-
-namespace Asset {
-    class FAssetManager;
-    class UTexture2D;
-}
 
 namespace Engine {
 

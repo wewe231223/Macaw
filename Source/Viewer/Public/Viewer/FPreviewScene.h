@@ -9,26 +9,16 @@
 #include "Core/Types.h"
 #include "Core/Guid.h"
 #include "Core/Math/FMatrix.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UMaterial.h"
+#include "Core/Math/FBox.h"
+#include "Engine/FSceneInterface.h"
+#include "Engine/FSceneViewFamily.h"
+#include "Engine/FWorldContext.h"
+#include "Engine/UWorld.h"
+#include "RenderCore/IRendererModule.h"
 
 #include <memory>
-
-struct FBox;
-
-namespace Asset {
-    class FAssetManager;
-    class UMaterial;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
-
-namespace Engine {
-    class FWorldContext;
-    class UWorld;
-    class FSceneInterface;
-    struct FSceneViewFamily;
-}
 
 namespace Viewer {
 

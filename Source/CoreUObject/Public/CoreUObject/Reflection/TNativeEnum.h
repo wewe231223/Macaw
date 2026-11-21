@@ -6,9 +6,9 @@
 
 #pragma once
 
-namespace CoreUObject {
+#include "CoreUObject/Reflection/UEnum.h"
 
-    class UEnum;
+namespace CoreUObject {
 
     /**
      * @brief ADL을 통해 네이티브 열거형 메타데이터를 찾기 위한 타입 태그입니다.

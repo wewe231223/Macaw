@@ -12,20 +12,15 @@
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/Animation/UAnimInstance.h"
 #include "Engine/FSkeletalMeshPose.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
+#include "Engine/Animation/UAnimSingleNodeInstance.h"
 
 #include <memory>
 #include "USkeletalMeshComponent.generated.h"
 
-namespace Asset {
-    class UAnimSequence;
-    class USkeletalMesh;
-    class USkeleton;
-}
-
 namespace Engine {
-
-    class UAnimInstance;
-    class UAnimSingleNodeInstance;
 
     /**
      * @brief 공유 바인드 형상을 객체별 포즈로 변형하여 표시하는 컴포넌트입니다.

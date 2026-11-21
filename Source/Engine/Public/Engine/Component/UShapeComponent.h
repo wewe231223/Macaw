@@ -12,14 +12,13 @@
 #include "CoreUObject/TDelegate.h"
 #include "Core/Math/FVector4.h"
 #include "Core/Math/FBox.h"
+#include "Engine/FPrimitiveDrawInterface.h"
 #include "PhysicsRuntime/EBodyType.h"
 #include "PhysicsRuntime/FBodyInstance.h"
 #include <memory>
 #include "UShapeComponent.generated.h"
 
 namespace Engine {
-
-    class FPrimitiveDrawInterface;
 
     /**
      * @brief 충돌 형상·접촉 이벤트와 에디터 보조 선을 제공하는 기본 컴포넌트입니다.

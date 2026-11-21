@@ -10,21 +10,16 @@
 #include "Core/Math/FVector4.h"
 #include "Editor/EEditorViewportLayoutPreset.h"
 #include "Core/Types.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FEditorViewport.h"
+#include "Editor/FPlayInEditorSession.h"
+#include "RenderCore/IRendererModule.h"
 
 #include <memory>
-
-struct ImGuiContext;
-struct ImGuiSettingsHandler;
-struct ImGuiTextBuffer;
-
-namespace RenderCore {
-    class IRendererModule;
-}
+#include <imgui.h>
+#include <imgui_internal.h>
 
 namespace Editor {
-    class FEditorContext;
-    class FEditorViewport;
-    class FPlayInEditorSession;
 
     /**
      * @brief 뷰포트 분할 프리셋·최대화·활성 입력과 ImGui 설정 저장을 관리합니다.

@@ -12,15 +12,14 @@
 #include "Engine/AActor.h"
 #include "Engine/Collision/FHitResult.h"
 #include "Script/FLuaVM.h"
+#include "Engine/Component/UActorComponent.h"
+#include "Engine/Component/ULuaScriptComponent.h"
+#include "Engine/UWorld.h"
 
 #include <map>
 #include <vector>
 
 namespace Engine {
-
-    class UActorComponent;
-    class ULuaScriptComponent;
-    class UWorld;
 
     /**
      * @brief Lua 스크립트 컴포넌트 하나의 실행 환경, 수명 주기 콜백과 대기 중인 충돌 이벤트를 보관합니다.

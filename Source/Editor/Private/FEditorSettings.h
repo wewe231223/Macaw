@@ -8,38 +8,24 @@
 
 #include "Core/Types.h"
 #include "FImGuiThemeCatalog.h"
+#include "Editor/EViewportCommand.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FEditorTabManager.h"
+#include "Editor/FEditorViewportClient.h"
+#include "Editor/FGizmoSettings.h"
+#include "Editor/FImGuiUIScale.h"
+#include "Editor/FPlayInEditorSession.h"
+#include "Editor/Widget/FEditorWidget.h"
+#include "Engine/FEngineShowFlags.h"
+#include "FEditorDrawerManager.h"
+#include "FEditorViewportLayout.h"
+#include "FEditorWorkspace.h"
+#include "Platform/Window.h"
+#include "Serialization/JsonArchive.h"
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <filesystem>
-
-namespace Engine {
-    struct FEngineShowFlags;
-}
-
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace Serialization {
-    class FJsonArchive;
-}
-
-namespace Editor {
-    struct FGizmoSettings;
-    enum class EGizmoSetting;
-    enum class EViewportCommand;
-
-    class FEditorContext;
-    class FEditorWidget;
-    class FEditorViewportClient;
-    class FPlayInEditorSession;
-    class FEditorViewportLayout;
-    class FEditorWorkspace;
-    class FEditorTabManager;
-    class FEditorDrawerManager;
-    class FImGuiUIScale;
-}
 
 namespace Editor {
 

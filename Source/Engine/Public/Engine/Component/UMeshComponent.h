@@ -10,11 +10,8 @@
 
 #include "Core/Types.h"
 #include "Engine/Component/UPrimitiveComponent.h"
+#include "Asset/UMaterial.h"
 #include "UMeshComponent.generated.h"
-
-namespace Asset {
-    class UMaterial;
-}
 
 namespace Engine {
 

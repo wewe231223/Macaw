@@ -12,29 +12,23 @@
 #include "Engine/FEngineShowFlags.h"
 #include "Engine/EViewMode.h"
 #include "Core/Math/FVector4.h"
+#include "Asset/FAssetManager.h"
+#include "CoreUObject/UObject.h"
+#include "Engine/FRenderTarget.h"
+#include "Viewer/FViewerCapture.h"
+#include "Viewer/IViewerContent.h"
 
 #include <memory>
-
-namespace Asset {
-    class FAssetManager;
-}
 
 namespace RenderCore {
     class IRendererModule;
 }
 
 namespace Engine {
-    class FRenderTarget;
     class FPrimitiveDrawInterface;
 }
 
-namespace CoreUObject {
-    class UObject;
-}
-
 namespace Viewer {
-    class IViewerContent;
-    class FViewerCapture;
 
     /**
      * @brief 에셋별 콘텐츠의 카메라, 렌더 타깃, Fit과 이미지 캡처를 공통으로 관리합니다.

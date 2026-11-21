@@ -10,13 +10,10 @@
 #include "Core/Math/FRotator.h"
 #include "Core/Math/FVector.h"
 #include "CoreUObject/TObjectRef.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UMaterial.h"
 
 #include "UParticleModuleRequired.generated.h"
-
-namespace Asset {
-    class FAssetManager;
-    class UMaterial;
-}
 
 namespace Engine {
 

@@ -8,6 +8,7 @@
 
 #include "Core/Guid.h"
 #include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/UObject.h"
 
 #include <cstddef>
 #include <memory>
@@ -15,7 +16,6 @@
 
 namespace CoreUObject {
 
-    class UObject;
     class UClass;
     struct FObjectReference;
 

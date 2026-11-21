@@ -9,11 +9,8 @@
 #include "CoreUObject/TObjectRef.h"
 
 #include "Engine/Component/USceneComponent.h"
+#include "Asset/UTexture2D.h"
 #include "UDecalComponent.generated.h"
-
-namespace Asset {
-    class UTexture2D;
-}
 
 namespace Engine {
 

@@ -9,25 +9,17 @@
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "RenderCore/TConstantBuffer.h"
+#include "Asset/UTexture2D.h"
+#include "Engine/FHeightFogSceneProxy.h"
+#include "Engine/FSceneViewFamily.h"
+#include "FPostProcessConstants.h"
+#include "RenderTarget.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <span>
 
-namespace Asset {
-    class UTexture2D;
-}
-
-namespace Engine {
-    struct FSceneViewFamily;
-    struct FHeightFogSceneProxy;
-}
-
 namespace Renderer {
-
-    struct FPostProcessConstants;
-
-    class FDXRenderTarget;
 
     /**
      * @brief 전체 화면 삼각형으로 안개를 합성하고 깊이 시각화 또는 FXAA를 최종 컬러에 출력합니다.

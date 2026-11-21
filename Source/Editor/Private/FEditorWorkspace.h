@@ -7,15 +7,12 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FEditorTab.h"
+#include "Editor/FEditorTabManager.h"
+#include "Editor/FEditorViewport.h"
+#include "Editor/FImGuiUIScale.h"
 #include <functional>
-
-namespace Editor {
-    class FEditorContext;
-    class FEditorViewport;
-    class FEditorTabManager;
-    class FImGuiUIScale;
-    class FEditorTab;
-}
 
 namespace Editor {
 

@@ -7,13 +7,10 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Asset/UTexture2D.h"
 
 #include <filesystem>
 #include <memory>
-
-namespace Asset {
-    class UTexture2D;
-}
 
 namespace Editor {
 

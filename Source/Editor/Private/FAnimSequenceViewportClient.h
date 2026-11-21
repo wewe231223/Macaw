@@ -7,10 +7,7 @@
 #pragma once
 
 #include "Viewer/FAssetViewer.h"
-
-namespace Viewer {
-    class FAnimationViewerContent;
-}
+#include "Viewer/FAnimationViewerContent.h"
 
 namespace Editor {
 

@@ -8,13 +8,12 @@
 
 #include "Asset/Sequence/FSequenceTrack.h"
 #include "Core/Guid.h"
+#include "Asset/Sequence/FSequencePropertyTrack.h"
+#include "Asset/Sequence/FSequenceTransformTrack.h"
 
 #include <memory>
 
 namespace Asset {
-
-    class FSequencePropertyTrack;
-    class FSequenceTransformTrack;
 
     /**
      * @brief 시퀀스 안에서 애니메이션 대상을 가리키고 트랙을 소유합니다.

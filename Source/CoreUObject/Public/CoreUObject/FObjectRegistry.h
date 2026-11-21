@@ -11,11 +11,10 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "CoreUObject/FObjectHandle.h"
+#include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/UObject.h"
 
 namespace CoreUObject {
-
-    class UObject;
-    class UClass;
 
     /**
      * @brief 프로세스 전역 객체 등록과 슬롯 세대 검사를 통한 핸들 해석을 담당합니다.

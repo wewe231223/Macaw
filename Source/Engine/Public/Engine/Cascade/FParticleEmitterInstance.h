@@ -9,6 +9,10 @@
 #include "Core/Types.h"
 #include "Core/Math/FMatrix.h"
 #include "CoreUObject/TObjectRef.h"
+#include "Engine/Cascade/FBaseParticle.h"
+#include "Engine/Cascade/IParticleEmitterInstanceOwner.h"
+#include "Engine/Cascade/UParticleLODLevel.h"
+#include "Engine/Cascade/UParticleModule.h"
 
 #include <memory>
 
@@ -18,10 +22,6 @@
 namespace Engine {
 
     class UParticleEmitter;
-    class UParticleLODLevel;
-    class UParticleModule;
-    class IParticleEmitterInstanceOwner;
-    struct FBaseParticle;
 
     /**
      * @brief Emitter 정의를 참조하며 파티클 버퍼와 인스턴스별 모듈 페이로드를 소유하는 실행 객체입니다.

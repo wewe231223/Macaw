@@ -11,18 +11,14 @@
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FVector4.h"
 #include "RenderCore/TConstantBuffer.h"
+#include "Engine/FSceneView.h"
+#include "FPassTarget.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <span>
 
-namespace Engine {
-    struct FSceneView;
-}
-
 namespace Renderer {
-
-    struct FPassTarget;
 
     /**
      * @brief 에디터 그리드를 픽셀 셰이더로 그리는 패스의 자원입니다.

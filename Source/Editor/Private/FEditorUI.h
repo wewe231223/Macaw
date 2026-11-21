@@ -7,20 +7,15 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FEditorViewport.h"
+#include "Editor/FPlayInEditorSession.h"
+#include "FLevelEditorToolkit.h"
+#include "Platform/Window.h"
+#include "RenderCore/IRendererModule.h"
 #include <memory>
 
-namespace Platform {
-    class FWindowsApplication;
-}
-namespace RenderCore {
-    class IRendererModule;
-}
-
 namespace Editor {
-    class FEditorContext;
-    class FEditorViewport;
-    class FPlayInEditorSession;
-    class FLevelEditorToolkit;
 
     /**
      * @brief ImGui 컨텍스트와 Win32·D3D11 백엔드를 초기화하고 레벨 편집기 프레임을 구동합니다.

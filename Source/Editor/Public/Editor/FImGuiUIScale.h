@@ -7,12 +7,9 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
+#include "Platform/Window.h"
 
 #include <imgui.h>
-
-namespace Platform {
-    class FWindowsApplication;
-}
 
 namespace Editor {
 

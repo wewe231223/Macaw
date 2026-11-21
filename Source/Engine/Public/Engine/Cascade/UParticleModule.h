@@ -8,16 +8,13 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/UObject.h"
+#include "Core/Archive.h"
+#include "Core/Math/FTransform.h"
+#include "Engine/Cascade/FBaseParticle.h"
 
 #include <cstddef>
 
 #include "UParticleModule.generated.h"
-
-namespace Core {
-    class FArchive;
-}
-
-struct FTransform;
 
 /**
  * @brief 파티클 시스템 정의와 모듈 실행 컨텍스트 및 인스턴스 저장소를 제공합니다.
@@ -27,7 +24,6 @@ namespace Engine {
     class FParticleEmitterInstance;
     class UParticleLODLevel;
     class UParticleModuleTypeDataBase;
-    struct FBaseParticle;
 
     /**
      * @brief 파티클의 생성·갱신 규칙과 추가 페이로드 요구량을 정의하는 UObject입니다.

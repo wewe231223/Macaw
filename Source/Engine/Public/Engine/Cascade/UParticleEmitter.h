@@ -10,21 +10,17 @@
 #include "CoreUObject/TObjectRef.h"
 #include "CoreUObject/UObject.h"
 #include "Engine/Cascade/FParticleEmitterInstance.h"
+#include "Core/Archive.h"
+#include "Engine/Cascade/IParticleEmitterInstanceOwner.h"
+#include "Engine/Cascade/UParticleLODLevel.h"
+#include "Engine/Cascade/UParticleModule.h"
 
 #include <cstddef>
 #include <memory>
 
 #include "UParticleEmitter.generated.h"
 
-namespace Core {
-    class FArchive;
-}
-
 namespace Engine {
-
-    class UParticleLODLevel;
-    class UParticleModule;
-    class IParticleEmitterInstanceOwner;
 
     /**
      * @brief LOD별 모듈 정의와 파티클·인스턴스 페이로드 배치를 소유하는 이미터입니다.

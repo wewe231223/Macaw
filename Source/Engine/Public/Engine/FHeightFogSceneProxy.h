@@ -11,14 +11,10 @@
 #include "Core/Guid.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector4.h"
-
-namespace Asset {
-    class UTexture2D;
-}
+#include "Asset/UTexture2D.h"
+#include "Engine/FPrimitiveSceneProxy.h"
 
 namespace Engine {
-
-    struct FPrimitiveSceneProxy;
 
     /**
      * @brief 컴포넌트에서 렌더 장면으로 복사하는 안개 설정과 에디터 아이콘의 비소유 참조입니다.

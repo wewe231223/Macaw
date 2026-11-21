@@ -12,9 +12,7 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/material.h>
-
-struct aiMesh;
-struct aiNode;
+#include <assimp/scene.h>
 
 namespace Asset {
 

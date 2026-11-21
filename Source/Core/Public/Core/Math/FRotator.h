@@ -8,12 +8,12 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "Core/Math/FVector.h"
 
 #include <xmmintrin.h>
 #include "FRotator.generated.h"
 
 struct FQuat;
-struct FVector;
 
 #pragma warning(push)
 #pragma warning(disable: 4201)

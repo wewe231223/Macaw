@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Core/Math/FMatrix.h"
+#include "Engine/FDrawSprite.h"
+#include "Engine/FSceneView.h"
 
 namespace Engine {
-
-    struct FDrawSprite;
-    struct FSceneView;
 
     /**
      * @brief 렌더링과 피킹이 공유하는 쿼드의 로컬 XY에서 월드로의 행렬을 계산합니다.

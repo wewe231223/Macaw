@@ -10,10 +10,7 @@
 
 #include "Core/Math/FVector.h"
 #include "Core/Math/FRotator.h"
-
-namespace Core {
-    class FArchive;
-}
+#include "Core/Archive.h"
 
 namespace Engine {
 

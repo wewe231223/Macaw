@@ -11,12 +11,12 @@
 #include "Core/Types.h"
 #include "Asset/Animation/UAnimationAsset.h"
 #include "Core/Math/FVector.h"
+#include "Asset/Animation/UAnimSequence.h"
 #include "UBlendSpace.generated.h"
 
 namespace Asset {
 
     class FAssetManager;
-    class UAnimSequence;
 
     /**
      * @brief 블렌드 공간 파라미터를 지정하는 축과 축 개수입니다.

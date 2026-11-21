@@ -8,18 +8,12 @@
 
 #include "Core/Types.h"
 #include "Editor/Widget/FEditorContextWidget.h"
+#include "Engine/Animation/FAnimNode_Base.h"
+#include "Engine/Animation/UAnimInstance.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
 
 #include <unordered_set>
-
-namespace ax::NodeEditor {
-    struct EditorContext;
-}
-
-namespace Engine {
-    class UAnimInstance;
-    class USkeletalMeshComponent;
-    struct FAnimNode_Base;
-}
+#include <imgui_node_editor.h>
 
 namespace Editor {
 

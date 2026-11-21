@@ -8,15 +8,11 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
-
-namespace Core {
-    class FArchive;
-}
+#include "Core/Archive.h"
+#include "Engine/AActor.h"
+#include "Engine/FWorldContext.h"
 
 namespace Engine {
-
-    class FWorldContext;
-    class AActor;
 
     /**
      * @brief 월드 액터와 컴포넌트의 직렬화 및 객체 참조 복원을 담당합니다.

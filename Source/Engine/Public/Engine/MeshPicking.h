@@ -7,13 +7,9 @@
 #pragma once
 
 #include "Core/Types.h"
-
-namespace Asset {
-    struct FMeshData;
-}
-
-struct FMatrix;
-struct FRay;
+#include "Asset/FMeshData.h"
+#include "Core/Math/FMatrix.h"
+#include "Core/Math/FRay.h"
 
 namespace Engine {
 

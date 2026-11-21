@@ -11,19 +11,14 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Core/Math/FVector2.h"
+#include "Asset/FMeshData.h"
+#include "Asset/UStaticMesh.h"
+#include "Core/Math/FBox.h"
+#include "Engine/EPrimitiveType.h"
+#include "Engine/FPrimitiveSceneProxy.h"
 #include "UPrimitiveComponent.generated.h"
 
-namespace Asset {
-    struct FMeshData;
-    class UStaticMesh;
-}
-
-struct FBox;
-
 namespace Engine {
-
-    enum class EPrimitiveType : Uint8;
-    struct FPrimitiveSceneProxy;
 
     /**
      * @brief 장면 프록시 생성과 지연된 렌더 상태 및 변환 갱신을 제공하는 기반 클래스입니다.

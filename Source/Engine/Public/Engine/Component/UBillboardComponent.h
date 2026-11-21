@@ -10,11 +10,8 @@
 
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/FDrawSprite.h"
+#include "Asset/UTexture.h"
 #include "UBillboardComponent.generated.h"
-
-namespace Asset {
-    class UTexture;
-}
 
 namespace Engine {
 

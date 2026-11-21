@@ -7,10 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
 #include "ASkeletalMeshActor.generated.h"
 
 namespace Engine {
-    class USkeletalMeshComponent;
 
     /**
      * @brief 에디터와 씬 직렬화에서 생성할 수 있는 스켈레탈 메시 액터입니다.

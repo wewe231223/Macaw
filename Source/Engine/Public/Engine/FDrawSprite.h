@@ -12,10 +12,7 @@
 
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FVector4.h"
-
-namespace Asset {
-    class UTexture2D;
-}
+#include "Asset/UTexture2D.h"
 
 namespace Engine {
 

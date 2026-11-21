@@ -9,8 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FMatrix.h"
-
-struct FRay;
+#include "Core/Math/FRay.h"
 
 namespace Engine {
 

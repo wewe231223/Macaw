@@ -8,16 +8,14 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Guid.h"
-
-struct FMatrix;
-struct FBox;
+#include "Core/Math/FBox.h"
+#include "Core/Math/FMatrix.h"
+#include "Engine/FDecalSceneProxy.h"
+#include "Engine/FHeightFogSceneProxy.h"
+#include "Engine/FLightSceneProxy.h"
+#include "Engine/FPrimitiveSceneProxy.h"
 
 namespace Engine {
-
-    struct FPrimitiveSceneProxy;
-    struct FLightSceneProxy;
-    struct FHeightFogSceneProxy;
-    struct FDecalSceneProxy;
 
     /**
      * @brief 엔진이 렌더 장면의 프리미티브를 추가, 갱신, 제거하는 추상 인터페이스입니다.

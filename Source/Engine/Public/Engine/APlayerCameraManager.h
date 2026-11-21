@@ -14,12 +14,11 @@
 #include "Engine/EViewTargetBlendFunction.h"
 #include "Engine/FMinimalViewInfo.h"
 #include "Engine/UCameraModifier.h"
+#include "Engine/UCameraShakeModifier.h"
 #include <memory>
 #include "APlayerCameraManager.generated.h"
 
 namespace Engine {
-
-    class UCameraShakeModifier;
 
     /**
      * @brief 뷰 타깃에서 매 프레임 카메라 시점을 계산하고 캐시하는 카메라 관리자입니다.

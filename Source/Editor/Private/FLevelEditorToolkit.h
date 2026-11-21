@@ -17,31 +17,22 @@
 #include "Editor/Widget/FSequencerWidget.h"
 #include "Editor/Widget/FAnimGraphWidget.h"
 #include "FEditorViewportLayout.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FEditorViewport.h"
+#include "Editor/FPlayInEditorSession.h"
+#include "FAssetEditorManager.h"
+#include "FAssetImportController.h"
+#include "FContentBrowserWidget.h"
+#include "FEditorCommands.h"
+#include "FEditorDrawerManager.h"
+#include "FEditorSettings.h"
+#include "FEditorShell.h"
+#include "FEditorWorkspace.h"
+#include "Platform/Window.h"
+#include "RenderCore/IRendererModule.h"
 #include <memory>
-
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
-
-namespace Editor {
-    class FEditorContext;
-    class FEditorViewport;
-    class FPlayInEditorSession;
-    class FEditorAssetCatalog;
-    class FAssetThumbnailCache;
-    class FEditorDrawerManager;
-    class FEditorCommands;
-    class FEditorWorkspace;
-    class FEditorSettings;
-    class FEditorShell;
-    class FAssetImportController;
-    class FContentBrowserWidget;
-    class FAssetEditorManager;
-}
 
 namespace Editor {
     /**

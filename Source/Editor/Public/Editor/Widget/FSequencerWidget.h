@@ -11,16 +11,10 @@
 #include "CoreUObject/TObjectRef.h"
 #include "Editor/Widget/FEditorContextWidget.h"
 #include "Engine/Sequence/FSequencePlayer.h"
-
-namespace Asset {
-    class FSequenceBinding;
-    class FSequenceChannel;
-    class ULevelSequence;
-}
-
-namespace Engine {
-    class ALevelSequenceActor;
-}
+#include "Asset/Sequence/FSequenceBinding.h"
+#include "Asset/Sequence/FSequenceChannel.h"
+#include "Asset/Sequence/ULevelSequence.h"
+#include "Engine/ALevelSequenceActor.h"
 
 namespace Editor {
 

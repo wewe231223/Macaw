@@ -8,11 +8,10 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/AActor.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 #include "AStaticMeshActor.generated.h"
 
 namespace Engine {
-
-    class UStaticMeshComponent;
 
     /**
      * @brief 기본 UStaticMeshComponent를 생성하는 프리미티브 액터입니다.

@@ -10,13 +10,13 @@
 
 #include "Asset/Animation/UAnimGraph.h"
 #include "Engine/Animation/UAnimInstance.h"
+#include "Engine/Animation/FAnimGraphNodeRegistry.h"
+#include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
+#include "Engine/Animation/FAnimValueNode.h"
 
 #include <memory>
 
 namespace Engine {
-    struct FAnimNode_AssetPlayerBase;
-    struct FAnimValueNode_Base;
-    struct FAnimGraphNodeBuildContext;
 
     /**
      * @brief 그래프 에셋의 변수 하나가 실행 중에 갖는 값입니다.

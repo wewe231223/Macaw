@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/UPointLightComponent.h"
 #include "APointLightActor.generated.h"
 
 namespace Engine {
-
-    class UPointLightComponent;
 
     /**
      * @brief 점광원 컴포넌트를 기본으로 생성하는 액터입니다.

@@ -12,16 +12,10 @@
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
 #include "Editor/FImGuiUIScale.h"
+#include "Asset/FAssetManager.h"
+#include "Editor/FMeshViewer.h"
 
 #include <filesystem>
-
-namespace Asset {
-    class FAssetManager;
-}
-
-namespace Editor {
-    class FMeshViewer;
-}
 
 namespace App {
 

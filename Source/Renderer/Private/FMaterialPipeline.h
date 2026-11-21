@@ -8,13 +8,12 @@
 
 #include "EMeshPass.h"
 #include "RenderCore/Shader/UShader.h"
+#include "FShaderInstance.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 
 namespace Renderer {
-
-    class FShaderInstance;
 
     /**
      * @brief 머티리얼 셰이더와 양면 정책별 GPU 파이프라인을 관리합니다.

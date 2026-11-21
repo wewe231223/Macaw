@@ -9,12 +9,9 @@
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 #include "Asset/FAssetFile.h"
+#include "Asset/FAssetManager.h"
 
 #include <optional>
-
-namespace Asset {
-    class FAssetManager;
-}
 
 namespace Editor {
 

@@ -8,10 +8,7 @@
 
 #include "Asset/Sequence/ESequenceTrackType.h"
 #include "Core/ReflectionMacros.h"
-
-namespace Core {
-    class FArchive;
-}
+#include "Core/Archive.h"
 
 namespace Asset {
 

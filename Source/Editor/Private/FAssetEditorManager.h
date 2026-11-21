@@ -12,25 +12,19 @@
 #include "Editor/FEditorTabManager.h"
 #include "Editor/Widget/FEditorContentWidget.h"
 #include "NativeIDE/FIDEContent.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FEditorToolkitHost.h"
+#include "FAssetEditorToolkit.h"
+#include "FEditorCommands.h"
+#include "FEditorWorkspace.h"
+#include "Platform/Window.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string_view>
-
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace Editor {
-    class FAssetEditorToolkit;
-    class FEditorContext;
-    class FEditorAssetCatalog;
-    class FAssetThumbnailCache;
-    class FEditorWorkspace;
-    class FEditorCommands;
-    class FEditorToolkitHost;
-}
 
 namespace Editor {
     /**

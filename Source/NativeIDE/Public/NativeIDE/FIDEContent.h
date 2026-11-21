@@ -14,9 +14,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-struct ImFont;
-class TextEditor;
+#include <imgui.h>
+#include <ImGuiColorTextEdit/TextEditor.h>
 
 namespace NativeIDE {
     class FSourceIntellisense;

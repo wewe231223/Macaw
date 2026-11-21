@@ -7,10 +7,7 @@
 #pragma once
 
 #include "Asset/Sequence/FSequenceKey.h"
-
-namespace Core {
-    class FArchive;
-}
+#include "Core/Archive.h"
 
 namespace Asset {
 

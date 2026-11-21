@@ -9,12 +9,12 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "CoreUObject/UObject.h"
+#include "Engine/FMinimalViewInfo.h"
 #include "UCameraModifier.generated.h"
 
 namespace Engine {
 
     class APlayerCameraManager;
-    struct FMinimalViewInfo;
 
     /**
      * @brief 카메라 관리자가 확정한 시점을 그리기 직전에 고치는 카메라 모디파이어의 기반 클래스입니다.

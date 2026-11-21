@@ -7,20 +7,14 @@
 #pragma once
 
 #include "Platform/Window.h"
+#include "Engine/FGameViewportClient.h"
+#include "Engine/FSceneViewport.h"
+#include "RenderCore/IRendererModule.h"
 
 #include <d3d11.h>
 #include <dxgi.h>
 #include <memory>
 #include <wrl/client.h>
-
-namespace Engine {
-    class FGameViewportClient;
-    class FSceneViewport;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
 
 namespace Editor {
 

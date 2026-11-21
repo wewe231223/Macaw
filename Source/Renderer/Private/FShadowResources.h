@@ -21,12 +21,11 @@
 #include "RenderCore/FShadowSettings.h"
 #include "RenderCore/TConstantBuffer.h"
 #include "RenderCore/TStructuredBuffer.h"
+#include "FScene.h"
 
 #include <span>
 
 namespace Renderer {
-
-    class FScene;
 
     /**
      * @brief 그림자 샘플링에 필요한 광원 행렬과 아틀라스·캐스케이드 정보입니다.

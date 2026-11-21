@@ -13,23 +13,15 @@
 #include "Engine/EWorldType.h"
 #include "Engine/FWorldHandle.h"
 #include "PhysicsRuntime/FPhysicsRuntime.h"
+#include "CoreUObject/FObjectDuplicationContext.h"
+#include "Engine/AActor.h"
+#include "Engine/FProject.h"
+#include "Engine/FWorldContext.h"
+#include "Engine/UWorld.h"
+#include "RenderCore/IRendererModule.h"
 #include "Engine.generated.h"
 
-namespace CoreUObject {
-    class FObjectDuplicationContext;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
-
 namespace Engine {
-
-    class AActor;
-
-    class UWorld;
-    class FProject;
-    class FWorldContext;
 
     /**
      * @brief 현재 월드 컨텍스트와 렌더러 연결 및 월드 교체를 관리합니다.

@@ -10,11 +10,10 @@
 
 #include "Core/Types.h"
 #include "Engine/Component/UActorComponent.h"
+#include "Engine/Component/UPrimitiveComponent.h"
 #include "USubUVComponent.generated.h"
 
 namespace Engine {
-
-    class UPrimitiveComponent;
 
     /**
      * @brief 같은 액터의 스프라이트 또는 메시 UV를 등록 직후부터 격자 프레임으로 재생합니다.

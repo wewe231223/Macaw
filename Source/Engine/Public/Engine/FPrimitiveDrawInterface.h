@@ -11,8 +11,7 @@
 #include "Engine/FDrawMesh.h"
 #include "Engine/FDrawText.h"
 #include "Engine/FPrimitiveSceneProxy.h"
-
-struct FBox;
+#include "Core/Math/FBox.h"
 
 namespace Engine {
 

@@ -16,10 +16,7 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/FHitProxy.h"
 #include "Editor/FGizmoSettings.h"
-
-namespace Engine {
-    class AActor;
-}
+#include "Engine/AActor.h"
 
 namespace Editor {
 

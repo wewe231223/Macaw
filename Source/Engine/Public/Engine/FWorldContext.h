@@ -10,10 +10,10 @@
 #include "Engine/EWorldType.h"
 #include "Engine/FWorldHandle.h"
 #include "Engine/FEditorCameraState.h"
+#include "Engine/UWorld.h"
 
 namespace Engine {
 
-    class UWorld;
     class UEngine;
 
     /**

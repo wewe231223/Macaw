@@ -14,14 +14,10 @@
 #include "Core/Math/FVector4.h"
 #include "Engine/ELightType.h"
 #include "Engine/EShadowBiasPreset.h"
-
-namespace Asset {
-    class UTexture2D;
-}
+#include "Asset/UTexture2D.h"
+#include "Engine/FPrimitiveSceneProxy.h"
 
 namespace Engine {
-
-    struct FPrimitiveSceneProxy;
 
     /**
      * @brief 렌더 장면에 복사하는 광원 상태와 에디터 아이콘의 비소유 참조입니다.

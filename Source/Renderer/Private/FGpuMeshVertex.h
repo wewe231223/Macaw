@@ -8,13 +8,10 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "Asset/FMeshVertex.h"
 
 #include <cstddef>
 #include <type_traits>
-
-namespace Asset {
-    struct FMeshVertex;
-}
 
 namespace Renderer {
 

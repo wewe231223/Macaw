@@ -12,6 +12,8 @@
 #include "Core/ReflectionMacros.h"
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/Shader/FShaderDescription.h"
+#include "Core/Math/FVector2.h"
+#include "Core/Math/FVector4.h"
 
 namespace Asset {
     struct FMeshData;
@@ -25,9 +27,6 @@ namespace Engine {
 
     enum class EPrimitiveType : Uint8;
 }
-
-struct FVector2;
-struct FVector4;
 
 namespace RenderCore {
 

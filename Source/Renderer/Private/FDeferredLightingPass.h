@@ -9,18 +9,14 @@
 #include "Core/Math/FMatrix.h"
 #include "RenderCore/TConstantBuffer.h"
 #include "Core/Types.h"
+#include "Engine/FSceneViewFamily.h"
+#include "FPassTarget.h"
+#include "RenderTarget.h"
 
 #include <span>
 #include <wrl/client.h>
 
-namespace Engine {
-    struct FSceneViewFamily;
-}
-
 namespace Renderer {
-
-    class FDXRenderTarget;
-    struct FPassTarget;
 
     /**
      * @brief GBuffer를 읽어 조명 결과 또는 선택한 버퍼 시각화를 출력합니다.

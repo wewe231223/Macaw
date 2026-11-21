@@ -10,10 +10,9 @@
 #include "Core/Input.h"
 #include "Engine/FWorldHandle.h"
 #include "Engine/FSceneView.h"
+#include "Engine/Engine.h"
 
 namespace Engine {
-
-    class UEngine;
 
     /**
      * @brief 실행 월드의 활성 카메라 선택과 입력·뷰포트 갱신를 담당합니다.

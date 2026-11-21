@@ -15,15 +15,14 @@
 #include "CoreUObject/UObject.h"
 #include "Core/Math/FVector4.h"
 #include "RenderCore/TConstantBuffer.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UTexture2D.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "UMaterial.generated.h"
 
 namespace Asset {
-
-    class FAssetManager;
-    class UTexture2D;
 
     /**
      * @brief 셰이더 참조·기본색·텍스처·양면 정책과 GPU 상수를 관리합니다.

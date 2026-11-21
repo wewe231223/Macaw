@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/UDirectionalLightComponent.h"
 #include "ADirectionalLightActor.generated.h"
 
 namespace Engine {
-
-    class UDirectionalLightComponent;
 
     /**
      * @brief 방향광 컴포넌트를 기본으로 생성하는 액터입니다.

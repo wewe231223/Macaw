@@ -11,15 +11,12 @@
 #include "Core/Math/FMatrix.h"
 #include "RenderCore/TConstantBuffer.h"
 #include "RenderCore/TVertexBuffer.h"
+#include "Engine/FDrawText.h"
+#include "Engine/FSceneView.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <span>
-
-namespace Engine {
-    struct FDrawText;
-    struct FSceneView;
-}
 
 namespace Renderer {
 

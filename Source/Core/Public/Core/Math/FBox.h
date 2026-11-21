@@ -8,10 +8,9 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FVector.h"
+#include "Core/Math/FMatrix.h"
+#include "Core/Math/FRay.h"
 #include "FBox.generated.h"
-
-struct FRay;
-struct FMatrix;
 
 /**
  * @brief 최솟값과 최댓값으로 정의하는 축 정렬 경계 상자입니다.

@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/UDecalComponent.h"
 #include "ADecalActor.generated.h"
 
 namespace Engine {
-
-    class UDecalComponent;
 
     /**
      * @brief 데칼 컴포넌트를 루트로 소유하는 장면 액터입니다.

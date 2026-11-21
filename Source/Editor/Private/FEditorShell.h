@@ -8,31 +8,22 @@
 
 #include "Editor/FConsoleCommandInput.h"
 #include "Editor/Widget/FEditorButtonWidget.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FEditorTabManager.h"
+#include "Editor/FEditorViewport.h"
+#include "Editor/FImGuiUIScale.h"
+#include "Editor/FPlayInEditorSession.h"
+#include "FAssetEditorManager.h"
+#include "FAssetImportController.h"
+#include "FEditorCommands.h"
+#include "FEditorDrawerManager.h"
+#include "FEditorSettings.h"
+#include "FEditorViewportLayout.h"
+#include "FEditorWorkspace.h"
+#include "Platform/Window.h"
+#include "RenderCore/IRendererModule.h"
 #include <wrl/client.h>
-
-struct ID3D11ShaderResourceView;
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
-
-namespace Editor {
-    class FEditorContext;
-    class FEditorViewport;
-    class FPlayInEditorSession;
-    class FEditorViewportLayout;
-    class FEditorTabManager;
-    class FEditorWorkspace;
-    class FEditorSettings;
-    class FEditorDrawerManager;
-    class FEditorCommands;
-    class FAssetImportController;
-    class FAssetEditorManager;
-    class FImGuiUIScale;
-}
+#include <d3d11.h>
 
 namespace Editor {
 

@@ -10,26 +10,17 @@
 #include "Viewer/FPreviewScene.h"
 #include "Core/Math/FBox.h"
 #include "CoreUObject/TObjectRef.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
+#include "Engine/Animation/UAnimSingleNodeInstance.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
+#include "Engine/FWorldContext.h"
+#include "Engine/UWorld.h"
+#include "RenderCore/IRendererModule.h"
 
 #include <memory>
-
-namespace Asset {
-    class FAssetManager;
-    class UAnimSequence;
-    class USkeletalMesh;
-    class USkeleton;
-}
-
-namespace Engine {
-    class FWorldContext;
-    class UWorld;
-    class USkeletalMeshComponent;
-    class UAnimSingleNodeInstance;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
 
 namespace Viewer {
 

@@ -7,10 +7,9 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
+#include "CoreUObject/Reflection/FProperty.h"
 
 namespace CoreUObject {
-
-    class FProperty;
 
     /**
      * @brief 에디터에서 변경한 프로퍼티와 연속 편집 여부를 전달합니다.

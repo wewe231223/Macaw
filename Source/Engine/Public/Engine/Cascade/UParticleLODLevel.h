@@ -9,20 +9,16 @@
 #include "Core/Types.h"
 #include "CoreUObject/TObjectRef.h"
 #include "CoreUObject/UObject.h"
+#include "Core/Archive.h"
+#include "Engine/Cascade/UParticleModule.h"
+#include "Engine/Cascade/UParticleModuleRequired.h"
 
 #include <cstddef>
 #include <memory>
 
 #include "UParticleLODLevel.generated.h"
 
-namespace Core {
-    class FArchive;
-}
-
 namespace Engine {
-
-    class UParticleModule;
-    class UParticleModuleRequired;
 
     /**
      * @brief 하나의 LOD에서 필수 모듈과 실행 단계별 파티클 모듈을 소유합니다.

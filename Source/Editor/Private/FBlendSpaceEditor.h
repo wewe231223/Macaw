@@ -8,21 +8,16 @@
 
 #include "Core/Types.h"
 #include "Editor/FAssetPicker.h"
+#include "Asset/Animation/UBlendSpace.h"
+#include "Asset/FAssetManager.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FEditorTab.h"
 
 #include <filesystem>
 #include <memory>
 
-namespace Asset {
-    class FAssetManager;
-    class UBlendSpace;
-}
-
 namespace Editor {
-
-    class FEditorTab;
-
-    class FAssetThumbnailCache;
-    class FEditorAssetCatalog;
 
     /**
      * @brief 블렌드 스페이스 하나를 편집 사본으로 열어 축 범위와 샘플(시퀀스·위치)을 편집하고 저장합니다.

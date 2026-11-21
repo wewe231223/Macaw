@@ -9,10 +9,9 @@
 #include "Core/Math/FQuat.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector2.h"
+#include "Engine/FSceneView.h"
 
 namespace Engine {
-
-    struct FSceneView;
 
     /**
      * @brief 한 프레임의 카메라 위치·회전·시야각입니다.

@@ -7,20 +7,17 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Editor/FEditorTab.h"
+#include "Editor/FEditorTabManager.h"
+#include "Editor/FImGuiUIScale.h"
+#include "Editor/Panel/FEditorPanel.h"
+#include "Editor/Widget/FEditorWidget.h"
+#include "FEditorWorkspace.h"
+#include "Serialization/JsonArchive.h"
 #include <functional>
 #include <memory>
 
-namespace Serialization {
-    class FJsonArchive;
-}
-
 namespace Editor {
-    class FEditorWidget;
-    class FEditorPanel;
-    class FEditorTab;
-    class FEditorTabManager;
-    class FImGuiUIScale;
-    class FEditorWorkspace;
 
     /**
      * @brief 하단 드로어의 열기·닫기·애니메이션과 도킹 전환 및 설정을 관리합니다.

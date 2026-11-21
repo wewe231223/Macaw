@@ -9,17 +9,11 @@
 #include "Editor/FEditorViewportClient.h"
 #include "Core/Input.h"
 #include "Editor/FViewportStatistics.h"
+#include "Engine/FRenderTarget.h"
+#include "Engine/FSceneViewport.h"
+#include "RenderCore/IRendererModule.h"
 
 #include <functional>
-
-namespace Engine {
-    class FSceneViewport;
-    class FRenderTarget;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
 
 namespace Editor {
 

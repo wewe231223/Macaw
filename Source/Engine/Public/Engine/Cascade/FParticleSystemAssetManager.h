@@ -7,17 +7,13 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Asset/FAssetManager.h"
+#include "Engine/Cascade/UParticleSystem.h"
 
 #include <filesystem>
 #include <memory>
 
-namespace Asset {
-    class FAssetManager;
-}
-
 namespace Engine {
-
-    class UParticleSystem;
 
     /**
      * @brief 파티클 시스템 에셋의 로드 캐시와 참조 머티리얼 해석을 관리합니다.

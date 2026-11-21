@@ -12,13 +12,10 @@
 #include "Core/Math/FVector4.h"
 #include "Asset/UTexture2D.h"
 #include "RenderCore/TConstantBuffer.h"
+#include "Engine/FPrimitiveSceneProxy.h"
+#include "Engine/FSceneView.h"
 
 #include <span>
-
-namespace Engine {
-    struct FPrimitiveSceneProxy;
-    struct FSceneView;
-}
 
 namespace Renderer {
 

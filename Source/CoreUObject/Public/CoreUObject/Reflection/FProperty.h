@@ -11,17 +11,14 @@
 #include "CoreUObject/Reflection/EPropertyType.h"
 #include "Core/Reflection/EPropertyFlags.h"
 #include "CoreUObject/Reflection/FEnumValue.h"
+#include "Core/Archive.h"
+#include "CoreUObject/Reflection/FNativeType.h"
 
 #include <string_view>
-
-namespace Core {
-    class FArchive;
-}
 
 namespace CoreUObject {
 
     class UStruct;
-    struct FNativeType;
     struct FArrayOps;
 
     /**

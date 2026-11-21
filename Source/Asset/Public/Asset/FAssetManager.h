@@ -13,15 +13,14 @@
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Core/ReflectionMacros.h"
+#include "Asset/Animation/UAnimGraph.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "Asset/Animation/UBlendSpace.h"
+#include "Asset/Sequence/ULevelSequence.h"
+#include "Asset/USkeleton.h"
 
 #include <filesystem>
 #include <memory>
-
-namespace CoreUObject {
-
-    class UObject;
-
-}
 
 namespace RenderCore {
     class UShader;
@@ -31,13 +30,8 @@ namespace Asset {
 
     class UStaticMesh;
     class USkeletalMesh;
-    class USkeleton;
     class UTexture2D;
     class UMaterial;
-    class ULevelSequence;
-    class UAnimSequence;
-    class UBlendSpace;
-    class UAnimGraph;
 
     /**
      * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시를 담당합니다.

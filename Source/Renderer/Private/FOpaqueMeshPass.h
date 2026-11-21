@@ -9,14 +9,10 @@
 #include "CoreUObject/TObjectRef.h"
 
 #include "FMeshPass.h"
-
-namespace Asset {
-    class UMaterial;
-}
+#include "Asset/UMaterial.h"
+#include "FMaterialPipeline.h"
 
 namespace Renderer {
-
-    class FMaterialPipeline;
 
     /**
      * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록하는 메시 패스입니다.

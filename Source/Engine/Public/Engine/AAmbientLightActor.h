@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/UAmbientLightComponent.h"
 #include "AAmbientLightActor.generated.h"
 
 namespace Engine {
-
-    class UAmbientLightComponent;
 
     /**
      * @brief 환경광 컴포넌트를 기본으로 생성하는 액터입니다.

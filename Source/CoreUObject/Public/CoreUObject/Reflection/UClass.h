@@ -9,10 +9,9 @@
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/Reflection/UStruct.h"
 #include "CoreUObject/Reflection/EClassFlags.h"
+#include "CoreUObject/UObject.h"
 
 namespace CoreUObject {
-
-    class UObject;
 
     /**
      * @brief UObject 상속 관계, 팩터리와 상속된 프로퍼티를 기술하는 메타데이터입니다.

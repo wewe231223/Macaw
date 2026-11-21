@@ -9,12 +9,12 @@
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include "Engine/Tick/FTickFunction.h"
+#include "Engine/UWorld.h"
 #include "UActorComponent.generated.h"
 
 namespace Engine {
 
     class AActor;
-    class UWorld;
 
     /**
      * @brief 소유 액터와 월드 등록 수명을 갖는 컴포넌트의 기반 클래스입니다.

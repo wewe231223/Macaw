@@ -9,12 +9,9 @@
 #include "Core/ReflectionMacros.h"
 
 #include "Core/Math/FVector4.h"
+#include "Engine/FDrawLine.h"
 
 #include <type_traits>
-
-namespace Engine {
-    struct FDrawLine;
-}
 
 namespace Renderer {
 

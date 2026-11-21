@@ -15,19 +15,14 @@
 #include "Engine/FEngineShowFlags.h"
 #include "Engine/FEditorCameraState.h"
 #include "Core/Types.h"
+#include "Core/Math/FBox.h"
+#include "Editor/FEditorContext.h"
+#include "Engine/AActor.h"
+#include "Engine/Component/UPrimitiveComponent.h"
 
 #include <filesystem>
 
-namespace Engine {
-    class AActor;
-    class UPrimitiveComponent;
-}
-
-struct FBox;
-
 namespace Editor {
-
-    class FEditorContext;
 
     /**
      * @brief 에디터 카메라, 선택, 변환 도구 상태와 공통 명령을 관리하고 기즈모 입력 및 장면 뷰 생성을 담당합니다.

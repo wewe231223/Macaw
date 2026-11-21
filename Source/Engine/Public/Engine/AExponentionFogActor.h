@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/UHeightFogComponent.h"
 #include "AExponentionFogActor.generated.h"
 
 namespace Engine {
-
-    class UHeightFogComponent;
 
     /**
      * @brief 높이 기반 지수 안개 컴포넌트를 루트로 생성하여 에디터에서 배치하는 액터입니다.

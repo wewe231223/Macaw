@@ -8,12 +8,12 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "Core/Math/FVector.h"
 
 #include <xmmintrin.h>
 #include "FVector4.generated.h"
 
 struct FMatrix;
-struct FVector;
 
 #pragma warning(push)
 #pragma warning(disable: 4201)

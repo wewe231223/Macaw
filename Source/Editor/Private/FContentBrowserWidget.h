@@ -9,29 +9,20 @@
 #include "Editor/Widget/FEditorContextWidget.h"
 #include "Asset/FAssetFile.h"
 #include "Core/Types.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FImGuiUIScale.h"
+#include "FAssetEditorManager.h"
+#include "FAssetImportController.h"
+#include "FEditorWorkspace.h"
+#include "Platform/Window.h"
+#include "RenderCore/IRendererModule.h"
 #include <filesystem>
 #include <functional>
 #include <optional>
 #include <string_view>
 #include <wrl/client.h>
-
-struct ID3D11ShaderResourceView;
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
-
-namespace Editor {
-    class FEditorAssetCatalog;
-    class FAssetThumbnailCache;
-    class FImGuiUIScale;
-    class FEditorWorkspace;
-    class FAssetImportController;
-    class FAssetEditorManager;
-}
+#include <d3d11.h>
 
 namespace Editor {
 

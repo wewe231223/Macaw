@@ -9,6 +9,7 @@
 #include "Core/Types.h"
 #include "Editor/EEditorIcon.h"
 #include "Core/Math/FVector2.h"
+#include "Editor/Widget/FEditorWidget.h"
 
 #include <functional>
 #include <memory>
@@ -16,7 +17,6 @@
 
 namespace Editor {
 
-    class FEditorWidget;
     class FEditorToolkitHost;
 
     /**

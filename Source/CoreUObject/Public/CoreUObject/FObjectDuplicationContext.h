@@ -8,10 +8,9 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "CoreUObject/UObject.h"
 
 namespace CoreUObject {
-
-    class UObject;
 
     /**
      * @brief 복제 직후 참조 재연결에 사용할 원본과 복제본의 대응표입니다.

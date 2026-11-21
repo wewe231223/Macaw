@@ -11,9 +11,9 @@
 #include "Core/Math/FVector.h"
 #include "Core/Math/FRotator.h"
 #include "Core/Math/FQuat.h"
+#include "Core/Math/FVector4.h"
 
 struct FTransform;
-struct FVector4;
 
 /**
  * @brief 행 벡터 변환 규약을 사용하는 16바이트 정렬 4×4 행렬입니다.

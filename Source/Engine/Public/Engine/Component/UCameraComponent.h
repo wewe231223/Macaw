@@ -7,14 +7,12 @@
 #pragma once
 
 #include "Engine/Component/USceneComponent.h"
+#include "Core/Math/FVector2.h"
+#include "Engine/FMinimalViewInfo.h"
+#include "Engine/FSceneView.h"
 #include "UCameraComponent.generated.h"
 
-struct FVector2;
-
 namespace Engine {
-
-    struct FSceneView;
-    struct FMinimalViewInfo;
 
     /**
      * @brief 시야각 설정과 월드 변환으로부터 카메라 뷰 생성을 담당합니다.

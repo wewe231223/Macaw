@@ -8,18 +8,12 @@
 
 #include "Core/Types.h"
 #include "FMessageBox.h"
+#include "Editor/FEditorContext.h"
+#include "Editor/FPlayInEditorSession.h"
+#include "FEditorViewportLayout.h"
+#include "Platform/Window.h"
 #include <filesystem>
 #include <functional>
-
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace Editor {
-    class FEditorContext;
-    class FPlayInEditorSession;
-    class FEditorViewportLayout;
-}
 
 namespace Editor {
 

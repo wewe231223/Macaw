@@ -18,14 +18,11 @@
 #include "Engine/FViewportInput.h"
 #include "Engine/FHitProxy.h"
 #include "Editor/FGizmoCore.h"
-
-namespace Engine {
-    class USceneComponent;
-}
+#include "Editor/FEditorContext.h"
+#include "Engine/Component/USceneComponent.h"
 
 namespace Editor {
 
-    class FEditorContext;
     class FEditorViewportClient;
 
     /**

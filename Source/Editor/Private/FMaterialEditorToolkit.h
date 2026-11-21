@@ -11,16 +11,10 @@
 #include "Editor/FAssetPicker.h"
 #include "Engine/EPrimitiveType.h"
 #include "Viewer/FAssetViewer.h"
-
-namespace Asset {
-    class UMaterial;
-}
-
-namespace Editor {
-    class FEditorContext;
-    class FEditorAssetCatalog;
-    class FAssetThumbnailCache;
-}
+#include "Asset/UMaterial.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FEditorContext.h"
 
 namespace Editor {
 

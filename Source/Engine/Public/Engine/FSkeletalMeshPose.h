@@ -10,11 +10,8 @@
 #include "Asset/FMeshData.h"
 #include "Core/FRevision.h"
 #include "Core/Math/FMatrix.h"
-
-namespace Asset {
-    class USkeletalMesh;
-    class USkeleton;
-}
+#include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
 
 namespace Engine {
 

@@ -7,10 +7,9 @@
 #pragma once
 
 #include "Asset/FAssetManager.h"
+#include "Engine/Cascade/FParticleSystemAssetManager.h"
 
 namespace Engine {
-
-    class FParticleSystemAssetManager;
 
     /**
      * @brief 프로젝트 설정 파일, 시작 장면과 에셋 관리를 담당합니다.

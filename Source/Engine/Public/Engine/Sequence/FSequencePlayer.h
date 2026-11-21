@@ -10,18 +10,14 @@
 #include "CoreUObject/TObjectRef.h"
 #include "Engine/Sequence/ESequencePlayState.h"
 #include "Engine/Sequence/FSequenceBindingTarget.h"
-
-namespace Asset {
-    class FSequenceBinding;
-    class ULevelSequence;
-}
+#include "Asset/Sequence/FSequenceBinding.h"
+#include "Asset/Sequence/ULevelSequence.h"
+#include "Engine/AActor.h"
+#include "Engine/Component/UCameraComponent.h"
+#include "Engine/Component/USceneComponent.h"
+#include "Engine/UWorld.h"
 
 namespace Engine {
-
-    class UWorld;
-    class AActor;
-    class USceneComponent;
-    class UCameraComponent;
 
     /**
      * @brief 시퀀스의 시간을 진행하고 월드 객체에 값을 적용합니다.

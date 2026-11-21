@@ -10,25 +10,17 @@
 
 #include "Core/Types.h"
 #include "Editor/FAssetPicker.h"
+#include "Asset/Animation/UAnimGraph.h"
+#include "Asset/FAssetManager.h"
+#include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FEditorTab.h"
 
 #include <filesystem>
 #include <memory>
-
-namespace ax::NodeEditor {
-    struct EditorContext;
-}
-
-namespace Asset {
-    class FAssetManager;
-    class UAnimGraph;
-}
+#include <imgui_node_editor.h>
 
 namespace Editor {
-
-    class FEditorTab;
-
-    class FAssetThumbnailCache;
-    class FEditorAssetCatalog;
 
     /**
      * @brief 언리얼 AnimGraph 편집기처럼 노드를 배치하고 포즈 핀을 연결해 그래프 에셋을 만듭니다.

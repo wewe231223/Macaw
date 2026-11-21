@@ -14,22 +14,18 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/UObject.h"
+#include "Core/Archive.h"
+#include "Engine/Cascade/UParticleEmitter.h"
 
 #include <cstddef>
 #include <memory>
 
 #include "UParticleSystem.generated.h"
 
-namespace Core {
-    class FArchive;
-}
-
 /**
  * @brief 파티클 시스템 정의와 모듈 실행 컨텍스트 및 인스턴스 저장소를 제공합니다.
  */
 namespace Engine {
-
-    class UParticleEmitter;
 
     /**
      * @brief Emitter 정의들을 소유하며 파티클 시스템 구성을 직렬화하는 UObject입니다.

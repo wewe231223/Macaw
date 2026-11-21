@@ -14,38 +14,30 @@
 #include "Engine/EWorldPlayState.h"
 #include "Engine/FWorldHandle.h"
 #include "Engine/Tick/FTickTaskManager.h"
+#include "Asset/FAssetManager.h"
+#include "Core/Input.h"
+#include "Core/Math/FRay.h"
+#include "Core/Math/FVector.h"
+#include "Engine/EPrimitiveType.h"
+#include "Engine/FSceneInterface.h"
+#include "Engine/ULevel.h"
 #include "PhysicsRuntime/FPhysicsScene.h"
 #include "UWorld.generated.h"
 
-namespace Asset {
-    class FAssetManager;
-}
-
-struct FRay;
-struct FVector;
-
-namespace Core {
-    class FInput;
-}
-
 namespace Engine {
 
-    class ULevel;
     class AActor;
     class UEngine;
     class FWorldContext;
     class FLuaRuntime;
     class ULuaScriptComponent;
     struct FHitResult;
-    class FSceneInterface;
     class AStaticMeshActor;
     class UCameraComponent;
     class UPrimitiveComponent;
     class UShapeComponent;
     class APlayerCameraManager;
     struct FWorldHit;
-
-    enum class EPrimitiveType : Uint8;
 
     /**
      * @brief 영속 레벨, 렌더 장면과 프레임 말 컴포넌트 갱신을 관리합니다.

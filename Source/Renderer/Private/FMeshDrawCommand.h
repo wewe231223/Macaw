@@ -8,18 +8,15 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
-
-namespace Asset {
-    class UMaterial;
-    class UStaticMesh;
-}
+#include "Asset/UMaterial.h"
+#include "Asset/UStaticMesh.h"
+#include "FMaterialPipeline.h"
+#include "FScenePrimitive.h"
+#include "Renderer/Renderer.h"
 
 namespace Renderer {
 
-    class FRenderer;
     class FMeshPass;
-    class FMaterialPipeline;
-    struct FScenePrimitive;
 
     /**
      * @brief 파이프라인·머티리얼·메시·객체 상수 버퍼의 비소유 드로 묶음입니다.

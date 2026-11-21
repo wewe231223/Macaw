@@ -7,10 +7,7 @@
 #pragma once
 
 #include "Core/Types.h"
-
-namespace CoreUObject {
-    class UObject;
-}
+#include "CoreUObject/UObject.h"
 
 namespace Editor {
 

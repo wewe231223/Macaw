@@ -10,16 +10,12 @@
 #include "Core/Types.h"
 #include "Editor/FImGuiUIScale.h"
 #include "Editor/FProjectTemplatePicker.h"
+#include "Platform/Window.h"
 
 #include <filesystem>
 #include <vector>
 #include <wrl/client.h>
-
-struct ID3D11ShaderResourceView;
-
-namespace Platform {
-    class FWindowsApplication;
-}
+#include <d3d11.h>
 
 namespace Renderer {
     class FRenderer;

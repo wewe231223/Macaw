@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "Engine/Component/USpotLightComponent.h"
 #include "ASpotLightActor.generated.h"
 
 namespace Engine {
-
-    class USpotLightComponent;
 
     /**
      * @brief 스포트라이트 컴포넌트를 기본으로 생성하는 액터입니다.

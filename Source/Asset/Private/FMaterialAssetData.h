@@ -11,15 +11,11 @@
 #include "Asset/EBlendMode.h"
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FVector4.h"
-
-namespace Serialization {
-    class FMemoryArchive;
-}
+#include "Asset/FAssetManager.h"
+#include "Asset/UMaterial.h"
+#include "Serialization/MemoryArchive.h"
 
 namespace Asset {
-
-    class FAssetManager;
-    class UMaterial;
 
     /**
      * @brief 재질의 저장 가능한 설정을 보관하고 직렬화·참조 검증·런타임 재질 적용을 처리합니다.

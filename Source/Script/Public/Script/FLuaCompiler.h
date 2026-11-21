@@ -3,8 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
-
-struct lua_State;
+#include <luajit/lua.hpp>
 
 namespace Script {
     class FLuaCompiler {

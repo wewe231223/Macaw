@@ -10,19 +10,15 @@
 #include "Core/Math/FVector4.h"
 #include "RenderCore/TConstantBuffer.h"
 #include "Core/Types.h"
+#include "Engine/FDecalSceneProxy.h"
+#include "Engine/FSceneViewFamily.h"
+#include "RenderTarget.h"
 
 #include <d3d11.h>
 #include <span>
 #include <wrl/client.h>
 
-namespace Engine {
-    struct FDecalSceneProxy;
-    struct FSceneViewFamily;
-}
-
 namespace Renderer {
-
-    class FDXRenderTarget;
 
     /**
      * @brief 깊이로 복원한 표면에 데칼을 투영하고 GBuffer의 색상·노멀을 갱신합니다.

@@ -9,17 +9,12 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "Engine/FHitProxy.h"
-
-namespace RenderCore {
-    class IRendererModule;
-}
-
-struct FVector2;
+#include "Core/Math/FVector2.h"
+#include "Engine/FRenderTarget.h"
+#include "Engine/FViewportClient.h"
+#include "RenderCore/IRendererModule.h"
 
 namespace Engine {
-
-    class FViewportClient;
-    class FRenderTarget;
 
     /**
      * @brief 뷰포트 클라이언트와 렌더 타깃의 입력 및 그리기 호출을 연결합니다.

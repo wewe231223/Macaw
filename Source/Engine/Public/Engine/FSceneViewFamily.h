@@ -10,12 +10,11 @@
 #include "Engine/FSceneView.h"
 #include "Engine/EViewMode.h"
 #include "Engine/FEngineShowFlags.h"
+#include "Engine/FPrimitiveDrawInterface.h"
+#include "Engine/FRenderTarget.h"
+#include "Engine/FSceneInterface.h"
 
 namespace Engine {
-
-    class FSceneInterface;
-    class FRenderTarget;
-    class FPrimitiveDrawInterface;
 
     /**
      * @brief 렌더링할 장면, 출력 타깃, 뷰와 에디터 보조 도형을 묶습니다.

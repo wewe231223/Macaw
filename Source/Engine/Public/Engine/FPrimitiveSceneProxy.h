@@ -16,14 +16,11 @@
 #include "Engine/EPrimitiveType.h"
 #include "Engine/FDrawText.h"
 #include "Engine/FDrawSprite.h"
+#include "Asset/UMaterial.h"
+#include "Asset/USkeletalMesh.h"
+#include "Asset/UStaticMesh.h"
 
 #include <optional>
-
-namespace Asset {
-    class UStaticMesh;
-    class USkeletalMesh;
-    class UMaterial;
-}
 
 namespace Engine {
 

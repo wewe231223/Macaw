@@ -9,11 +9,10 @@
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Core/Math/FVector.h"
+#include "Engine/AActor.h"
+#include "Engine/Component/UPrimitiveComponent.h"
 
 namespace Engine {
-
-    class AActor;
-    class UPrimitiveComponent;
 
     /**
      * @brief 월드 광선 질의로 찾은 액터, 컴포넌트와 충돌 위치 및 거리입니다.

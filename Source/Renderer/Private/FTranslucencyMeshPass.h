@@ -7,11 +7,10 @@
 #pragma once
 
 #include "FMeshPass.h"
+#include "FSpriteRenderer.h"
+#include "FTextRenderer.h"
 
 namespace Renderer {
-
-    class FSpriteRenderer;
-    class FTextRenderer;
 
     /**
      * @brief 반투명 메시·스프라이트·텍스트를 정렬하고 반투명 패스로 그립니다.

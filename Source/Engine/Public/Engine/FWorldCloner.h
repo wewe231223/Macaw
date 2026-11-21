@@ -12,20 +12,13 @@
 
 #include "Core/Types.h"
 #include "Engine/EWorldType.h"
-
-namespace CoreUObject {
-    class UObject;
-    class UObject;
-    template <typename T> class TObjectRef;
-    class FObjectDuplicationContext;
-}
+#include "CoreUObject/FObjectDuplicationContext.h"
+#include "CoreUObject/UObject.h"
+#include "Engine/AActor.h"
+#include "Engine/FWorldContext.h"
+#include "Engine/UWorld.h"
 
 namespace Engine {
-
-    class AActor;
-
-    class UWorld;
-    class FWorldContext;
 
     /**
      * @brief 월드의 소유 그래프를 새로운 객체 식별자로 메모리 내 복제합니다.

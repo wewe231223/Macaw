@@ -9,16 +9,10 @@
 #include "Core/Types.h"
 #include "Core/Math/FVector4.h"
 #include "Asset/Import/FAssetImportOption.h"
+#include "Editor/FEditorContext.h"
+#include "Platform/Window.h"
 #include <filesystem>
 #include <functional>
-
-namespace Platform {
-    class FWindowsApplication;
-}
-
-namespace Editor {
-    class FEditorContext;
-}
 
 namespace Editor {
 

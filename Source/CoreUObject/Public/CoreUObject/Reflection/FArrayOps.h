@@ -7,10 +7,9 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "CoreUObject/Reflection/FProperty.h"
 
 namespace CoreUObject {
-
-    class FProperty;
 
     /**
      * @brief 타입이 지워진 TArray를 다루는 프로퍼티별 함수 테이블입니다.

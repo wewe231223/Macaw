@@ -8,12 +8,9 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "Engine/FProject.h"
 
 #include <filesystem>
-
-namespace Engine {
-    class FProject;
-}
 
 namespace Editor {
 

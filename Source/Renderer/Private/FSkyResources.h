@@ -10,19 +10,15 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FMatrix.h"
 #include "RenderCore/TConstantBuffer.h"
+#include "Engine/FSceneView.h"
+#include "FPassTarget.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <filesystem>
 #include <span>
 
-namespace Engine {
-    struct FSceneView;
-}
-
 namespace Renderer {
-
-    struct FPassTarget;
 
     /**
      * @brief 등장방형 파노라마를 전체 화면 삼각형으로 그리는 기본 하늘 패스의 자원입니다.

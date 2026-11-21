@@ -8,14 +8,10 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
-
-namespace Serialization {
-    class FMemoryArchive;
-}
+#include "Asset/UTexture2D.h"
+#include "Serialization/MemoryArchive.h"
 
 namespace Asset {
-
-    class UTexture2D;
 
     /**
      * @brief 기존 바이너리 필드 순서를 유지하며 텍스처 에셋 데이터를 저장하고 복원합니다.

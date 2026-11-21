@@ -10,15 +10,11 @@
 
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FLightSceneProxy.h"
+#include "Asset/FAssetManager.h"
+#include "Engine/FPrimitiveDrawInterface.h"
 #include "ULightComponentBase.generated.h"
 
-namespace Asset {
-    class FAssetManager;
-}
-
 namespace Engine {
-
-    class FPrimitiveDrawInterface;
 
     /**
      * @brief 광원의 색상·밝기·표시 상태와 렌더 장면 등록을 관리합니다.

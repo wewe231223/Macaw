@@ -9,12 +9,11 @@
 #include "FMeshPass.h"
 #include "Engine/EShadowBiasPreset.h"
 #include "Core/Types.h"
+#include "FMaterialPipeline.h"
 
 #include <wrl/client.h>
 
 namespace Renderer {
-
-    class FMaterialPipeline;
 
     /**
      * @brief 그림자를 드리우는 메시를 깊이 전용 파이프라인으로 아틀라스 타일에 기록하는 메시 패스입니다.

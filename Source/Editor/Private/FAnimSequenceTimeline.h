@@ -7,14 +7,8 @@
 #pragma once
 
 #include "Core/Types.h"
-
-namespace Asset {
-    class UAnimSequence;
-}
-
-namespace Viewer {
-    class FAnimationViewerContent;
-}
+#include "Asset/Animation/UAnimSequence.h"
+#include "Viewer/FAnimationViewerContent.h"
 
 namespace Editor {
 

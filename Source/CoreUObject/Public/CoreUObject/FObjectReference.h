@@ -9,12 +9,11 @@
 #include "Core/GuidHash.h"
 #include "Core/Types.h"
 #include "CoreUObject/TObjectRef.h"
+#include "CoreUObject/UObject.h"
 
 #include <optional>
 
 namespace CoreUObject {
-
-    class UObject;
 
     /**
      * @brief 한 장면 안에서 GUID와 객체를 대응시키는 비소유 대응표입니다.

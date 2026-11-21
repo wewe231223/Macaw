@@ -9,20 +9,15 @@
 #include "Core/Types.h"
 #include "Engine/Tick/ETickingGroup.h"
 #include "Engine/Tick/FTickTaskLevel.h"
+#include "CoreUObject/UObject.h"
+#include "Engine/ULevel.h"
 
 #include <memory>
-
-namespace CoreUObject {
-
-    class UObject;
-
-}
 
 namespace Engine {
 
     class AActor;
     class UActorComponent;
-    class ULevel;
     class UWorld;
     class FTickTaskManager;
 

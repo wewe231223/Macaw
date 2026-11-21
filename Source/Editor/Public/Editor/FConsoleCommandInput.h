@@ -8,14 +8,14 @@
 
 #include "Core/Types.h"
 #include "Core/Math/FVector2.h"
+#include "Editor/FEditorContext.h"
 
 #include <string_view>
+#include <imgui.h>
 
-struct ImGuiInputTextCallbackData;
 struct ImGuiWindow;
 
 namespace Editor {
-    class FEditorContext;
 
     /**
      * @brief 명령 실행과 자동 완성 후보 및 입력 기록을 제공하는 콘솔 입력 위젯입니다.

@@ -9,12 +9,12 @@
 #include "Core/Types.h"
 #include "Core/Math/FVector.h"
 #include "CoreUObject/TObjectRef.h"
+#include "Engine/Component/UPrimitiveComponent.h"
 
 #include <cfloat>
 
 namespace Engine {
 
-    class UPrimitiveComponent;
     class AActor;
 
     /**

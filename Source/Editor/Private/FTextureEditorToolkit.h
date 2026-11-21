@@ -8,19 +8,10 @@
 
 #include "FAssetEditorToolkit.h"
 #include "CoreUObject/TObjectRef.h"
+#include "Asset/UTexture2D.h"
+#include "Editor/FEditorContext.h"
+#include "Viewer/FAssetViewer.h"
 #include <memory>
-
-namespace Asset {
-    class UTexture2D;
-}
-
-namespace Viewer {
-    class FAssetViewer;
-}
-
-namespace Editor {
-    class FEditorContext;
-}
 
 namespace Editor {
 

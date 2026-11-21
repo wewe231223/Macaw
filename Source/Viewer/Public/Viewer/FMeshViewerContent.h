@@ -14,26 +14,14 @@
 #include "Asset/FAssetFile.h"
 #include "Core/Guid.h"
 #include "Engine/FSkeletalMeshPose.h"
-
-namespace CoreUObject {
-    class UObject;
-}
-
-namespace Engine {
-    enum class EPrimitiveType : Uint8;
-}
-
-namespace Asset {
-    class FAssetManager;
-    class UStaticMesh;
-    class USkeletalMesh;
-    class USkeleton;
-    class UMaterial;
-}
-
-namespace RenderCore {
-    class IRendererModule;
-}
+#include "Asset/FAssetManager.h"
+#include "Asset/UMaterial.h"
+#include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
+#include "Asset/UStaticMesh.h"
+#include "CoreUObject/UObject.h"
+#include "Engine/EPrimitiveType.h"
+#include "RenderCore/IRendererModule.h"
 
 namespace Viewer {
 
