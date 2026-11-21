@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PhysicsRuntime/FPhysicsScene.h"
 #include <PxPhysicsAPI.h>
 #include <memory>
 
@@ -18,6 +19,8 @@ namespace PhysicsRuntime {
     public:
         bool Initialize();
         void Shutdown();
+
+        std::unique_ptr<PhysicsRuntime::FPhysicsScene> CreateScene();
 
     private:
         physx::PxDefaultAllocator mAllocator{};

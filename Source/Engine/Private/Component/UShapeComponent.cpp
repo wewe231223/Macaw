@@ -9,16 +9,21 @@
 #include "Engine/AActor.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/EPrimitiveType.h"
+#include "Engine/UWorld.h"
 #include "Core/Math/FBox.h"
 #include "Core/Literals.h"
+#include "Core/Log/Log.h"
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <utility>
 
 using namespace Core::Literals;
 
 namespace Engine {
+
+    DEFINE_LOG_CATEGORY_STATIC(LogShapePhysics, Log, All);
 
     /**
      * @brief 충돌 도형의 접촉 검사와 디버그 형상 생성 보조 함수입니다.
@@ -78,6 +83,100 @@ namespace Engine {
         mOnComponentEndOverlap.Add([](Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*) {
             std::clog << "EndOverlap\n";
         });
+    }
+
+    void Engine::UShapeComponent::BeginPlay() {
+        Super::BeginPlay();
+
+        if (mPhysicsEnabled && mBodyInstance == nullptr && !SetPhysicsEnabled(true)) {
+            MACAW_LOG(LogShapePhysics, Warning, "Could not create the physics body for component {}.", GetName());
+        }
+    }
+
+    void Engine::UShapeComponent::EndPlay() {
+        mBodyInstance.reset();
+        Super::EndPlay();
+    }
+
+    bool Engine::UShapeComponent::IsPhysicsEnabled() const {
+        return mPhysicsEnabled;
+    }
+
+    bool Engine::UShapeComponent::SetPhysicsEnabled(bool Enabled) {
+        if (!Enabled) {
+            mBodyInstance.reset();
+        } else if (HasBegunPlay() && mBodyInstance == nullptr) {
+            mBodyInstance = CreatePhysicsBody(mBodyType);
+
+            if (mBodyInstance == nullptr) {
+                return false;
+            }
+        }
+
+        mPhysicsEnabled = Enabled;
+
+        return true;
+    }
+
+    PhysicsRuntime::EBodyType Engine::UShapeComponent::GetBodyType() const {
+        return mBodyType;
+    }
+
+    bool Engine::UShapeComponent::SetBodyType(PhysicsRuntime::EBodyType BodyType) {
+        if (BodyType != PhysicsRuntime::EBodyType::Static && BodyType != PhysicsRuntime::EBodyType::Kinematic && BodyType != PhysicsRuntime::EBodyType::Dynamic) {
+            return false;
+        }
+
+        if (mPhysicsEnabled && HasBegunPlay() && (mBodyInstance == nullptr || mBodyType != BodyType)) {
+            auto Body{CreatePhysicsBody(BodyType)};
+
+            if (Body == nullptr) {
+                return false;
+            }
+
+            mBodyInstance = std::move(Body);
+        }
+
+        mBodyType = BodyType;
+
+        return true;
+    }
+
+    std::unique_ptr<PhysicsRuntime::FBodyInstance> Engine::UShapeComponent::CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) const {
+        const Engine::UWorld* World{GetWorld()};
+        PhysicsRuntime::FPhysicsScene* Scene{World != nullptr ? World->GetPhysicsScene() : nullptr};
+
+        if (Scene == nullptr) {
+            return {};
+        }
+
+        const FTransform& Transform{GetTransform()};
+        const FVector& Location{Transform.mLocation};
+        const FQuat& Rotation{Transform.mRotation};
+        const physx::PxTransform Pose{physx::PxVec3{Location.x, Location.y, Location.z}, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
+        const Engine::FCollisionShape Shape{GetCollisionShape()};
+
+        if (Shape.IsBox()) {
+            const FVector& Extent{Shape.GetBoxHalfExtent()};
+
+            return Scene->CreateBody(BodyType, Pose, physx::PxBoxGeometry{Extent.x, Extent.y, Extent.z});
+        }
+
+        if (Shape.IsCapsule()) {
+            const float AxisHalfLength{Shape.GetCapsuleAxisHalfLength()};
+
+            if (AxisHalfLength > 0.0f) {
+                const physx::PxQuat CapsuleRotation{-(90_deg / 1_rad), physx::PxVec3{0.0f, 1.0f, 0.0f}};
+
+                return Scene->CreateBody(BodyType, Pose, physx::PxCapsuleGeometry{Shape.GetRadius(), AxisHalfLength}, physx::PxTransform{CapsuleRotation});
+            }
+        }
+
+        if (Shape.IsSphere() || Shape.IsCapsule()) {
+            return Scene->CreateBody(BodyType, Pose, physx::PxSphereGeometry{Shape.GetRadius()});
+        }
+
+        return {};
     }
 
     /**

@@ -267,13 +267,25 @@ namespace Engine {
      * @brief 필요한 렌더 장면을 준비하고 컨텍스트를 빈 슬롯에 인수합니다.
      */
     Engine::FWorldHandle Engine::UEngine::AdoptWorld(std::unique_ptr<Engine::FWorldContext> Context) {
-        if (!mInitialized || Context == nullptr || Context->GetWorld() == nullptr || Context->GetHandle().IsValid() || Context->GetWorld()->IsDispatching()) {
+        Engine::UWorld* World{Context != nullptr ? Context->GetWorld() : nullptr};
+
+        if (!mInitialized || World == nullptr || Context->GetHandle().IsValid() || World->IsDispatching() || World->mShuttingDown) {
             return {};
         }
 
-        Context->GetWorld()->SetAssets(mProject != nullptr ? mProject->GetAssets() : nullptr);
+        const Engine::EWorldType WorldType{World->GetWorldType()};
 
-        if (mRenderer != nullptr && !Context->GetWorld()->AttachScene(mRenderer->AllocateScene())) {
+        if (WorldType == Engine::EWorldType::Game || WorldType == Engine::EWorldType::PIE) {
+            World->mPhysicsScene = mPhysicsRuntime.CreateScene();
+
+            if (World->mPhysicsScene == nullptr) {
+                return {};
+            }
+        }
+
+        World->SetAssets(mProject != nullptr ? mProject->GetAssets() : nullptr);
+
+        if (mRenderer != nullptr && !World->AttachScene(mRenderer->AllocateScene())) {
             return {};
         }
 

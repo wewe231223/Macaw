@@ -12,6 +12,9 @@
 #include "CoreUObject/TDelegate.h"
 #include "Core/Math/FVector4.h"
 #include "Core/Math/FBox.h"
+#include "PhysicsRuntime/EBodyType.h"
+#include "PhysicsRuntime/FBodyInstance.h"
+#include <memory>
 #include "UShapeComponent.generated.h"
 
 namespace Engine {
@@ -43,6 +46,15 @@ namespace Engine {
         UShapeComponent();
 
     public:
+        void BeginPlay() override;
+        void EndPlay() override;
+
+        bool IsPhysicsEnabled() const;
+        bool SetPhysicsEnabled(bool Enabled);
+
+        PhysicsRuntime::EBodyType GetBodyType() const;
+        bool SetBodyType(PhysicsRuntime::EBodyType BodyType);
+
         /**
          * @brief 컴포넌트 겹침 시작 이벤트를 반환합니다.
          * @return 이 컴포넌트가 소유한 이벤트 델리게이트의 참조입니다.
@@ -174,6 +186,8 @@ namespace Engine {
          */
         bool ShouldCreateRenderState() const override;
 
+        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) const;
+
     private:
         /**
          * @brief 충돌 도형을 표시할 RGBA 색상입니다.
@@ -204,6 +218,14 @@ namespace Engine {
 
         UPROPERTY(Edit, Serialize, Getter = BlocksMovement, Setter = SetBlocksMovement)
         bool mBlocksMovement{};
+
+        UPROPERTY(Edit, Serialize, Getter = IsPhysicsEnabled, Setter = SetPhysicsEnabled)
+        bool mPhysicsEnabled{};
+
+        UPROPERTY(Edit, Serialize, Getter = GetBodyType, Setter = SetBodyType)
+        PhysicsRuntime::EBodyType mBodyType{PhysicsRuntime::EBodyType::Static};
+
+        std::unique_ptr<PhysicsRuntime::FBodyInstance> mBodyInstance{};
     };
 
 }

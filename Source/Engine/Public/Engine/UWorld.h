@@ -14,6 +14,7 @@
 #include "Engine/EWorldPlayState.h"
 #include "Engine/FWorldHandle.h"
 #include "Engine/Tick/FTickTaskManager.h"
+#include "PhysicsRuntime/FPhysicsScene.h"
 #include "UWorld.generated.h"
 
 namespace Asset {
@@ -261,6 +262,8 @@ namespace Engine {
          */
         Engine::FSceneInterface* GetScene() const;
 
+        PhysicsRuntime::FPhysicsScene* GetPhysicsScene() const;
+
         /**
          * @brief 월드의 에셋 로드에 사용할 관리자의 비소유 주소를 설정합니다.
          * @param[in] Assets 월드가 사용할 에셋 관리자의 비소유 주소입니다.
@@ -489,6 +492,8 @@ namespace Engine {
          * @brief 월드가 소유한 렌더 장면입니다.
          */
         std::unique_ptr<Engine::FSceneInterface> mScene{};
+
+        std::unique_ptr<PhysicsRuntime::FPhysicsScene> mPhysicsScene{};
 
         /**
          * @brief 프레임 말 갱신을 기다리는 컴포넌트 핸들입니다.

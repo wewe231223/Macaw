@@ -36,6 +36,7 @@
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Engine/PrimitiveMesh.h"
+#include "PhysicsRuntime/FPhysicsScene.h"
 
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
@@ -214,6 +215,10 @@ namespace Engine {
      */
     Engine::FSceneInterface* Engine::UWorld::GetScene() const {
         return mScene.get();
+    }
+
+    PhysicsRuntime::FPhysicsScene* Engine::UWorld::GetPhysicsScene() const {
+        return mPhysicsScene.get();
     }
 
     /**
@@ -407,6 +412,7 @@ namespace Engine {
         mInputTarget = {};
         mPlayerCameraManager = {};
         mPersistentLevel.reset();
+        mPhysicsScene.reset();
         mScene.reset();
     }
 
