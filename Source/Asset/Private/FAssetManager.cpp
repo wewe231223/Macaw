@@ -1616,6 +1616,7 @@ namespace Asset {
         Retire(mTextures);
         Retire(mNormalMaps);
         Retire(mMaterials);
+        Retire(mPhysicalMaterials);
         Retire(mShaders);
         Retire(mSequences);
         Retire(mBlendSpaces);
@@ -1652,6 +1653,46 @@ namespace Asset {
         mMaterials.emplace(Key, std::move(Material));
 
         return Result;
+    }
+
+    PhysicsRuntime::UPhysicalMaterial* Asset::FAssetManager::LoadPhysicalMaterial(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        if (const auto Existing{mPhysicalMaterials.find(Key)}; Existing != mPhysicalMaterials.end()) {
+            return Existing->second.get();
+        }
+
+        const auto Target{ResolvePath(Path, Error)};
+        Asset::EAssetType Type{};
+        Core::FGuid Guid{Core::FGuid::Null()};
+        Core::TArray<Uint8> Payload{};
+
+        if (Target.empty() || !Asset::FAssetFile::GetIdentity(Target, Type, Guid, Error) || !Asset::FAssetFile::Load(Target, Asset::EAssetType::PhysicalMaterial, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+
+        if (!Archive.Parse(Core::FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        auto Material{CoreUObject::NewObject<PhysicsRuntime::UPhysicalMaterial>()};
+        Material->Serialize(Archive);
+
+        if (Archive.HasError() || Material->GetGuid() != Guid) {
+            Error = Archive.HasError() ? Archive.GetError() : "Physical material identity does not match its file header";
+
+            return nullptr;
+        }
+
+        return mPhysicalMaterials.emplace(Key, std::move(Material)).first->second.get();
     }
 
     /**
@@ -2060,6 +2101,42 @@ namespace Asset {
 
         if (Existing != mMaterials.end() && Existing->second.get() != &Material) {
             return ApplyMaterialSettings(*Existing->second, Material, Error);
+        }
+
+        return true;
+    }
+
+    bool Asset::FAssetManager::SavePhysicalMaterial(const std::filesystem::path& Path, const PhysicsRuntime::UPhysicalMaterial& Material, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty() || !ValidateAssetIdentity(Target, Material.GetGuid(), Error)) {
+            return false;
+        }
+
+        PhysicsRuntime::UPhysicalMaterial Saved{};
+        Saved.RestoreGuid(GetSaveIdentity(Target, Material.GetGuid()));
+        Saved.SetName(Core::FilePath::ToUtf8(Target.stem()));
+        Saved.CopySettingsFrom(Material);
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+        Saved.Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        const Core::FString Payload{Archive.ToString()};
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::PhysicalMaterial, std::span<const Uint8>{reinterpret_cast<const Uint8*>(Payload.data()), Payload.size()}, Error, Saved.GetGuid())) {
+            return false;
+        }
+
+        const Core::FString Key{CacheKey(GetRelativePath(Target, Error))};
+
+        if (const auto Existing{mPhysicalMaterials.find(Key)}; Existing != mPhysicalMaterials.end()) {
+            Existing->second->CopySettingsFrom(Saved);
         }
 
         return true;

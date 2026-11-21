@@ -18,6 +18,7 @@
 #include "Asset/Animation/UBlendSpace.h"
 #include "Asset/Sequence/ULevelSequence.h"
 #include "Asset/USkeleton.h"
+#include "PhysicsRuntime/UPhysicalMaterial.h"
 
 #include <filesystem>
 #include <memory>
@@ -203,6 +204,7 @@ namespace Asset {
          * @return 캐시 소유 머티리얼의 비소유 주소이며 실패하면 nullptr입니다.
          */
         Asset::UMaterial* LoadMaterial(const std::filesystem::path& Path, Core::FString& Error);
+        PhysicsRuntime::UPhysicalMaterial* LoadPhysicalMaterial(const std::filesystem::path& Path, Core::FString& Error);
 
         /**
          * @brief 시퀀스 에셋을 로드하여 캐시에 보관합니다.
@@ -301,6 +303,7 @@ namespace Asset {
          * @return 저장과 캐시 갱신에 성공하면 true입니다.
          */
         bool SaveMaterial(const std::filesystem::path& Path, const Asset::UMaterial& Material, Core::FString& Error);
+        bool SavePhysicalMaterial(const std::filesystem::path& Path, const PhysicsRuntime::UPhysicalMaterial& Material, Core::FString& Error);
 
         /**
          * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
@@ -459,6 +462,7 @@ namespace Asset {
          * @brief 경로별로 캐시한 머티리얼의 소유 저장소입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UMaterial>> mMaterials{};
+        Core::TMap<Core::FString, std::unique_ptr<PhysicsRuntime::UPhysicalMaterial>> mPhysicalMaterials{};
 
         /**
          * @brief 경로별로 캐시한 시퀀스의 소유 저장소입니다.

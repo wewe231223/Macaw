@@ -140,7 +140,7 @@ CoreUObject::UObject* FAssetManager::LoadAsset(const Core::FGuid& Guid, Core::FS
     }
 
     CoreUObject::UObject* Object{};
-    const CoreUObject::UClass* ActualClass{Type == EAssetType::Shader ? UShader::StaticClass() : Type == EAssetType::Material ? UMaterial::StaticClass() : Type == EAssetType::Mesh ? UStaticMesh::StaticClass() : Type == EAssetType::SkeletalMesh ? USkeletalMesh::StaticClass() : Type == EAssetType::Skeleton ? USkeleton::StaticClass() : Type == EAssetType::Texture ? UTexture2D::StaticClass() : Type == EAssetType::AnimSequence ? UAnimSequence::StaticClass() : Type == EAssetType::Sequence ? ULevelSequence::StaticClass() : Type == EAssetType::BlendSpace ? UBlendSpace1D::StaticClass() : Type == EAssetType::AnimGraph ? UAnimGraph::StaticClass() : nullptr};
+    const CoreUObject::UClass* ActualClass{Type == EAssetType::Shader ? UShader::StaticClass() : Type == EAssetType::Material ? UMaterial::StaticClass() : Type == EAssetType::PhysicalMaterial ? PhysicsRuntime::UPhysicalMaterial::StaticClass() : Type == EAssetType::Mesh ? UStaticMesh::StaticClass() : Type == EAssetType::SkeletalMesh ? USkeletalMesh::StaticClass() : Type == EAssetType::Skeleton ? USkeleton::StaticClass() : Type == EAssetType::Texture ? UTexture2D::StaticClass() : Type == EAssetType::AnimSequence ? UAnimSequence::StaticClass() : Type == EAssetType::Sequence ? ULevelSequence::StaticClass() : Type == EAssetType::BlendSpace ? UBlendSpace1D::StaticClass() : Type == EAssetType::AnimGraph ? UAnimGraph::StaticClass() : nullptr};
 
     if (ExpectedClass != nullptr && (ActualClass == nullptr || !ActualClass->IsChildOf(ExpectedClass))) {
         Error = "The asset type does not match the object reference";
@@ -154,6 +154,9 @@ CoreUObject::UObject* FAssetManager::LoadAsset(const Core::FGuid& Guid, Core::FS
         break;
     case EAssetType::Material:
         Object = LoadMaterial(Path, Error);
+        break;
+    case EAssetType::PhysicalMaterial:
+        Object = LoadPhysicalMaterial(Path, Error);
         break;
     case EAssetType::Mesh:
         Object = LoadMesh(Path, Error);

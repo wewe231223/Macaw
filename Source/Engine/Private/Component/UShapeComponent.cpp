@@ -10,6 +10,9 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/EPrimitiveType.h"
 #include "Engine/UWorld.h"
+#include "Core/Archive.h"
+#include "Core/FilePath.h"
+#include "CoreUObject/Reflection/NewObject.h"
 #include "Core/Math/FBox.h"
 #include "Core/Literals.h"
 #include "Core/Log/Log.h"
@@ -94,7 +97,7 @@ namespace Engine {
     }
 
     void Engine::UShapeComponent::EndPlay() {
-        mBodyInstance.reset();
+        ReleasePhysicsBody();
         Super::EndPlay();
     }
 
@@ -104,7 +107,7 @@ namespace Engine {
 
     bool Engine::UShapeComponent::SetPhysicsEnabled(bool Enabled) {
         if (!Enabled) {
-            mBodyInstance.reset();
+            ReleasePhysicsBody();
         } else if (HasBegunPlay() && mBodyInstance == nullptr) {
             mBodyInstance = CreatePhysicsBody(mBodyType);
 
@@ -142,6 +145,170 @@ namespace Engine {
         return true;
     }
 
+    void Engine::UShapeComponent::Serialize(Core::FArchive& Archive) {
+        Super::Serialize(Archive);
+
+        if (Archive.HasError() || !mPhysicalMaterialPath.empty() || (Archive.IsLoading() && !Archive.HasField("Restitution"))) {
+            return;
+        }
+
+        float Restitution{mLegacyPhysicalMaterial != nullptr ? mLegacyPhysicalMaterial->GetRestitution() : 0.0f};
+        Archive.Serialize("Restitution", Restitution);
+
+        if (!Archive.IsLoading() || Archive.HasError()) {
+            return;
+        }
+
+        if (Restitution == 0.0f) {
+            mLegacyPhysicalMaterial.reset();
+            return;
+        }
+
+        auto Legacy{CoreUObject::NewObject<PhysicsRuntime::UPhysicalMaterial>()};
+
+        if (!Legacy->SetRestitution(Restitution)) {
+            Archive.SetError("Invalid legacy restitution");
+            return;
+        }
+
+        mLegacyPhysicalMaterial = std::move(Legacy);
+    }
+
+    const Core::FString& Engine::UShapeComponent::GetPhysicalMaterialPath() const {
+        return mPhysicalMaterialPath;
+    }
+
+    bool Engine::UShapeComponent::SetPhysicalMaterialPath(const Core::FString& Path) {
+        if (Path.find('\0') != Core::FString::npos) {
+            return false;
+        }
+
+        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
+
+        if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset")) {
+            return false;
+        }
+
+        for (const auto& Part : AssetPath) {
+            if (Part == L"..") {
+                return false;
+            }
+        }
+
+        const Engine::UWorld* World{GetWorld()};
+        Asset::FAssetManager* Assets{World != nullptr ? World->GetAssets() : nullptr};
+        const PhysicsRuntime::UPhysicalMaterial* Material{&PhysicsRuntime::UPhysicalMaterial::GetDefault()};
+
+        if (!Path.empty() && Assets != nullptr) {
+            Core::FString Error{};
+            Material = Assets->LoadPhysicalMaterial(AssetPath, Error);
+
+            if (Material == nullptr) {
+                return false;
+            }
+        }
+
+        if (HasPhysicsBody()) {
+            PhysicsRuntime::FPhysicsScene* Scene{World != nullptr ? World->GetPhysicsScene() : nullptr};
+
+            if (Scene == nullptr || (!Path.empty() && Assets == nullptr) || !Scene->SetBodyMaterial(*mBodyInstance, *Material)) {
+                return false;
+            }
+        }
+
+        mPhysicalMaterialPath = Path;
+        mLegacyPhysicalMaterial.reset();
+
+        return true;
+    }
+
+    const PhysicsRuntime::UPhysicalMaterial& Engine::UShapeComponent::GetPhysicalMaterial() const {
+        const Engine::UWorld* World{GetWorld()};
+        Asset::FAssetManager* Assets{World != nullptr ? World->GetAssets() : nullptr};
+
+        if (!mPhysicalMaterialPath.empty() && Assets != nullptr) {
+            Core::FString Error{};
+
+            if (const auto* Material{Assets->LoadPhysicalMaterial(Core::FilePath::FromUtf8(mPhysicalMaterialPath), Error)}) {
+                return *Material;
+            }
+
+            MACAW_LOG(LogShapePhysics, Warning, "Could not load physical material '{}': {}", mPhysicalMaterialPath, Error);
+        }
+
+        return mLegacyPhysicalMaterial != nullptr ? *mLegacyPhysicalMaterial : PhysicsRuntime::UPhysicalMaterial::GetDefault();
+    }
+
+    bool Engine::UShapeComponent::HasPhysicsBody() const {
+        return mBodyInstance != nullptr;
+    }
+
+    void Engine::UShapeComponent::ReleasePhysicsBody() {
+        mBodyInstance.reset();
+    }
+
+    void Engine::UShapeComponent::PushKinematicTarget(float Alpha) {
+        if (mBodyType != PhysicsRuntime::EBodyType::Kinematic || !HasPhysicsBody()) {
+            return;
+        }
+
+        physx::PxRigidDynamic* Body{mBodyInstance->GetActor()->is<physx::PxRigidDynamic>()};
+        const physx::PxTransform Target{MakePhysicsPose()};
+        const physx::PxTransform Current{Body->getGlobalPose()};
+
+        if (Target.p == Current.p && Target.q == Current.q) {
+            return;
+        }
+
+        if (Alpha == 1.0f) {
+            Body->setKinematicTarget(Target);
+            return;
+        }
+
+        const FQuat Rotation{FQuat{Current.q.x, Current.q.y, Current.q.z, Current.q.w}.Slerp(GetTransform().mRotation, Alpha)};
+        const physx::PxTransform Next{Current.p + (Target.p - Current.p) * Alpha, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
+        Body->setKinematicTarget(Next);
+    }
+
+    void Engine::UShapeComponent::PullPhysicsTransform(bool MoveOwner) {
+        if (!HasPhysicsBody() || mBodyType == PhysicsRuntime::EBodyType::Kinematic) {
+            return;
+        }
+
+        const physx::PxTransform Pose{mBodyInstance->GetActor()->getGlobalPose()};
+        const FTransform Previous{GetTransform()};
+        const FTransform Transform{FVector{Pose.p.x, Pose.p.y, Pose.p.z}, FQuat{Pose.q.x, Pose.q.y, Pose.q.z, Pose.q.w}.Normalized(), Previous.mScale};
+
+        if (Transform.mLocation == Previous.mLocation && Transform.mRotation == Previous.mRotation) {
+            return;
+        }
+
+        Engine::AActor* Owner{GetOwner()};
+
+        if (MoveOwner && Owner != nullptr && Owner->GetRootComponent() != nullptr) {
+            if (Owner->GetRootComponent() == this) {
+                Owner->SetActorTransform(Transform);
+                return;
+            }
+
+            const FQuat DeltaRotation{(Transform.mRotation * Previous.mRotation.Inverse()).Normalized()};
+            FTransform OwnerTransform{Owner->GetActorTransform()};
+            OwnerTransform.mLocation = Transform.mLocation + DeltaRotation.RotateVector(OwnerTransform.mLocation - Previous.mLocation);
+            OwnerTransform.mRotation = (DeltaRotation * OwnerTransform.mRotation).Normalized();
+            Owner->SetActorTransform(OwnerTransform);
+        }
+
+        SetTransform(Transform);
+    }
+
+    physx::PxTransform Engine::UShapeComponent::MakePhysicsPose() const {
+        const FTransform& Transform{GetTransform()};
+        const FVector& Location{Transform.mLocation};
+        const FQuat& Rotation{Transform.mRotation};
+
+        return physx::PxTransform{physx::PxVec3{Location.x, Location.y, Location.z}, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
+    }
+
     std::unique_ptr<PhysicsRuntime::FBodyInstance> Engine::UShapeComponent::CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) const {
         const Engine::UWorld* World{GetWorld()};
         PhysicsRuntime::FPhysicsScene* Scene{World != nullptr ? World->GetPhysicsScene() : nullptr};
@@ -150,16 +317,15 @@ namespace Engine {
             return {};
         }
 
-        const FTransform& Transform{GetTransform()};
-        const FVector& Location{Transform.mLocation};
-        const FQuat& Rotation{Transform.mRotation};
-        const physx::PxTransform Pose{physx::PxVec3{Location.x, Location.y, Location.z}, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
+        const physx::PxTransform Pose{MakePhysicsPose()};
         const Engine::FCollisionShape Shape{GetCollisionShape()};
+        const physx::PxTransform DefaultShapePose{physx::PxIdentity};
+        const PhysicsRuntime::UPhysicalMaterial& Material{GetPhysicalMaterial()};
 
         if (Shape.IsBox()) {
             const FVector& Extent{Shape.GetBoxHalfExtent()};
 
-            return Scene->CreateBody(BodyType, Pose, physx::PxBoxGeometry{Extent.x, Extent.y, Extent.z});
+            return Scene->CreateBody(BodyType, Pose, physx::PxBoxGeometry{Extent.x, Extent.y, Extent.z}, DefaultShapePose, Material);
         }
 
         if (Shape.IsCapsule()) {
@@ -168,12 +334,12 @@ namespace Engine {
             if (AxisHalfLength > 0.0f) {
                 const physx::PxQuat CapsuleRotation{-(90_deg / 1_rad), physx::PxVec3{0.0f, 1.0f, 0.0f}};
 
-                return Scene->CreateBody(BodyType, Pose, physx::PxCapsuleGeometry{Shape.GetRadius(), AxisHalfLength}, physx::PxTransform{CapsuleRotation});
+                return Scene->CreateBody(BodyType, Pose, physx::PxCapsuleGeometry{Shape.GetRadius(), AxisHalfLength}, physx::PxTransform{CapsuleRotation}, Material);
             }
         }
 
         if (Shape.IsSphere() || Shape.IsCapsule()) {
-            return Scene->CreateBody(BodyType, Pose, physx::PxSphereGeometry{Shape.GetRadius()});
+            return Scene->CreateBody(BodyType, Pose, physx::PxSphereGeometry{Shape.GetRadius()}, DefaultShapePose, Material);
         }
 
         return {};

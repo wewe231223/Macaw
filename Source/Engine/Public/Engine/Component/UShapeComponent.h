@@ -15,6 +15,7 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "PhysicsRuntime/EBodyType.h"
 #include "PhysicsRuntime/FBodyInstance.h"
+#include "PhysicsRuntime/UPhysicalMaterial.h"
 #include <memory>
 #include "UShapeComponent.generated.h"
 
@@ -53,6 +54,18 @@ namespace Engine {
 
         PhysicsRuntime::EBodyType GetBodyType() const;
         bool SetBodyType(PhysicsRuntime::EBodyType BodyType);
+
+        void Serialize(Core::FArchive& Archive) override;
+
+        const Core::FString& GetPhysicalMaterialPath() const;
+        bool SetPhysicalMaterialPath(const Core::FString& Path);
+        const PhysicsRuntime::UPhysicalMaterial& GetPhysicalMaterial() const;
+
+        bool HasPhysicsBody() const;
+        void ReleasePhysicsBody();
+
+        void PushKinematicTarget(float Alpha);
+        void PullPhysicsTransform(bool MoveOwner);
 
         /**
          * @brief 컴포넌트 겹침 시작 이벤트를 반환합니다.
@@ -185,6 +198,7 @@ namespace Engine {
          */
         bool ShouldCreateRenderState() const override;
 
+        physx::PxTransform MakePhysicsPose() const;
         std::unique_ptr<PhysicsRuntime::FBodyInstance> CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) const;
 
     private:
@@ -224,6 +238,10 @@ namespace Engine {
         UPROPERTY(Edit, Serialize, Getter = GetBodyType, Setter = SetBodyType)
         PhysicsRuntime::EBodyType mBodyType{PhysicsRuntime::EBodyType::Static};
 
+        UPROPERTY(Edit, Serialize, Name = "PhysicalMaterial", Getter = GetPhysicalMaterialPath, Setter = SetPhysicalMaterialPath)
+        Core::FString mPhysicalMaterialPath{};
+
+        std::unique_ptr<PhysicsRuntime::UPhysicalMaterial> mLegacyPhysicalMaterial{};
         std::unique_ptr<PhysicsRuntime::FBodyInstance> mBodyInstance{};
     };
 

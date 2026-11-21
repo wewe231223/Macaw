@@ -77,7 +77,8 @@ namespace Asset {
          * @brief UObject Emitter와 모듈의 구성·설정을 JSON 본문으로 저장하는 파티클 시스템 에셋입니다.
          */
         ParticleSystem,
-        Shader
+        Shader,
+        PhysicalMaterial
     };
 
     /**

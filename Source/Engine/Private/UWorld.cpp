@@ -9,6 +9,7 @@
 #include "FLuaRuntime.h"
 #include "Asset/FAssetManager.h"
 #include "Core/FilePath.h"
+#include "Core/Literals/UnitLiterals.h"
 #include "Engine/Component/UHeightFogComponent.h"
 #include "Engine/Component/UDecalComponent.h"
 #include "Engine/EngineStats.h"
@@ -469,6 +470,7 @@ namespace Engine {
         mPlayState = Engine::EWorldPlayState::Starting;
         mTimeSeconds = 0.0f;
         mTickCount = 0;
+        mPhysicsAccumulator = 0.0;
 
         // 액터의 BeginPlay에서 카메라 관리자를 조회할 수 있도록 먼저 만듭니다.
         if (auto CameraManager{CoreUObject::NewObject<Engine::APlayerCameraManager>()}; CameraManager != nullptr && CameraManager->InitializeDefaultComponents() && mPersistentLevel != nullptr) {
@@ -688,6 +690,8 @@ namespace Engine {
             return mTickTaskManager.RunPauseFrame(*this, DeltaTime);
         }
 
+        const bool SinglePhysicsStep{mPlayState == Engine::EWorldPlayState::Paused};
+
         if (!EditorTick) {
             if (mLuaRuntime != nullptr) {
                 mLuaRuntime->ReloadChangedScripts();
@@ -700,10 +704,11 @@ namespace Engine {
         mTickTaskManager.RunTickGroup(Engine::ETickingGroup::PrePhysics);
         mTickTaskManager.RunTickGroup(Engine::ETickingGroup::StartPhysics);
         mTickTaskManager.RunTickGroup(Engine::ETickingGroup::DuringPhysics);
-        //
-        // ** Week13 ** 
-        // 여기에 물리 엔진 처리를 넣으세요.
-        //
+
+        if (!EditorTick && !mEndPlayRequested && !mShutdownRequested && (mPlayState == Engine::EWorldPlayState::Playing || SinglePhysicsStep)) {
+            TickPhysics(DeltaTime, SinglePhysicsStep);
+        }
+
         mTickTaskManager.RunTickGroup(Engine::ETickingGroup::EndPhysics);
         mTickTaskManager.RunTickGroup(Engine::ETickingGroup::PostPhysics);
 
@@ -725,6 +730,102 @@ namespace Engine {
         }
 
         return true;
+    }
+
+    void Engine::UWorld::TickPhysics(float DeltaTime, bool SingleStep) {
+        using namespace Core::Literals;
+
+        if (mPhysicsScene == nullptr || mPersistentLevel == nullptr) {
+            return;
+        }
+
+        constexpr Core::FTime FixedStep{1.0f / 60_Hz};
+        constexpr float StepSeconds{FixedStep / 1_s};
+        constexpr Int32 MaxSubsteps{4};
+        Int32 Steps{1};
+
+        if (!SingleStep) {
+            constexpr double MaxAccumulatedSeconds{static_cast<double>(StepSeconds) * MaxSubsteps};
+            mPhysicsAccumulator = std::min(mPhysicsAccumulator + DeltaTime, MaxAccumulatedSeconds);
+            Steps = static_cast<Int32>(mPhysicsAccumulator / StepSeconds);
+            mPhysicsAccumulator -= static_cast<double>(StepSeconds) * Steps;
+        }
+
+        if (Steps == 0) {
+            return;
+        }
+
+        Core::TArray<Engine::UShapeComponent*> KinematicShapes{};
+        Core::TArray<Engine::UShapeComponent*> DynamicDrivers{};
+        Core::TArray<Engine::UShapeComponent*> DrivenShapes{};
+
+        for (const auto& Actor : mPersistentLevel->GetActors()) {
+            const std::size_t FirstShape{DrivenShapes.size()};
+            const auto* RootShape{CoreUObject::Cast<Engine::UShapeComponent>(Actor->GetRootComponent())};
+            const bool HasRootBody{RootShape != nullptr && RootShape->HasPhysicsBody()};
+            Engine::UShapeComponent* Driver{};
+            bool HasDynamicBody{};
+
+            for (const auto& Component : Actor->GetComponents()) {
+                auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(Component.get())};
+
+                if (Shape == nullptr || !Shape->HasPhysicsBody()) {
+                    continue;
+                }
+
+                if (Actor->IsPendingDestroy()) {
+                    Shape->ReleasePhysicsBody();
+                    continue;
+                }
+
+                if (Shape->GetBodyType() == PhysicsRuntime::EBodyType::Kinematic) {
+                    KinematicShapes.push_back(Shape);
+                    continue;
+                }
+
+                DrivenShapes.push_back(Shape);
+
+                if (Shape->GetBodyType() == PhysicsRuntime::EBodyType::Dynamic) {
+                    HasDynamicBody = true;
+
+                    if (Shape == RootShape || (!HasRootBody && Driver == nullptr)) {
+                        Driver = Shape;
+                    }
+                }
+            }
+
+            if (Driver != nullptr) {
+                DynamicDrivers.push_back(Driver);
+            } else if (!HasDynamicBody) {
+                DrivenShapes.resize(FirstShape);
+            }
+        }
+
+        Int32 CompletedSteps{};
+
+        for (; CompletedSteps < Steps; ++CompletedSteps) {
+            const float Alpha{1.0f / static_cast<float>(Steps - CompletedSteps)};
+
+            for (Engine::UShapeComponent* Shape : KinematicShapes) {
+                Shape->PushKinematicTarget(Alpha);
+            }
+
+            if (!mPhysicsScene->Step(StepSeconds)) {
+                break;
+            }
+        }
+
+        if (CompletedSteps == 0) {
+            return;
+        }
+
+        for (Engine::UShapeComponent* Driver : DynamicDrivers) {
+            Driver->PullPhysicsTransform(true);
+        }
+
+        for (Engine::UShapeComponent* Shape : DrivenShapes) {
+            Shape->PullPhysicsTransform(false);
+        }
     }
 
     /**

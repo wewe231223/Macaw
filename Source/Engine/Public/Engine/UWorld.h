@@ -415,6 +415,8 @@ namespace Engine {
          */
         bool TickActors(float DeltaTime, bool EditorTick, bool PauseTick);
 
+        void TickPhysics(float DeltaTime, bool SingleStep);
+
         /**
          * @brief 컨테이너 변경에 영향받지 않는 액터 핸들 스냅샷을 만듭니다.
          * @return 영속 레벨에 속한 액터의 전역 핸들 목록입니다.
@@ -486,6 +488,7 @@ namespace Engine {
         std::unique_ptr<Engine::FSceneInterface> mScene{};
 
         std::unique_ptr<PhysicsRuntime::FPhysicsScene> mPhysicsScene{};
+        double mPhysicsAccumulator{};
 
         /**
          * @brief 프레임 말 갱신을 기다리는 컴포넌트 핸들입니다.

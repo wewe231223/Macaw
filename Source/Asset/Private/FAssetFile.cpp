@@ -76,7 +76,7 @@ namespace Asset {
 
             const Uint64 ActualHeaderSize{HeaderSize + (Version == 2 ? Guid.mBytes.size() : 0)};
 
-            if (!Input || Magic != AssetMagic || (Version != AssetVersion && Version != 2) || TypeValue < static_cast<Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Uint32>(Asset::EAssetType::Shader) || (Version == 2 && !Guid.IsValid()) || FileSize < ActualHeaderSize || Size == 0 || Size > MaximumPayload || Size != FileSize - ActualHeaderSize) {
+            if (!Input || Magic != AssetMagic || (Version != AssetVersion && Version != 2) || TypeValue < static_cast<Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Uint32>(Asset::EAssetType::PhysicalMaterial) || (Version == 2 && !Guid.IsValid()) || FileSize < ActualHeaderSize || Size == 0 || Size > MaximumPayload || Size != FileSize - ActualHeaderSize) {
                 Error = "Invalid asset header, version or type";
                 Guid = Core::FGuid::Null();
 
@@ -113,7 +113,7 @@ namespace Asset {
     bool Asset::FAssetFile::Save(const std::filesystem::path& Path, Asset::EAssetType Type, std::span<const Uint8> Payload, Core::FString& Error, const Core::FGuid& Guid) {
         Error.clear();
 
-        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::Shader) {
+        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::PhysicalMaterial) {
             Error = "Invalid asset path, type or payload";
 
             return false;

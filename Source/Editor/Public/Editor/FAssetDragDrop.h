@@ -47,6 +47,7 @@ namespace Editor {
          * @brief 머티리얼 에셋 경로를 전달하는 드래그 페이로드 식별자입니다.
          */
         inline constexpr char MaterialPayload[]{"MACAW_MATERIAL_ASSET"};
+        inline constexpr char PhysicalMaterialPayload[]{"MACAW_PHYSICAL_MATERIAL_ASSET"};
 
         inline constexpr char ShaderPayload[]{"MACAW_SHADER_ASSET"};
 

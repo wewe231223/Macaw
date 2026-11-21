@@ -211,6 +211,7 @@ namespace Editor {
          */
         void CreateMaterial();
         void CreateMaterialIn(const std::filesystem::path& Directory);
+        void CreatePhysicalMaterial();
 
         /**
          * @brief 현재 폴더에 새 애니메이션 그래프 에셋을 만듭니다.

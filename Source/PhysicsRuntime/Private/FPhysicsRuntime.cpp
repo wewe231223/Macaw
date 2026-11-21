@@ -57,6 +57,7 @@ namespace PhysicsRuntime {
     }
 
     void FPhysicsRuntime::Shutdown() {
+        mMaterials.clear();
         mDispatcher.reset();
 
         if (mExtensionsInitialized) {
@@ -83,7 +84,13 @@ namespace PhysicsRuntime {
         Description.cpuDispatcher = mDispatcher.get();
         Description.filterShader = physx::PxDefaultSimulationFilterShader;
 
-        std::unique_ptr<PhysicsRuntime::FPhysicsScene> Scene{ std::make_unique<PhysicsRuntime::FPhysicsScene>(*mPhysics, Description) };
+        if (ResolveMaterial(PhysicsRuntime::UPhysicalMaterial::GetDefault()) == nullptr) {
+            MACAW_LOG(LogPhysics, Error, "Cannot create the default PhysX material.");
+
+            return {};
+        }
+
+        auto Scene{std::make_unique<PhysicsRuntime::FPhysicsScene>(*this, *mPhysics, Description)};
 
         if (!Scene->IsValid()) {
             MACAW_LOG(LogPhysics, Error, "Cannot create the PhysX scene.");
@@ -92,5 +99,33 @@ namespace PhysicsRuntime {
         }
 
         return Scene;
+    }
+
+    physx::PxMaterial* FPhysicsRuntime::ResolveMaterial(const PhysicsRuntime::UPhysicalMaterial& Material) {
+        if (mPhysics == nullptr) {
+            return nullptr;
+        }
+
+        static_assert(static_cast<Uint8>(PhysicsRuntime::EPhysicalMaterialCombineMode::Average) == physx::PxCombineMode::eAVERAGE);
+        static_assert(static_cast<Uint8>(PhysicsRuntime::EPhysicalMaterialCombineMode::Min) == physx::PxCombineMode::eMIN);
+        static_assert(static_cast<Uint8>(PhysicsRuntime::EPhysicalMaterialCombineMode::Multiply) == physx::PxCombineMode::eMULTIPLY);
+        static_assert(static_cast<Uint8>(PhysicsRuntime::EPhysicalMaterialCombineMode::Max) == physx::PxCombineMode::eMAX);
+
+        const FMaterialKey Key{Material.GetStaticFriction(), Material.GetDynamicFriction(), Material.GetRestitution(), Material.GetFrictionCombineMode(), Material.GetRestitutionCombineMode()};
+
+        if (const auto Existing{mMaterials.find(Key)}; Existing != mMaterials.end()) {
+            return Existing->second.get();
+        }
+
+        std::unique_ptr<physx::PxMaterial, FRelease> Native{mPhysics->createMaterial(Material.GetStaticFriction(), Material.GetDynamicFriction(), Material.GetRestitution())};
+
+        if (Native == nullptr) {
+            return nullptr;
+        }
+
+        Native->setFrictionCombineMode(static_cast<physx::PxCombineMode::Enum>(Material.GetFrictionCombineMode()));
+        Native->setRestitutionCombineMode(static_cast<physx::PxCombineMode::Enum>(Material.GetRestitutionCombineMode()));
+
+        return mMaterials.emplace(Key, std::move(Native)).first->second.get();
     }
 }

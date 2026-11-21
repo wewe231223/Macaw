@@ -1445,6 +1445,10 @@ namespace Editor {
                 return DrawAssetPicker(Label, *String, Asset::EAssetType::Material, "Use mesh materials");
             }
 
+            if (Name == "PhysicalMaterial") {
+                return DrawAssetPicker(Label, *String, Asset::EAssetType::PhysicalMaterial, "Default physical material");
+            }
+
             if (Name == "Texture" || Name == "NormalMap" || Name == "Sprite") {
                 return DrawAssetPicker(Label, *String, Asset::EAssetType::Texture, Name == "Sprite" ? "Default atlas" : "None");
             }

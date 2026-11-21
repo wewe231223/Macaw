@@ -7,6 +7,7 @@
 #include "FAssetEditorManager.h"
 #include "FAssetEditorToolkit.h"
 #include "FMaterialEditorToolkit.h"
+#include "FPhysicalMaterialEditorToolkit.h"
 #include "FTextureEditorToolkit.h"
 #include "FEditorWorkspace.h"
 #include "FEditorCommands.h"
@@ -624,6 +625,10 @@ void FAssetEditorManager::OpenContentAsset(const std::filesystem::path& Path, As
     if (Type == Asset::EAssetType::Material) {
         if (auto* Material{Assets->LoadMaterial(Path, Error)}) {
             Toolkit = std::make_unique<FMaterialEditorToolkit>(mContext, Path, Material, mCatalog, mThumbnails, mMessages);
+        }
+    } else if (Type == Asset::EAssetType::PhysicalMaterial) {
+        if (const auto* Material{Assets->LoadPhysicalMaterial(Path, Error)}) {
+            Toolkit = std::make_unique<FPhysicalMaterialEditorToolkit>(*mContext, Path, *Material, mMessages);
         }
     } else if (Type == Asset::EAssetType::Texture) {
         if (Asset::UTexture2D* Texture{Assets->LoadTexture(Path, Error)}; Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(mContext->GetRenderer()->GetNativeDevice()))) {

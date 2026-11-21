@@ -3,7 +3,7 @@
   "CoreUObject": { "Public": ["Core"], "Private": [] },
   "Serialization": { "Public": ["Core"], "Private": ["CoreUObject"] },
   "RenderCore": { "Public": ["Core", "CoreUObject"], "Private": [] },
-  "Asset": { "Public": ["CoreUObject", "RenderCore"], "Private": ["Serialization"] },
+  "Asset": { "Public": ["CoreUObject", "RenderCore", "PhysicsRuntime"], "Private": ["Serialization"] },
   "PhysicsRuntime": { "Public": ["CoreUObject"], "Private": [] },
   "Engine": { "Public": ["CoreUObject", "Asset", "RenderCore", "PhysicsRuntime"], "Private": ["Serialization", "Script"] },
   "Renderer": { "Public": ["Engine"], "Private": [] },

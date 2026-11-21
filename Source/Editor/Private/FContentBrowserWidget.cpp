@@ -115,6 +115,8 @@ namespace {
             return "Shader";
         case Asset::EAssetType::Material:
             return "Material";
+        case Asset::EAssetType::PhysicalMaterial:
+            return "Physical Material";
         case Asset::EAssetType::Texture:
             return "Texture";
         case Asset::EAssetType::Sequence:
@@ -310,15 +312,15 @@ void FContentBrowserWidget::DrawContent() {
     DrawContentBreadcrumbs();
     ImGui::SetNextItemWidth(120.0f);
 
-    const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh         ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Skeleton ? "Skeletons" : *mContentFilter == Asset::EAssetType::Shader ? "Shaders" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : *mContentFilter == Asset::EAssetType::Sequence ? "Sequences" : *mContentFilter == Asset::EAssetType::AnimSequence ? "Animation Sequences" : *mContentFilter == Asset::EAssetType::BlendSpace ? "Blend Spaces" : *mContentFilter == Asset::EAssetType::AnimGraph ? "Anim Graphs" : *mContentFilter == Asset::EAssetType::ParticleSystem ? "Particle Systems" : "Scenes"};
+    const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh         ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Skeleton ? "Skeletons" : *mContentFilter == Asset::EAssetType::Shader ? "Shaders" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::PhysicalMaterial ? "Physical Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : *mContentFilter == Asset::EAssetType::Sequence ? "Sequences" : *mContentFilter == Asset::EAssetType::AnimSequence ? "Animation Sequences" : *mContentFilter == Asset::EAssetType::BlendSpace ? "Blend Spaces" : *mContentFilter == Asset::EAssetType::AnimGraph ? "Anim Graphs" : *mContentFilter == Asset::EAssetType::ParticleSystem ? "Particle Systems" : "Scenes"};
 
     if (ImGui::BeginCombo("##AssetType", FilterName)) {
         if (ImGui::Selectable("All Assets", !mContentFilter.has_value())) {
             mContentFilter.reset();
         }
 
-        for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Skeleton, Asset::EAssetType::Material, Asset::EAssetType::Shader, Asset::EAssetType::Texture, Asset::EAssetType::Scene, Asset::EAssetType::Sequence, Asset::EAssetType::AnimSequence, Asset::EAssetType::BlendSpace, Asset::EAssetType::AnimGraph, Asset::EAssetType::ParticleSystem}) {
-            const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Skeleton ? "Skeletons" : Type == Asset::EAssetType::Shader ? "Shaders" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : Type == Asset::EAssetType::Sequence ? "Sequences" : Type == Asset::EAssetType::AnimSequence ? "Animation Sequences" : Type == Asset::EAssetType::BlendSpace ? "Blend Spaces" : Type == Asset::EAssetType::AnimGraph ? "Anim Graphs" : Type == Asset::EAssetType::ParticleSystem ? "Particle Systems" : "Scenes"};
+        for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Skeleton, Asset::EAssetType::Material, Asset::EAssetType::PhysicalMaterial, Asset::EAssetType::Shader, Asset::EAssetType::Texture, Asset::EAssetType::Scene, Asset::EAssetType::Sequence, Asset::EAssetType::AnimSequence, Asset::EAssetType::BlendSpace, Asset::EAssetType::AnimGraph, Asset::EAssetType::ParticleSystem}) {
+            const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Skeleton ? "Skeletons" : Type == Asset::EAssetType::Shader ? "Shaders" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::PhysicalMaterial ? "Physical Materials" : Type == Asset::EAssetType::Texture ? "Textures" : Type == Asset::EAssetType::Sequence ? "Sequences" : Type == Asset::EAssetType::AnimSequence ? "Animation Sequences" : Type == Asset::EAssetType::BlendSpace ? "Blend Spaces" : Type == Asset::EAssetType::AnimGraph ? "Anim Graphs" : Type == Asset::EAssetType::ParticleSystem ? "Particle Systems" : "Scenes"};
 
             if (ImGui::Selectable(Name, mContentFilter == Type)) {
                 mContentFilter = Type;
@@ -623,6 +625,10 @@ void FContentBrowserWidget::DrawContentContextMenu() {
 
     if (ImGui::MenuItem("New Material", nullptr, false, CanEdit)) {
         CreateMaterial();
+    }
+
+    if (ImGui::MenuItem("New Physical Material", nullptr, false, CanEdit)) {
+        CreatePhysicalMaterial();
     }
 
     if (ImGui::MenuItem("New Blend Space 1D", nullptr, false, CanEdit)) {
@@ -977,7 +983,7 @@ void FContentBrowserWidget::DrawContentEntries() {
                     const bool Shader{!Directory && Type != mAssetTypes.end() && Type->second == Asset::EAssetType::Shader};
 
                     if ((LuaScript || HasThumbnail || AnimSequence || BlendSpace || AnimGraph || Shader) && mContext->CanEditWorld() && ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoPreviewTooltip)) {
-                        const char* Payload{LuaScript ? Editor::EditorAssetDragDrop::LuaScriptPayload : Shader ? Editor::EditorAssetDragDrop::ShaderPayload : AnimSequence ? Editor::EditorAssetDragDrop::AnimSequencePayload : BlendSpace ? Editor::EditorAssetDragDrop::BlendSpacePayload : AnimGraph ? Editor::EditorAssetDragDrop::AnimGraphPayload : Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+                        const char* Payload{LuaScript ? Editor::EditorAssetDragDrop::LuaScriptPayload : Shader ? Editor::EditorAssetDragDrop::ShaderPayload : AnimSequence ? Editor::EditorAssetDragDrop::AnimSequencePayload : BlendSpace ? Editor::EditorAssetDragDrop::BlendSpacePayload : AnimGraph ? Editor::EditorAssetDragDrop::AnimGraphPayload : Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Type->second == Asset::EAssetType::PhysicalMaterial ? Editor::EditorAssetDragDrop::PhysicalMaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
 
                         ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
                         mAssetDragSourceId = ImGui::GetDragDropPayload()->SourceId;
@@ -1046,6 +1052,22 @@ void FContentBrowserWidget::CreateMaterialIn(const std::filesystem::path& Direct
     mSelectedContentPath = Path;
 
     mAssetEditors.OpenContentAsset(Path, Asset::EAssetType::Material);
+}
+
+void FContentBrowserWidget::CreatePhysicalMaterial() {
+    Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+    const auto Path{Assets->MakeUniqueAssetPath(mContentDirectory, "PhysicalMaterial", mContentError)};
+    const PhysicsRuntime::UPhysicalMaterial Material{};
+
+    if (Path.empty() || !Assets->SavePhysicalMaterial(Path, Material, mContentError)) {
+        mContext->AddLog(mContentError);
+
+        return;
+    }
+
+    mRefreshContent = true;
+    mSelectedContentPath = Core::FilePath::FromUtf8(Assets->GetRelativePath(Path, mContentError));
+    mAssetEditors.OpenContentAsset(mSelectedContentPath, Asset::EAssetType::PhysicalMaterial);
 }
 
 void FContentBrowserWidget::CreateAnimGraph() {
