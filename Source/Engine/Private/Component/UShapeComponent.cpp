@@ -197,7 +197,7 @@ namespace Engine {
 
         const Engine::UWorld* World{GetWorld()};
         Asset::FAssetManager* Assets{World != nullptr ? World->GetAssets() : nullptr};
-        const PhysicsRuntime::UPhysicalMaterial* Material{&PhysicsRuntime::UPhysicalMaterial::GetDefault()};
+        const PhysicsRuntime::UPhysicalMaterial* Material{&GetDefaultPhysicalMaterial()};
 
         if (!Path.empty() && Assets != nullptr) {
             Core::FString Error{};
@@ -236,7 +236,28 @@ namespace Engine {
             MACAW_LOG(LogShapePhysics, Warning, "Could not load physical material '{}': {}", mPhysicalMaterialPath, Error);
         }
 
-        return mLegacyPhysicalMaterial != nullptr ? *mLegacyPhysicalMaterial : PhysicsRuntime::UPhysicalMaterial::GetDefault();
+        return mLegacyPhysicalMaterial != nullptr ? *mLegacyPhysicalMaterial : GetDefaultPhysicalMaterial();
+    }
+
+    const PhysicsRuntime::UBodySetup& Engine::UShapeComponent::GetBodySetup() {
+        if (mBodySetup == nullptr) {
+            mBodySetup = CoreUObject::NewObject<PhysicsRuntime::UBodySetup>();
+        }
+
+        PhysicsRuntime::FAggregateGeom& AggGeom{mBodySetup->GetAggGeom()};
+        AggGeom.Clear();
+
+        const Engine::FCollisionShape Shape{GetCollisionShape()};
+
+        if (Shape.IsBox()) {
+            AggGeom.mBoxElems.push_back(PhysicsRuntime::FBoxElem{FVector{}, FQuat{}, Shape.GetBoxHalfExtent() * 2.0f});
+        } else if (Shape.IsSphere()) {
+            AggGeom.mSphereElems.push_back(PhysicsRuntime::FSphereElem{FVector{}, Shape.GetRadius()});
+        } else if (Shape.IsCapsule()) {
+            AggGeom.mCapsuleElems.push_back(PhysicsRuntime::FCapsuleElem{FVector{}, FQuat{}, Shape.GetRadius(), Shape.GetCapsuleAxisHalfLength() * 2.0f});
+        }
+
+        return *mBodySetup;
     }
 
     bool Engine::UShapeComponent::HasPhysicsBody() const {
@@ -301,6 +322,11 @@ namespace Engine {
         SetTransform(Transform);
     }
 
+    const PhysicsRuntime::UPhysicalMaterial& Engine::UShapeComponent::GetDefaultPhysicalMaterial() const {
+        const PhysicsRuntime::UPhysicalMaterial* Material{mBodySetup != nullptr ? mBodySetup->GetPhysMaterial().Get() : nullptr};
+        return Material != nullptr ? *Material : PhysicsRuntime::UPhysicalMaterial::GetDefault();
+    }
+
     physx::PxTransform Engine::UShapeComponent::MakePhysicsPose() const {
         const FTransform& Transform{GetTransform()};
         const FVector& Location{Transform.mLocation};
@@ -309,7 +335,7 @@ namespace Engine {
         return physx::PxTransform{physx::PxVec3{Location.x, Location.y, Location.z}, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
     }
 
-    std::unique_ptr<PhysicsRuntime::FBodyInstance> Engine::UShapeComponent::CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) const {
+    std::unique_ptr<PhysicsRuntime::FBodyInstance> Engine::UShapeComponent::CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) {
         const Engine::UWorld* World{GetWorld()};
         PhysicsRuntime::FPhysicsScene* Scene{World != nullptr ? World->GetPhysicsScene() : nullptr};
 
@@ -318,31 +344,10 @@ namespace Engine {
         }
 
         const physx::PxTransform Pose{MakePhysicsPose()};
-        const Engine::FCollisionShape Shape{GetCollisionShape()};
-        const physx::PxTransform DefaultShapePose{physx::PxIdentity};
+        const PhysicsRuntime::UBodySetup& Setup{GetBodySetup()};
         const PhysicsRuntime::UPhysicalMaterial& Material{GetPhysicalMaterial()};
 
-        if (Shape.IsBox()) {
-            const FVector& Extent{Shape.GetBoxHalfExtent()};
-
-            return Scene->CreateBody(BodyType, Pose, physx::PxBoxGeometry{Extent.x, Extent.y, Extent.z}, DefaultShapePose, Material);
-        }
-
-        if (Shape.IsCapsule()) {
-            const float AxisHalfLength{Shape.GetCapsuleAxisHalfLength()};
-
-            if (AxisHalfLength > 0.0f) {
-                const physx::PxQuat CapsuleRotation{-(90_deg / 1_rad), physx::PxVec3{0.0f, 1.0f, 0.0f}};
-
-                return Scene->CreateBody(BodyType, Pose, physx::PxCapsuleGeometry{Shape.GetRadius(), AxisHalfLength}, physx::PxTransform{CapsuleRotation}, Material);
-            }
-        }
-
-        if (Shape.IsSphere() || Shape.IsCapsule()) {
-            return Scene->CreateBody(BodyType, Pose, physx::PxSphereGeometry{Shape.GetRadius()}, DefaultShapePose, Material);
-        }
-
-        return {};
+        return Scene->CreateBody(BodyType, Pose, Setup, Material);
     }
 
     /**

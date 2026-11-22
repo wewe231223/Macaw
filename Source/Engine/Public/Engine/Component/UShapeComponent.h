@@ -15,6 +15,7 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "PhysicsRuntime/EBodyType.h"
 #include "PhysicsRuntime/FBodyInstance.h"
+#include "PhysicsRuntime/UBodySetup.h"
 #include "PhysicsRuntime/UPhysicalMaterial.h"
 #include <memory>
 #include "UShapeComponent.generated.h"
@@ -61,6 +62,7 @@ namespace Engine {
         bool SetPhysicalMaterialPath(const Core::FString& Path);
         const PhysicsRuntime::UPhysicalMaterial& GetPhysicalMaterial() const;
 
+        const PhysicsRuntime::UBodySetup& GetBodySetup();
         bool HasPhysicsBody() const;
         void ReleasePhysicsBody();
 
@@ -198,8 +200,9 @@ namespace Engine {
          */
         bool ShouldCreateRenderState() const override;
 
+        const PhysicsRuntime::UPhysicalMaterial& GetDefaultPhysicalMaterial() const;
         physx::PxTransform MakePhysicsPose() const;
-        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) const;
+        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType);
 
     private:
         /**
@@ -242,6 +245,7 @@ namespace Engine {
         Core::FString mPhysicalMaterialPath{};
 
         std::unique_ptr<PhysicsRuntime::UPhysicalMaterial> mLegacyPhysicalMaterial{};
+        std::unique_ptr<PhysicsRuntime::UBodySetup> mBodySetup{};
         std::unique_ptr<PhysicsRuntime::FBodyInstance> mBodyInstance{};
     };
 
