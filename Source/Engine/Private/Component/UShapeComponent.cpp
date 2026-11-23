@@ -20,7 +20,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <utility>
 
 using namespace Core::Literals;
@@ -71,15 +70,7 @@ namespace Engine {
     /**
      * @brief 전달된 설정과 기본값으로 UShapeComponent 객체를 생성합니다.
      */
-    Engine::UShapeComponent::UShapeComponent() {
-        mOnComponentBeginOverlap.Add([](Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*) {
-            std::clog << "BeginOverlap\n";
-        });
-
-        mOnComponentEndOverlap.Add([](Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*) {
-            std::clog << "EndOverlap\n";
-        });
-    }
+    Engine::UShapeComponent::UShapeComponent() = default;
 
     void Engine::UShapeComponent::BeginPlay() {
         Super::BeginPlay();

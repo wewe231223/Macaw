@@ -54,9 +54,7 @@ namespace PhysicsRuntime {
     public:
         bool IsValid() const;
 
-        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreateBody(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose, const PhysicsRuntime::UBodySetup& Setup, const PhysicsRuntime::UPhysicalMaterial* MaterialOverride = nullptr, const PhysicsRuntime::FPhysicsBodyCollision& Collision = {});
-        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreateBody(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose, const PhysicsRuntime::UBodySetup& Setup, const PhysicsRuntime::UPhysicalMaterial& MaterialOverride);
-        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreateBody(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose, const physx::PxGeometry& Geometry, const physx::PxTransform& ShapePose = physx::PxTransform{physx::PxIdentity}, const PhysicsRuntime::UPhysicalMaterial& Material = PhysicsRuntime::UPhysicalMaterial::GetDefault());
+        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreateBody(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose, const PhysicsRuntime::UBodySetup& Setup, const PhysicsRuntime::UPhysicalMaterial* MaterialOverride, const PhysicsRuntime::FPhysicsBodyCollision& Collision);
         bool SetBodyMaterial(const PhysicsRuntime::FBodyInstance& Body, const PhysicsRuntime::UPhysicalMaterial& Material);
         void RemoveCollisionBody(const PhysicsRuntime::FBodyInstance& Body);
 
@@ -69,7 +67,7 @@ namespace PhysicsRuntime {
         bool AddBodyToScene(physx::PxRigidActor& Actor, const PhysicsRuntime::FBodyInstanceSettings& Settings, bool IncludeQueryShapes = false);
 
         physx::PxTransform MakeShapePose(const FVector& Center, const FQuat& Rotation) const;
-        bool AttachShape(physx::PxRigidActor& Actor, const physx::PxGeometry& Geometry, const physx::PxTransform& Pose, const physx::PxMaterial& Material, const PhysicsRuntime::FPhysicsBodyCollision& Collision = {}) const;
+        bool AttachShape(physx::PxRigidActor& Actor, const physx::PxGeometry& Geometry, const physx::PxTransform& Pose, const physx::PxMaterial& Material, const PhysicsRuntime::FPhysicsBodyCollision& Collision) const;
         FVector ToVector(const physx::PxVec3& Value) const;
 
         static physx::PxFilterFlags FilterCollisionPair(physx::PxFilterObjectAttributes FirstAttributes, physx::PxFilterData FirstData, physx::PxFilterObjectAttributes SecondAttributes, physx::PxFilterData SecondData, physx::PxPairFlags& PairFlags, const void*, physx::PxU32);

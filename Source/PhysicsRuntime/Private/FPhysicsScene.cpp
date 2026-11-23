@@ -115,26 +115,6 @@ namespace PhysicsRuntime {
         return Body;
     }
 
-    std::unique_ptr<PhysicsRuntime::FBodyInstance> FPhysicsScene::CreateBody(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose, const PhysicsRuntime::UBodySetup& Setup, const PhysicsRuntime::UPhysicalMaterial& MaterialOverride) {
-        return CreateBody(BodyType, Pose, Setup, &MaterialOverride);
-    }
-
-    std::unique_ptr<PhysicsRuntime::FBodyInstance> FPhysicsScene::CreateBody(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose, const physx::PxGeometry& Geometry, const physx::PxTransform& ShapePose, const PhysicsRuntime::UPhysicalMaterial& Material) {
-        auto Body{CreateBodyActor(BodyType, Pose)};
-
-        if (Body == nullptr) {
-            return {};
-        }
-
-        physx::PxMaterial* NativeMaterial{mRuntime.ResolveMaterial(Material)};
-
-        if (NativeMaterial == nullptr || !AttachShape(*Body->GetActor(), Geometry, ShapePose, *NativeMaterial) || !AddBodyToScene(*Body->GetActor(), PhysicsRuntime::FBodyInstanceSettings{})) {
-            return {};
-        }
-
-        return Body;
-    }
-
     bool FPhysicsScene::SetBodyMaterial(const PhysicsRuntime::FBodyInstance& Body, const PhysicsRuntime::UPhysicalMaterial& Material) {
         physx::PxRigidActor* Actor{Body.GetActor()};
 
