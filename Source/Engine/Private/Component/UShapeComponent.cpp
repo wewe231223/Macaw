@@ -68,7 +68,7 @@ namespace Engine {
                 const Core::FAngle Angle{StartAngle + Step * Index};
                 const FVector Point{C + U * (Core::Math::Cos(Angle) * R) + V * (Core::Math::Sin(Angle) * R)};
 
-                DrawInterface.DrawLine(Prev, Point, Color, true);
+                DrawInterface.DrawLine(Prev, Point, Color);
 
                 Prev = Point;
             }
@@ -410,18 +410,18 @@ namespace Engine {
             FVector V6{Box.GetCenter() - Box.GetAxis()[0] * Box.GetExtent().x - Box.GetAxis()[1] * Box.GetExtent().y - Box.GetAxis()[2] * Box.GetExtent().z};
             FVector V7{Box.GetCenter() - Box.GetAxis()[0] * Box.GetExtent().x + Box.GetAxis()[1] * Box.GetExtent().y - Box.GetAxis()[2] * Box.GetExtent().z};
 
-            DrawInterface.DrawLine(V0, V1, Color, true);
-            DrawInterface.DrawLine(V1, V2, Color, true);
-            DrawInterface.DrawLine(V2, V3, Color, true);
-            DrawInterface.DrawLine(V3, V0, Color, true);
-            DrawInterface.DrawLine(V4, V5, Color, true);
-            DrawInterface.DrawLine(V5, V6, Color, true);
-            DrawInterface.DrawLine(V6, V7, Color, true);
-            DrawInterface.DrawLine(V7, V4, Color, true);
-            DrawInterface.DrawLine(V0, V4, Color, true);
-            DrawInterface.DrawLine(V1, V5, Color, true);
-            DrawInterface.DrawLine(V2, V6, Color, true);
-            DrawInterface.DrawLine(V3, V7, Color, true);
+            DrawInterface.DrawLine(V0, V1, Color);
+            DrawInterface.DrawLine(V1, V2, Color);
+            DrawInterface.DrawLine(V2, V3, Color);
+            DrawInterface.DrawLine(V3, V0, Color);
+            DrawInterface.DrawLine(V4, V5, Color);
+            DrawInterface.DrawLine(V5, V6, Color);
+            DrawInterface.DrawLine(V6, V7, Color);
+            DrawInterface.DrawLine(V7, V4, Color);
+            DrawInterface.DrawLine(V0, V4, Color);
+            DrawInterface.DrawLine(V1, V5, Color);
+            DrawInterface.DrawLine(V2, V6, Color);
+            DrawInterface.DrawLine(V3, V7, Color);
         }
         else if (Shape.IsSphere()) {
             Engine::FCapsuleSegment Sphere{Engine::Collision::ToCapsuleSegment(Shape, Pos, Rot)};
@@ -446,10 +446,10 @@ namespace Engine {
             AddArc(DrawInterface, Capsule.GetA(), F, Rt, R, 0_rad, 1_turn, Color);
             AddArc(DrawInterface, Capsule.GetB(), F, Rt, R, 0_rad, 1_turn, Color);
 
-            DrawInterface.DrawLine(Capsule.GetA() + F * R, Capsule.GetB() + F * R, Color, true);
-            DrawInterface.DrawLine(Capsule.GetA() - F * R, Capsule.GetB() - F * R, Color, true);
-            DrawInterface.DrawLine(Capsule.GetA() + Rt * R, Capsule.GetB() + Rt * R, Color, true);
-            DrawInterface.DrawLine(Capsule.GetA() - Rt * R, Capsule.GetB() - Rt * R, Color, true);
+            DrawInterface.DrawLine(Capsule.GetA() + F * R, Capsule.GetB() + F * R, Color);
+            DrawInterface.DrawLine(Capsule.GetA() - F * R, Capsule.GetB() - F * R, Color);
+            DrawInterface.DrawLine(Capsule.GetA() + Rt * R, Capsule.GetB() + Rt * R, Color);
+            DrawInterface.DrawLine(Capsule.GetA() - Rt * R, Capsule.GetB() - Rt * R, Color);
 
             AddArc(DrawInterface, Capsule.GetB(), F, Up, R, 0_rad, 0.5_turn, Color);
             AddArc(DrawInterface, Capsule.GetB(), Rt, Up, R, 0_rad, 0.5_turn, Color);
