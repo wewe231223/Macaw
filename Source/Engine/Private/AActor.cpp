@@ -116,6 +116,16 @@ namespace Engine {
         return mComponents;
     }
 
+    Engine::UActorComponent* Engine::AActor::FindComponentByClass(const CoreUObject::UClass* Class) const {
+        for (const auto& Component : mComponents) {
+            if (Component->IsA(Class)) {
+                return Component.get();
+            }
+        }
+
+        return nullptr;
+    }
+
     Engine::AActor::FComponentCollisionDelegate& Engine::AActor::GetOnComponentCollision() {
         return mOnComponentCollision;
     }

@@ -31,11 +31,9 @@ namespace Engine {
     class FWorldContext;
     class FLuaRuntime;
     class ULuaScriptComponent;
-    struct FHitResult;
     class AStaticMeshActor;
     class UCameraComponent;
     class UPrimitiveComponent;
-    class UShapeComponent;
     class APlayerCameraManager;
     struct FWorldHit;
 
@@ -145,8 +143,6 @@ namespace Engine {
          * @details 편집과 일시정지 Tick은 게임 시간과 일반 프레임 횟수를 유지합니다.
          */
         bool Tick(float DeltaTime);
-
-        Engine::FHitResult MoveActorSwept(Engine::AActor& Actor, const FVector& Delta);
 
         /**
          * @brief Playing과 Paused 사이의 상태를 전환합니다.
@@ -377,11 +373,7 @@ namespace Engine {
          * @brief 전달 깊이를 줄이고 안전한 경계에서 지연 작업을 처리합니다.
          */
         void FinishDispatch();
-
-        /**
-         * @brief 충돌 도형의 겹침을 갱신하고 시작과 끝 이벤트를 전달합니다.
-         */
-        void UpdateOverlaps();
+        void DispatchPhysicsCollisionEvents();
 
         /**
          * @brief 가장 바깥 전달 범위 이후 종료 요청과 액터 삭제 및 월드 종료를 처리합니다.
@@ -509,11 +501,6 @@ namespace Engine {
          * @brief 중첩된 콜백 전달 범위의 깊이입니다.
          */
         Uint32 mDispatchDepth{};
-
-        /**
-         * @brief 지난 갱신에서 겹쳐 있던 충돌 도형 쌍입니다.
-         */
-        Core::TArray<std::pair<CoreUObject::TObjectRef<Engine::UShapeComponent>, CoreUObject::TObjectRef<Engine::UShapeComponent>>> mOverlaps{};
 
         /**
          * @brief 마지막 BeginPlay 이후 실제 처리한 게임 갱신 횟수입니다.

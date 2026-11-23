@@ -8,7 +8,6 @@
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UCameraComponent.h"
-#include "Engine/Component/UProjectileMovementComponent.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
 #include "Engine/FWorldHit.h"
 #include "Engine/UWorld.h"
@@ -17,22 +16,6 @@
 #include <tuple>
 
 using namespace Engine;
-
-Engine::UActorComponent* FLuaRuntime::FindComponent(const Engine::AActor& Actor, const CoreUObject::UClass* Class) const {
-    for (const auto& Component : Actor.GetComponents()) {
-        if (Component->IsA(Class)) {
-            return Component.get();
-        }
-    }
-    return nullptr;
-}
-
-Engine::UProjectileMovementComponent& FLuaRuntime::ResolveMovement(const Engine::AActor& Actor) const {
-    if (auto* Movement{static_cast<Engine::UProjectileMovementComponent*>(FindComponent(Actor, Engine::UProjectileMovementComponent::StaticClass()))}) {
-        return *Movement;
-    }
-    throw sol::error{"Actor needs a Projectile Movement component for Velocity"};
-}
 
 AActor& FLuaRuntime::FActorRef::Resolve() const {
     auto* Actor{mActor.Get()};
@@ -103,6 +86,7 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
     Hit["BlockingHit"] = sol::readonly(&Engine::FHitResult::mBlockingHit);
     Hit["ImpactPoint"] = sol::readonly(&Engine::FHitResult::mImpactPoint);
     Hit["Normal"] = sol::readonly(&Engine::FHitResult::mNormal);
+    Hit["NormalImpulse"] = sol::readonly(&Engine::FHitResult::mNormalImpulse);
     Hit["Time"] = sol::readonly(&Engine::FHitResult::mTime);
 
     auto RaycastHit{Lua.new_usertype<Engine::FWorldHit>("RaycastHit", sol::no_constructor)};
@@ -157,18 +141,18 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
     Actor["SetActorTransform"] = [](const FActorRef& Ref, const FTransform& Value) {
         return Ref.Resolve().SetActorTransform(Value);
     };
-    Actor["GetComponentByClass"] = [this](const FActorRef& Ref, const Core::FString& ClassName) -> sol::optional<FLuaComponentRef> {
+    Actor["GetComponentByClass"] = [](const FActorRef& Ref, const Core::FString& ClassName) -> sol::optional<FLuaComponentRef> {
         const auto* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
         if (Class == nullptr || !Class->IsChildOf(Engine::UActorComponent::StaticClass())) {
             throw sol::error{"Invalid component class: " + ClassName};
         }
-        if (auto* Found{FindComponent(Ref.Resolve(), Class)}) {
+        if (auto* Found{Ref.Resolve().FindComponentByClass(Class)}) {
             return FLuaComponentRef{Found};
         }
         return sol::nullopt;
     };
-    Actor["GetSkeletalMeshComponent"] = [this](const FActorRef& Ref) -> sol::optional<FLuaComponentRef> {
-        if (auto* Found{FindComponent(Ref.Resolve(), Engine::USkeletalMeshComponent::StaticClass())}) {
+    Actor["GetSkeletalMeshComponent"] = [](const FActorRef& Ref) -> sol::optional<FLuaComponentRef> {
+        if (auto* Found{Ref.Resolve().FindComponentByClass(Engine::USkeletalMeshComponent::StaticClass())}) {
             return FLuaComponentRef{Found};
         }
         return sol::nullopt;
@@ -183,26 +167,11 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
             throw sol::error{"Invalid actor transform"};
         }
     });
-    Actor["Velocity"] = sol::property([this](const FActorRef& Ref) {
-        return ResolveMovement(Ref.Resolve()).GetVelocity();
-    }, [this](const FActorRef& Ref, const FVector& Value) {
-        if (!ResolveMovement(Ref.Resolve()).SetVelocity(Value)) {
-            throw sol::error{"Invalid movement velocity"};
-        }
-    });
     Actor["PrintLocation"] = [](const FActorRef& Ref) {
         const auto& Target{Ref.Resolve()};
         const auto Location{Target.GetActorTransform().mLocation};
         std::clog << Target.GetName() << " Location " << Location.x << ' ' << Location.y << ' ' << Location.z << '\n';
     };
-    Actor["MoveSwept"] = [](const FActorRef& Ref, const FVector& Delta) {
-        auto& Target{Ref.Resolve()};
-        if (Target.GetWorld() == nullptr || !Delta.IsFinite()) {
-            throw sol::error{"Invalid sweep movement"};
-        }
-        return Target.GetWorld()->MoveActorSwept(Target, Delta);
-    };
-
     auto World{Lua.create_named_table("World")};
     World["FindActor"] = [this](const Core::FString& Name) -> sol::optional<FActorRef> {
         if (auto* Found{mWorld.FindActor(Name)}) {
@@ -214,7 +183,7 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
         return mWorld.Raycast(Origin, Direction, Ignored ? &Ignored->Resolve() : nullptr);
     };
     World["SetActiveCamera"] = [this](const FActorRef& Ref) {
-        auto* Camera{static_cast<Engine::UCameraComponent*>(FindComponent(Ref.Resolve(), Engine::UCameraComponent::StaticClass()))};
+        auto* Camera{static_cast<Engine::UCameraComponent*>(Ref.Resolve().FindComponentByClass(Engine::UCameraComponent::StaticClass()))};
         return Camera != nullptr && mWorld.SetActiveCamera(Camera);
     };
 

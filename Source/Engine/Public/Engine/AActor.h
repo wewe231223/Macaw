@@ -77,6 +77,7 @@ namespace Engine {
          * @return 소유 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<std::unique_ptr<Engine::UActorComponent>>& GetComponents() const;
+        Engine::UActorComponent* FindComponentByClass(const CoreUObject::UClass* Class) const;
 
         FComponentCollisionDelegate& GetOnComponentCollision();
 

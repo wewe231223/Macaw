@@ -7,11 +7,19 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
+#include "CoreUObject/Reflection/TNativeEnum.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Core/Math/FTransform.h"
 #include "USceneComponent.generated.h"
 
 namespace Engine {
+
+    UENUM()
+    enum class EComponentMobility : Uint8 {
+        Static,
+        Stationary,
+        Movable
+    };
 
     /**
      * @brief 검증된 위치, 회전과 스케일을 보관하는 공간 컴포넌트입니다.
@@ -52,12 +60,18 @@ namespace Engine {
          */
         FMatrix GetWorldMatrix() const;
 
+        Engine::EComponentMobility GetMobility() const;
+        virtual bool SetMobility(Engine::EComponentMobility Mobility);
+
     private:
         /**
          * @brief 컴포넌트의 위치·회전·스케일입니다.
          */
         UPROPERTY(Edit, Serialize, Getter = GetTransform, Setter = SetTransform)
         FTransform mTransform{};
+
+        UPROPERTY(Edit, Serialize, Getter = GetMobility, Setter = SetMobility)
+        Engine::EComponentMobility mMobility{Engine::EComponentMobility::Movable};
     };
 
 }

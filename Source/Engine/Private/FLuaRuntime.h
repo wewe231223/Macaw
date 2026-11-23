@@ -21,8 +21,6 @@
 
 namespace Engine {
 
-    class UProjectileMovementComponent;
-
     /**
      * @brief Lua 스크립트 컴포넌트 하나의 실행 환경, 수명 주기 콜백과 대기 중인 충돌 이벤트를 보관합니다.
      * @ingroup Engine
@@ -221,9 +219,6 @@ namespace Engine {
          * @brief 수학 타입, 충돌 결과, Actor, Component, World, Input 등 엔진 API를 Lua에 등록합니다.
          */
         void RegisterBindings(sol::state_view Lua);
-
-        Engine::UActorComponent* FindComponent(const Engine::AActor& Actor, const CoreUObject::UClass* Class) const;
-        Engine::UProjectileMovementComponent& ResolveMovement(const Engine::AActor& Actor) const;
 
         /**
          * @brief 스크립트 파일을 읽어 UTF-8 BOM을 제거하고 텍스트 청크로 컴파일합니다.

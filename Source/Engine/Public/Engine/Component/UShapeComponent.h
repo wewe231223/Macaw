@@ -15,6 +15,7 @@
 #include "Core/Literals/QuantityTypes.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "PhysicsRuntime/EBodyType.h"
+#include "PhysicsRuntime/ECollisionEnabled.h"
 #include "PhysicsRuntime/FBodyInstance.h"
 #include "PhysicsRuntime/UBodySetup.h"
 #include "PhysicsRuntime/UPhysicalMaterial.h"
@@ -51,11 +52,16 @@ namespace Engine {
         void BeginPlay() override;
         void EndPlay() override;
 
-        bool IsPhysicsEnabled() const;
-        bool SetPhysicsEnabled(bool Enabled);
+        bool SetMobility(Engine::EComponentMobility Mobility) override;
 
-        PhysicsRuntime::EBodyType GetBodyType() const;
-        bool SetBodyType(PhysicsRuntime::EBodyType BodyType);
+        bool GetSimulatePhysics() const;
+        bool SetSimulatePhysics(bool SimulatePhysics);
+
+        PhysicsRuntime::ECollisionEnabled GetCollisionEnabled() const;
+        bool SetCollisionEnabled(PhysicsRuntime::ECollisionEnabled CollisionEnabled);
+
+        bool GetGenerateOverlapEvents() const;
+        bool SetGenerateOverlapEvents(bool GenerateOverlapEvents);
 
         void Serialize(Core::FArchive& Archive) override;
 
@@ -64,6 +70,7 @@ namespace Engine {
         const PhysicsRuntime::UPhysicalMaterial& GetPhysicalMaterial() const;
 
         const PhysicsRuntime::UBodySetup& GetBodySetup();
+        PhysicsRuntime::EBodyType GetPhysicsBodyType() const;
         bool HasPhysicsBody() const;
         void ReleasePhysicsBody();
 
@@ -87,9 +94,6 @@ namespace Engine {
          * @return 이 컴포넌트가 소유한 이벤트 델리게이트의 참조입니다.
          */
         FHitDelegate& GetOnComponentHit();
-
-        bool BlocksMovement() const;
-        void SetBlocksMovement(bool Blocks);
 
         /**
          * @brief 겹침 시작 델리게이트를 호출합니다.
@@ -149,21 +153,6 @@ namespace Engine {
         void DrawDebug(Engine::FPrimitiveDrawInterface& DrawInterface, bool Highlight) const;
 
         /**
-         * @brief 두 컴포넌트의 월드 충돌 형상이 겹치는지 검사합니다.
-         * @param[in] Other 비교할 상대 값입니다.
-         * @return 조건을 만족하면 true입니다.
-         */
-        bool IsOverlapping(const Engine::UShapeComponent& Other) const;
-
-        /**
-         * @brief 두 형상의 월드 접촉 법선·깊이·위치를 계산합니다.
-         * @param[in] Other 비교할 상대 값입니다.
-         * @param[out] OutContact 접촉 정보를 기록할 선택적 출력 주소입니다.
-         * @return 두 형상이 겹쳐 접촉 정보를 계산했으면 true입니다.
-         */
-        bool ComputeContact(const Engine::UShapeComponent& Other, Engine::FCollisionContact& OutContact) const;
-
-        /**
          * @brief 충돌 도형을 표시할 RGBA 색상을 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
          */
@@ -203,7 +192,9 @@ namespace Engine {
 
         const PhysicsRuntime::UPhysicalMaterial& GetDefaultPhysicalMaterial() const;
         physx::PxTransform MakePhysicsPose() const;
-        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType);
+        PhysicsRuntime::EBodyType ResolvePhysicsBodyType(Engine::EComponentMobility Mobility, bool SimulatePhysics) const;
+        bool RebuildPhysicsBody(PhysicsRuntime::EBodyType BodyType, PhysicsRuntime::ECollisionEnabled CollisionEnabled, bool GenerateOverlapEvents);
+        std::unique_ptr<PhysicsRuntime::FBodyInstance> CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType, PhysicsRuntime::ECollisionEnabled CollisionEnabled, bool GenerateOverlapEvents);
 
         void AddArc(Engine::FPrimitiveDrawInterface& DrawInterface, const FVector& C, const FVector& U, const FVector& V, float R, Core::FAngle StartAngle, Core::FAngle EndAngle, const FVector& Color) const;
 
@@ -235,14 +226,14 @@ namespace Engine {
          */
         FHitDelegate mOnComponentHit{};
 
-        UPROPERTY(Edit, Serialize, Getter = BlocksMovement, Setter = SetBlocksMovement)
-        bool mBlocksMovement{};
+        UPROPERTY(Edit, Serialize, Getter = GetSimulatePhysics, Setter = SetSimulatePhysics)
+        bool mSimulatePhysics{};
 
-        UPROPERTY(Edit, Serialize, Getter = IsPhysicsEnabled, Setter = SetPhysicsEnabled)
-        bool mPhysicsEnabled{};
+        UPROPERTY(Edit, Serialize, Getter = GetCollisionEnabled, Setter = SetCollisionEnabled)
+        PhysicsRuntime::ECollisionEnabled mCollisionEnabled{PhysicsRuntime::ECollisionEnabled::QueryOnly};
 
-        UPROPERTY(Edit, Serialize, Getter = GetBodyType, Setter = SetBodyType)
-        PhysicsRuntime::EBodyType mBodyType{PhysicsRuntime::EBodyType::Static};
+        UPROPERTY(Edit, Serialize, Getter = GetGenerateOverlapEvents, Setter = SetGenerateOverlapEvents)
+        bool mGenerateOverlapEvents{true};
 
         UPROPERTY(Edit, Serialize, Name = "PhysicalMaterial", Getter = GetPhysicalMaterialPath, Setter = SetPhysicalMaterialPath)
         Core::FString mPhysicalMaterialPath{};

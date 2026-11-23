@@ -25,6 +25,7 @@
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/Component/UShapeComponent.h"
+#include "Engine/Collision/FHitResult.h"
 #include "Engine/AStaticMeshActor.h"
 #include "Engine/ULevel.h"
 #include "Engine/FWorldHit.h"
@@ -330,7 +331,7 @@ namespace Engine {
     }
 
     /**
-     * @brief 월드 프리미티브의 메시를 검사하여 광선에 가장 가까운 충돌을 찾습니다.
+     * @brief 월드의 충돌 도형과 메시에서 광선에 가장 가까운 적중점을 찾습니다.
      */
     bool Engine::UWorld::Raycast(const FRay& Ray, Engine::FWorldHit& Hit, const Engine::AActor* Ignored) const {
         const Core::FScopedStatTimer StatTimer{Engine::EngineStats::Raycast};
@@ -342,6 +343,26 @@ namespace Engine {
 
         bool Found{};
         float Closest{std::numeric_limits<float>::max()};
+        const bool UsePhysicsShapes{mPhysicsScene != nullptr && (mPlayState == Engine::EWorldPlayState::Playing || mPlayState == Engine::EWorldPlayState::Paused)};
+
+        if (UsePhysicsShapes) {
+            const auto ResolveShape{[](CoreUObject::FObjectHandle Handle) {
+                return CoreUObject::Cast<Engine::UShapeComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle));
+            }};
+            const auto ShouldHit{[&ResolveShape, Ignored](CoreUObject::FObjectHandle Handle) {
+                const auto* Shape{ResolveShape(Handle)};
+                const auto* Owner{Shape != nullptr ? Shape->GetOwner() : nullptr};
+
+                return Owner != nullptr && Owner != Ignored && !Owner->IsPendingDestroy();
+            }};
+            CoreUObject::FObjectHandle Component{};
+
+            if (mPhysicsScene->Raycast(NormalizedRay.mOrigin, NormalizedRay.mDirection, ShouldHit, Closest, Component)) {
+                auto* Shape{ResolveShape(Component)};
+                Hit = {CoreUObject::MakeObjectRef(Shape->GetOwner()), CoreUObject::MakeObjectRef(Shape), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest};
+                Found = true;
+            }
+        }
 
         for (const auto& Actor : mPersistentLevel->GetActors()) {
             if (Actor->IsPendingDestroy() || Actor.get() == Ignored) {
@@ -350,6 +371,10 @@ namespace Engine {
 
             for (const auto& Component : Actor->GetComponents()) {
                 auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())};
+                const auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(Primitive)};
+                if (Shape != nullptr && (UsePhysicsShapes || !PhysicsRuntime::HasQueryCollision(Shape->GetCollisionEnabled()))) {
+                    continue;
+                }
 
                 if (Primitive != nullptr && Engine::RaycastMesh(&Primitive->GetMeshData(), Primitive->GetWorldMatrix(), NormalizedRay, Closest)) {
                     Hit = {CoreUObject::MakeObjectRef(Actor), CoreUObject::MakeObjectRef(Primitive), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest};
@@ -544,6 +569,10 @@ namespace Engine {
         DestroyActor(mPlayerCameraManager);
         mPlayerCameraManager = {};
         mLuaRuntime.reset();
+        if (mPhysicsScene != nullptr) {
+            mPhysicsScene->TakeCollisionEvents();
+        }
+
         mPlayState = Engine::EWorldPlayState::Stopped;
     }
 
@@ -713,7 +742,7 @@ namespace Engine {
         mTickTaskManager.RunTickGroup(Engine::ETickingGroup::PostPhysics);
 
         if (!EditorTick && !mEndPlayRequested && !mShutdownRequested) {
-            UpdateOverlaps();
+            DispatchPhysicsCollisionEvents();
         }
 
         // 카메라는 이번 프레임의 이동과 겹침 처리가 모두 끝난 뒤에 갱신합니다.
@@ -762,7 +791,7 @@ namespace Engine {
         for (const auto& Actor : mPersistentLevel->GetActors()) {
             const std::size_t FirstShape{DrivenShapes.size()};
             const auto* RootShape{CoreUObject::Cast<Engine::UShapeComponent>(Actor->GetRootComponent())};
-            const bool HasRootBody{RootShape != nullptr && RootShape->HasPhysicsBody()};
+            const bool HasRootBody{RootShape != nullptr && RootShape->HasPhysicsBody() && (PhysicsRuntime::HasPhysicsCollision(RootShape->GetCollisionEnabled()) || RootShape->GetPhysicsBodyType() == PhysicsRuntime::EBodyType::Dynamic)};
             Engine::UShapeComponent* Driver{};
             bool HasDynamicBody{};
 
@@ -778,14 +807,15 @@ namespace Engine {
                     continue;
                 }
 
-                if (Shape->GetBodyType() == PhysicsRuntime::EBodyType::Kinematic) {
+                const PhysicsRuntime::EBodyType BodyType{Shape->GetPhysicsBodyType()};
+                if (BodyType == PhysicsRuntime::EBodyType::Kinematic) {
                     KinematicShapes.push_back(Shape);
                     continue;
                 }
 
                 DrivenShapes.push_back(Shape);
 
-                if (Shape->GetBodyType() == PhysicsRuntime::EBodyType::Dynamic) {
+                if (BodyType == PhysicsRuntime::EBodyType::Dynamic) {
                     HasDynamicBody = true;
 
                     if (Shape == RootShape || (!HasRootBody && Driver == nullptr)) {
@@ -828,70 +858,46 @@ namespace Engine {
         }
     }
 
-    /**
-     * @brief 충돌 도형의 겹침을 갱신하고 시작과 끝 이벤트를 전달합니다.
-     */
-    void Engine::UWorld::UpdateOverlaps() {
-        Core::TArray<Engine::UShapeComponent*> Shapes{};
-
-        if (mPersistentLevel != nullptr) {
-            for (const auto& Actor : mPersistentLevel->GetActors()) {
-                if (!Actor->IsPendingDestroy()) {
-                    for (const auto& Component : Actor->GetComponents()) {
-                        if (auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(Component.get())}) {
-                            Shapes.push_back(Shape);
-                        }
-                    }
-                }
-            }
+    void Engine::UWorld::DispatchPhysicsCollisionEvents() {
+        if (mPhysicsScene == nullptr) {
+            return;
         }
 
-        Core::TArray<std::pair<CoreUObject::TObjectRef<Engine::UShapeComponent>, CoreUObject::TObjectRef<Engine::UShapeComponent>>> Current{};
+        const auto ResolveShape{[this](CoreUObject::FObjectHandle Handle) -> Engine::UShapeComponent* {
+            auto* Shape{CoreUObject::TObjectRef<Engine::UShapeComponent>::FromHandle(Handle).Get()};
+            const auto* Owner{Shape != nullptr ? Shape->GetOwner() : nullptr};
 
-        for (Index_t First{}; First < Shapes.size(); ++First) {
-            for (Index_t Second{static_cast<Index_t>(First + 1)}; Second < Shapes.size(); ++Second) {
-                if (Shapes[First]->GetOwner() != Shapes[Second]->GetOwner() && Shapes[First]->IsOverlapping(*Shapes[Second])) {
-                    Current.emplace_back(Shapes[First], Shapes[Second]);
-                }
-            }
-        }
-
-        const auto Contains{[](const auto& Pairs, const auto& Pair) {
-            return std::find(Pairs.begin(), Pairs.end(), Pair) != Pairs.end();
-        }};
-        const auto Resolve{[](CoreUObject::TObjectRef<Engine::UShapeComponent> Handle) {
-            return CoreUObject::Cast<Engine::UShapeComponent>(Handle.Get());
+            return Owner != nullptr && !Owner->IsPendingDestroy() && Shape->GetWorld() == this && Shape->HasBegunPlay() ? Shape : nullptr;
         }};
 
-        // 이벤트 안에서 액터가 파괴될 수 있으므로 호출할 때마다 핸들을 다시 해석합니다.
-        const auto Previous{std::exchange(mOverlaps, Current)};
-
-        for (const auto& Pair : Previous) {
-            if (!Contains(Current, Pair)) {
-                if (Engine::UShapeComponent* Shape{Resolve(Pair.first)}) {
-                    Shape->OnEndOverlap(Resolve(Pair.second));
+        for (const PhysicsRuntime::FPhysicsCollisionEvent& Event : mPhysicsScene->TakeCollisionEvents()) {
+            for (const bool Reverse : {false, true}) {
+                if (mEndPlayRequested || mShutdownRequested) {
+                    return;
                 }
 
-                if (Engine::UShapeComponent* Shape{Resolve(Pair.second)}) {
-                    Shape->OnEndOverlap(Resolve(Pair.first));
-                }
-            }
-        }
-
-        for (const auto& Pair : Current) {
-            if (!Contains(Previous, Pair)) {
-                Engine::UShapeComponent* First{Resolve(Pair.first)};
-                Engine::UShapeComponent* Second{Resolve(Pair.second)};
-
-                if (First != nullptr && Second != nullptr) {
-                    First->OnBeginOverlap(Second);
+                auto* Shape{ResolveShape(Reverse ? Event.mSecond : Event.mFirst)};
+                auto* Other{ResolveShape(Reverse ? Event.mFirst : Event.mSecond)};
+                if (Shape == nullptr) {
+                    continue;
                 }
 
-                First = Resolve(Pair.first);
-                Second = Resolve(Pair.second);
-
-                if (First != nullptr && Second != nullptr) {
-                    Second->OnBeginOverlap(First);
+                if (Event.mType == PhysicsRuntime::EPhysicsCollisionEvent::EndOverlap) {
+                    Shape->OnEndOverlap(Other);
+                } else if (Other != nullptr && Event.mType == PhysicsRuntime::EPhysicsCollisionEvent::BeginOverlap) {
+                    Shape->OnBeginOverlap(Other);
+                } else if (Other != nullptr) {
+                    Engine::FHitResult Hit{};
+                    Hit.SetActor(Other->GetOwner());
+                    Hit.SetComponent(Other);
+                    Hit.mBlockingHit = true;
+                    Hit.mLocation = Shape->GetTransform().mLocation;
+                    Hit.mImpactPoint = Event.mPoint;
+                    Hit.mNormal = Reverse ? -Event.mNormal : Event.mNormal;
+                    Hit.mImpactNormal = Hit.mNormal;
+                    Hit.mNormalImpulse = Reverse ? -Event.mNormalImpulse : Event.mNormalImpulse;
+                    Hit.mPenetrationDepth = Event.mPenetrationDepth;
+                    Shape->OnHit(Other->GetOwner(), Other, Hit);
                 }
             }
         }

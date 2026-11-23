@@ -122,8 +122,16 @@ namespace Editor {
      * @details Tick 그룹과 편집 Tick 허용 설정은 선언 클래스에 따라 Actor Tick 또는 Component Tick에 표시합니다.
      */
     std::string_view Editor::FDetailsWidget::DetailCategory(const CoreUObject::UClass* Owner, std::string_view Name) const {
-        if (Name == "Transform") {
+        if (Name == "Transform" || Name == "Mobility") {
             return "Transform";
+        }
+
+        if (Name == "SimulatePhysics") {
+            return "Physics";
+        }
+
+        if (Name == "CollisionEnabled" || Name == "GenerateOverlapEvents" || Name == "PhysicalMaterial") {
+            return "Collision";
         }
 
         if (Name == "Material") {
@@ -828,7 +836,7 @@ namespace Editor {
             });
         }
 
-        constexpr Core::TStaticArray<const char*, 14> Categories{"Script", "Transform", "Animation", "Mesh", "Materials", "Light", "Camera", "Fog", "Shape", "Movement", "Rendering", "General", "Settings", "Component Tick"};
+        constexpr Core::TStaticArray<const char*, 16> Categories{"Script", "Transform", "Animation", "Mesh", "Materials", "Light", "Camera", "Fog", "Shape", "Physics", "Collision", "Movement", "Rendering", "General", "Settings", "Component Tick"};
         const bool Searching{mPropertySearch.front() != '\0'};
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {5.0f, 2.0f});

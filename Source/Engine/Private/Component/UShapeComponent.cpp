@@ -16,6 +16,7 @@
 #include "Core/Math/FBox.h"
 #include "Core/Literals.h"
 #include "Core/Log/Log.h"
+#include "PhysicsRuntime/FPhysicsScene.h"
 
 #include <algorithm>
 #include <cmath>
@@ -28,19 +29,12 @@ namespace Engine {
 
     DEFINE_LOG_CATEGORY_STATIC(LogShapePhysics, Log, All);
 
-    /**
-     * @brief 충돌 도형의 접촉 검사 보조 함수입니다.
-     */
-    namespace {
-        /**
-         * @brief 두 AABB의 모든 축 구간이 겹치는지 검사합니다.
-         * @param[in] A 첫 번째 검사 대상입니다.
-         * @param[in] B 두 번째 검사 대상입니다.
-         * @return 두 형상이 겹치면 true입니다.
-         */
-        bool BoundsOverlap(const FBox& A, const FBox& B) {
-            return A.mMinimum.x <= B.mMaximum.x && A.mMaximum.x >= B.mMinimum.x && A.mMinimum.y <= B.mMaximum.y && A.mMaximum.y >= B.mMinimum.y && A.mMinimum.z <= B.mMaximum.z && A.mMaximum.z >= B.mMinimum.z;
+    PhysicsRuntime::EBodyType Engine::UShapeComponent::ResolvePhysicsBodyType(Engine::EComponentMobility Mobility, bool SimulatePhysics) const {
+        if (Mobility != Engine::EComponentMobility::Movable) {
+            return PhysicsRuntime::EBodyType::Static;
         }
+
+        return SimulatePhysics ? PhysicsRuntime::EBodyType::Dynamic : PhysicsRuntime::EBodyType::Kinematic;
     }
 
     /**
@@ -90,7 +84,7 @@ namespace Engine {
     void Engine::UShapeComponent::BeginPlay() {
         Super::BeginPlay();
 
-        if (mPhysicsEnabled && mBodyInstance == nullptr && !SetPhysicsEnabled(true)) {
+        if (!RebuildPhysicsBody(GetPhysicsBodyType(), mCollisionEnabled, mGenerateOverlapEvents)) {
             MACAW_LOG(LogShapePhysics, Warning, "Could not create the physics body for component {}.", GetName());
         }
     }
@@ -100,46 +94,65 @@ namespace Engine {
         Super::EndPlay();
     }
 
-    bool Engine::UShapeComponent::IsPhysicsEnabled() const {
-        return mPhysicsEnabled;
-    }
-
-    bool Engine::UShapeComponent::SetPhysicsEnabled(bool Enabled) {
-        if (!Enabled) {
-            ReleasePhysicsBody();
-        } else if (HasBegunPlay() && mBodyInstance == nullptr) {
-            mBodyInstance = CreatePhysicsBody(mBodyType);
-
-            if (mBodyInstance == nullptr) {
-                return false;
-            }
+    bool Engine::UShapeComponent::SetMobility(Engine::EComponentMobility Mobility) {
+        const Engine::EComponentMobility PreviousMobility{GetMobility()};
+        const PhysicsRuntime::EBodyType PreviousType{GetPhysicsBodyType()};
+        if (!Super::SetMobility(Mobility)) {
+            return false;
         }
 
-        mPhysicsEnabled = Enabled;
+        const PhysicsRuntime::EBodyType NewType{GetPhysicsBodyType()};
+        if (HasBegunPlay() && NewType != PreviousType && !RebuildPhysicsBody(NewType, mCollisionEnabled, mGenerateOverlapEvents)) {
+            Super::SetMobility(PreviousMobility);
+            return false;
+        }
 
         return true;
     }
 
-    PhysicsRuntime::EBodyType Engine::UShapeComponent::GetBodyType() const {
-        return mBodyType;
+    bool Engine::UShapeComponent::GetSimulatePhysics() const {
+        return mSimulatePhysics;
     }
 
-    bool Engine::UShapeComponent::SetBodyType(PhysicsRuntime::EBodyType BodyType) {
-        if (BodyType != PhysicsRuntime::EBodyType::Static && BodyType != PhysicsRuntime::EBodyType::Kinematic && BodyType != PhysicsRuntime::EBodyType::Dynamic) {
+    bool Engine::UShapeComponent::SetSimulatePhysics(bool SimulatePhysics) {
+        const PhysicsRuntime::EBodyType NewType{ResolvePhysicsBodyType(GetMobility(), SimulatePhysics)};
+        if (HasBegunPlay() && NewType != GetPhysicsBodyType() && !RebuildPhysicsBody(NewType, mCollisionEnabled, mGenerateOverlapEvents)) {
             return false;
         }
 
-        if (mPhysicsEnabled && HasBegunPlay() && (mBodyInstance == nullptr || mBodyType != BodyType)) {
-            auto Body{CreatePhysicsBody(BodyType)};
+        mSimulatePhysics = SimulatePhysics;
 
-            if (Body == nullptr) {
-                return false;
-            }
+        return true;
+    }
 
-            mBodyInstance = std::move(Body);
+    PhysicsRuntime::ECollisionEnabled Engine::UShapeComponent::GetCollisionEnabled() const {
+        return mCollisionEnabled;
+    }
+
+    bool Engine::UShapeComponent::SetCollisionEnabled(PhysicsRuntime::ECollisionEnabled CollisionEnabled) {
+        if (CollisionEnabled != PhysicsRuntime::ECollisionEnabled::NoCollision && !PhysicsRuntime::HasQueryCollision(CollisionEnabled) && !PhysicsRuntime::HasPhysicsCollision(CollisionEnabled)) {
+            return false;
         }
 
-        mBodyType = BodyType;
+        if (HasBegunPlay() && CollisionEnabled != mCollisionEnabled && !RebuildPhysicsBody(GetPhysicsBodyType(), CollisionEnabled, mGenerateOverlapEvents)) {
+            return false;
+        }
+
+        mCollisionEnabled = CollisionEnabled;
+
+        return true;
+    }
+
+    bool Engine::UShapeComponent::GetGenerateOverlapEvents() const {
+        return mGenerateOverlapEvents;
+    }
+
+    bool Engine::UShapeComponent::SetGenerateOverlapEvents(bool GenerateOverlapEvents) {
+        if (HasBegunPlay() && GenerateOverlapEvents != mGenerateOverlapEvents && PhysicsRuntime::HasQueryCollision(mCollisionEnabled) && !RebuildPhysicsBody(GetPhysicsBodyType(), mCollisionEnabled, GenerateOverlapEvents)) {
+            return false;
+        }
+
+        mGenerateOverlapEvents = GenerateOverlapEvents;
 
         return true;
     }
@@ -207,7 +220,7 @@ namespace Engine {
             }
         }
 
-        if (HasPhysicsBody()) {
+        if (HasPhysicsBody() && PhysicsRuntime::HasPhysicsCollision(mCollisionEnabled)) {
             PhysicsRuntime::FPhysicsScene* Scene{World != nullptr ? World->GetPhysicsScene() : nullptr};
 
             if (Scene == nullptr || (!Path.empty() && Assets == nullptr) || !Scene->SetBodyMaterial(*mBodyInstance, *Material)) {
@@ -259,16 +272,25 @@ namespace Engine {
         return *mBodySetup;
     }
 
+    PhysicsRuntime::EBodyType Engine::UShapeComponent::GetPhysicsBodyType() const {
+        return ResolvePhysicsBodyType(GetMobility(), mSimulatePhysics);
+    }
+
     bool Engine::UShapeComponent::HasPhysicsBody() const {
         return mBodyInstance != nullptr;
     }
 
     void Engine::UShapeComponent::ReleasePhysicsBody() {
+        const Engine::UWorld* World{GetWorld()};
+        if (auto* Scene{World != nullptr ? World->GetPhysicsScene() : nullptr}; Scene != nullptr && mBodyInstance != nullptr) {
+            Scene->RemoveCollisionBody(*mBodyInstance);
+        }
+
         mBodyInstance.reset();
     }
 
     void Engine::UShapeComponent::PushKinematicTarget(float Alpha) {
-        if (mBodyType != PhysicsRuntime::EBodyType::Kinematic || !HasPhysicsBody()) {
+        if (!HasPhysicsBody() || GetPhysicsBodyType() != PhysicsRuntime::EBodyType::Kinematic) {
             return;
         }
 
@@ -291,7 +313,7 @@ namespace Engine {
     }
 
     void Engine::UShapeComponent::PullPhysicsTransform(bool MoveOwner) {
-        if (!HasPhysicsBody() || mBodyType == PhysicsRuntime::EBodyType::Kinematic) {
+        if (!HasPhysicsBody() || GetPhysicsBodyType() == PhysicsRuntime::EBodyType::Kinematic) {
             return;
         }
 
@@ -334,19 +356,50 @@ namespace Engine {
         return physx::PxTransform{physx::PxVec3{Location.x, Location.y, Location.z}, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
     }
 
-    std::unique_ptr<PhysicsRuntime::FBodyInstance> Engine::UShapeComponent::CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType) {
+    bool Engine::UShapeComponent::RebuildPhysicsBody(PhysicsRuntime::EBodyType BodyType, PhysicsRuntime::ECollisionEnabled CollisionEnabled, bool GenerateOverlapEvents) {
+        if (CollisionEnabled == PhysicsRuntime::ECollisionEnabled::NoCollision && BodyType != PhysicsRuntime::EBodyType::Dynamic) {
+            ReleasePhysicsBody();
+            return true;
+        }
+
+        auto Body{CreatePhysicsBody(BodyType, CollisionEnabled, GenerateOverlapEvents)};
+        if (Body == nullptr) {
+            return false;
+        }
+
+        if (mBodyInstance != nullptr && BodyType == PhysicsRuntime::EBodyType::Dynamic) {
+            const auto* Previous{mBodyInstance->GetActor()->is<physx::PxRigidDynamic>()};
+            if (Previous != nullptr && !Previous->getRigidBodyFlags().isSet(physx::PxRigidBodyFlag::eKINEMATIC)) {
+                auto* Dynamic{Body->GetActor()->is<physx::PxRigidDynamic>()};
+                Dynamic->setLinearVelocity(Previous->getLinearVelocity(), false);
+                Dynamic->setAngularVelocity(Previous->getAngularVelocity(), false);
+                if (Previous->isSleeping()) {
+                    Dynamic->putToSleep();
+                }
+            }
+        }
+
+        ReleasePhysicsBody();
+        mBodyInstance = std::move(Body);
+
+        return true;
+    }
+
+    std::unique_ptr<PhysicsRuntime::FBodyInstance> Engine::UShapeComponent::CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType, PhysicsRuntime::ECollisionEnabled CollisionEnabled, bool GenerateOverlapEvents) {
         const Engine::UWorld* World{GetWorld()};
+        const Engine::AActor* Owner{GetOwner()};
         PhysicsRuntime::FPhysicsScene* Scene{World != nullptr ? World->GetPhysicsScene() : nullptr};
 
-        if (Scene == nullptr) {
+        if (Scene == nullptr || Owner == nullptr || !Owner->GetHandle().IsValid() || !GetHandle().IsValid()) {
             return {};
         }
 
         const physx::PxTransform Pose{MakePhysicsPose()};
         const PhysicsRuntime::UBodySetup& Setup{GetBodySetup()};
-        const PhysicsRuntime::UPhysicalMaterial& Material{GetPhysicalMaterial()};
+        const PhysicsRuntime::UPhysicalMaterial& Material{PhysicsRuntime::HasPhysicsCollision(CollisionEnabled) ? GetPhysicalMaterial() : PhysicsRuntime::UPhysicalMaterial::GetDefault()};
+        const PhysicsRuntime::FPhysicsBodyCollision Collision{GetHandle(), Owner->GetHandle(), CollisionEnabled, GenerateOverlapEvents};
 
-        return Scene->CreateBody(BodyType, Pose, Setup, Material);
+        return Scene->CreateBody(BodyType, Pose, Setup, &Material, Collision);
     }
 
     /**
@@ -392,22 +445,25 @@ namespace Engine {
      * @brief 충돌 형상을 선택 강조 색상 또는 기본 색상의 선으로 수집합니다.
      */
     void Engine::UShapeComponent::DrawDebug(Engine::FPrimitiveDrawInterface& DrawInterface, bool Highlight) const {
-        Engine::FCollisionShape Shape{GetCollisionShape()};
-        FVector Pos{GetTransform().mLocation};
-        FQuat Rot{GetTransform().mRotation};
-        FVector Color{Highlight ? FVector{1.0f, 0.0f, 0.0f} : FVector{mShapeColor.x, mShapeColor.y, mShapeColor.z}};
+        const Engine::FCollisionShape Shape{GetCollisionShape()};
+        const FVector Position{GetTransform().mLocation};
+        const FQuat Rotation{GetTransform().mRotation};
+        const FVector Color{Highlight ? FVector{1.0f, 0.0f, 0.0f} : FVector{mShapeColor.x, mShapeColor.y, mShapeColor.z}};
 
         if (Shape.IsBox()) {
-            Engine::FOrientedBox Box{Engine::Collision::ToOrientedBox(Shape, Pos, Rot)};
+            const FVector Extent{Shape.GetBoxHalfExtent()};
+            const FVector X{Rotation.ForwardVector() * Extent.x};
+            const FVector Y{Rotation.RightVector() * Extent.y};
+            const FVector Z{Rotation.UpVector() * Extent.z};
 
-            FVector V0{Box.GetCenter() + Box.GetAxis()[0] * Box.GetExtent().x + Box.GetAxis()[1] * Box.GetExtent().y + Box.GetAxis()[2] * Box.GetExtent().z};
-            FVector V1{Box.GetCenter() + Box.GetAxis()[0] * Box.GetExtent().x - Box.GetAxis()[1] * Box.GetExtent().y + Box.GetAxis()[2] * Box.GetExtent().z};
-            FVector V2{Box.GetCenter() + Box.GetAxis()[0] * Box.GetExtent().x - Box.GetAxis()[1] * Box.GetExtent().y - Box.GetAxis()[2] * Box.GetExtent().z};
-            FVector V3{Box.GetCenter() + Box.GetAxis()[0] * Box.GetExtent().x + Box.GetAxis()[1] * Box.GetExtent().y - Box.GetAxis()[2] * Box.GetExtent().z};
-            FVector V4{Box.GetCenter() - Box.GetAxis()[0] * Box.GetExtent().x + Box.GetAxis()[1] * Box.GetExtent().y + Box.GetAxis()[2] * Box.GetExtent().z};
-            FVector V5{Box.GetCenter() - Box.GetAxis()[0] * Box.GetExtent().x - Box.GetAxis()[1] * Box.GetExtent().y + Box.GetAxis()[2] * Box.GetExtent().z};
-            FVector V6{Box.GetCenter() - Box.GetAxis()[0] * Box.GetExtent().x - Box.GetAxis()[1] * Box.GetExtent().y - Box.GetAxis()[2] * Box.GetExtent().z};
-            FVector V7{Box.GetCenter() - Box.GetAxis()[0] * Box.GetExtent().x + Box.GetAxis()[1] * Box.GetExtent().y - Box.GetAxis()[2] * Box.GetExtent().z};
+            FVector V0{Position + X + Y + Z};
+            FVector V1{Position + X - Y + Z};
+            FVector V2{Position + X - Y - Z};
+            FVector V3{Position + X + Y - Z};
+            FVector V4{Position - X + Y + Z};
+            FVector V5{Position - X - Y + Z};
+            FVector V6{Position - X - Y - Z};
+            FVector V7{Position - X + Y - Z};
 
             DrawInterface.DrawLine(V0, V1, Color);
             DrawInterface.DrawLine(V1, V2, Color);
@@ -421,62 +477,37 @@ namespace Engine {
             DrawInterface.DrawLine(V1, V5, Color);
             DrawInterface.DrawLine(V2, V6, Color);
             DrawInterface.DrawLine(V3, V7, Color);
+        } else if (Shape.IsSphere()) {
+            const FVector F{Rotation.ForwardVector()};
+            const FVector Rt{Rotation.RightVector()};
+            const FVector Up{Rotation.UpVector()};
+            const float R{Shape.GetRadius()};
+
+            AddArc(DrawInterface, Position, F, Rt, R, 0_rad, 1_turn, Color);
+            AddArc(DrawInterface, Position, F, Up, R, 0_rad, 1_turn, Color);
+            AddArc(DrawInterface, Position, Rt, Up, R, 0_rad, 1_turn, Color);
+        } else if (Shape.IsCapsule()) {
+            const FVector F{Rotation.ForwardVector()};
+            const FVector Rt{Rotation.RightVector()};
+            const FVector Up{Rotation.UpVector()};
+            const float R{Shape.GetRadius()};
+            const FVector Axis{Up * Shape.GetCapsuleAxisHalfLength()};
+            const FVector Bottom{Position - Axis};
+            const FVector Top{Position + Axis};
+
+            AddArc(DrawInterface, Bottom, F, Rt, R, 0_rad, 1_turn, Color);
+            AddArc(DrawInterface, Top, F, Rt, R, 0_rad, 1_turn, Color);
+
+            DrawInterface.DrawLine(Bottom + F * R, Top + F * R, Color);
+            DrawInterface.DrawLine(Bottom - F * R, Top - F * R, Color);
+            DrawInterface.DrawLine(Bottom + Rt * R, Top + Rt * R, Color);
+            DrawInterface.DrawLine(Bottom - Rt * R, Top - Rt * R, Color);
+
+            AddArc(DrawInterface, Top, F, Up, R, 0_rad, 0.5_turn, Color);
+            AddArc(DrawInterface, Top, Rt, Up, R, 0_rad, 0.5_turn, Color);
+            AddArc(DrawInterface, Bottom, F, -Up, R, 0_rad, 0.5_turn, Color);
+            AddArc(DrawInterface, Bottom, Rt, -Up, R, 0_rad, 0.5_turn, Color);
         }
-        else if (Shape.IsSphere()) {
-            Engine::FCapsuleSegment Sphere{Engine::Collision::ToCapsuleSegment(Shape, Pos, Rot)};
-
-            const FVector F{Rot.ForwardVector()};
-            const FVector Rt{Rot.RightVector()};
-            const FVector Up{Rot.UpVector()};
-            const float R{Sphere.GetRadius()};
-
-            AddArc(DrawInterface, Sphere.GetA(), F, Rt, R, 0_rad, 1_turn, Color);
-            AddArc(DrawInterface, Sphere.GetA(), F, Up, R, 0_rad, 1_turn, Color);
-            AddArc(DrawInterface, Sphere.GetA(), Rt, Up, R, 0_rad, 1_turn, Color);
-        }
-        else if (Shape.IsCapsule()) {
-            Engine::FCapsuleSegment Capsule{Engine::Collision::ToCapsuleSegment(Shape, Pos, Rot)};
-
-            const FVector F{Rot.ForwardVector()};
-            const FVector Rt{Rot.RightVector()};
-            const FVector Up{Rot.UpVector()};
-            const float R{Capsule.GetRadius()};
-
-            AddArc(DrawInterface, Capsule.GetA(), F, Rt, R, 0_rad, 1_turn, Color);
-            AddArc(DrawInterface, Capsule.GetB(), F, Rt, R, 0_rad, 1_turn, Color);
-
-            DrawInterface.DrawLine(Capsule.GetA() + F * R, Capsule.GetB() + F * R, Color);
-            DrawInterface.DrawLine(Capsule.GetA() - F * R, Capsule.GetB() - F * R, Color);
-            DrawInterface.DrawLine(Capsule.GetA() + Rt * R, Capsule.GetB() + Rt * R, Color);
-            DrawInterface.DrawLine(Capsule.GetA() - Rt * R, Capsule.GetB() - Rt * R, Color);
-
-            AddArc(DrawInterface, Capsule.GetB(), F, Up, R, 0_rad, 0.5_turn, Color);
-            AddArc(DrawInterface, Capsule.GetB(), Rt, Up, R, 0_rad, 0.5_turn, Color);
-            AddArc(DrawInterface, Capsule.GetA(), F, -Up, R, 0_rad, 0.5_turn, Color);
-            AddArc(DrawInterface, Capsule.GetA(), Rt, -Up, R, 0_rad, 0.5_turn, Color);
-        }
-    }
-
-    /**
-     * @brief 두 컴포넌트의 월드 충돌 형상이 겹치는지 검사합니다.
-     */
-    bool Engine::UShapeComponent::IsOverlapping(const Engine::UShapeComponent& Other) const {
-        if (&Other == this || !BoundsOverlap(CalcBounds(), Other.CalcBounds())) {
-            return false;
-        }
-
-        return Engine::Collision::Overlap(GetCollisionShape(), GetTransform().mLocation, GetTransform().mRotation, Other.GetCollisionShape(), Other.GetTransform().mLocation, Other.GetTransform().mRotation);
-    }
-
-    /**
-     * @brief 두 형상의 월드 접촉 법선·깊이·위치를 계산합니다.
-     */
-    bool Engine::UShapeComponent::ComputeContact(const Engine::UShapeComponent& Other, Engine::FCollisionContact& OutContact) const {
-        if (&Other == this || !BoundsOverlap(CalcBounds(), Other.CalcBounds())) {
-            return false;
-        }
-
-        return Engine::Collision::Overlap(GetCollisionShape(), GetTransform().mLocation, GetTransform().mRotation, Other.GetCollisionShape(), Other.GetTransform().mLocation, Other.GetTransform().mRotation, &OutContact);
     }
 
     /**
@@ -514,14 +545,6 @@ namespace Engine {
      */
     Engine::UShapeComponent::FHitDelegate& Engine::UShapeComponent::GetOnComponentHit() {
         return mOnComponentHit;
-    }
-
-    bool Engine::UShapeComponent::BlocksMovement() const {
-        return mBlocksMovement;
-    }
-
-    void Engine::UShapeComponent::SetBlocksMovement(bool Blocks) {
-        mBlocksMovement = Blocks;
     }
 
     /**

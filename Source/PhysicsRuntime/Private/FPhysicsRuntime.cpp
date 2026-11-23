@@ -82,7 +82,6 @@ namespace PhysicsRuntime {
         physx::PxSceneDesc Description{mPhysics->getTolerancesScale()};
         Description.gravity = physx::PxVec3{0.0f, 0.0f, -(StandardGravity / 1_mps2)};
         Description.cpuDispatcher = mDispatcher.get();
-        Description.filterShader = physx::PxDefaultSimulationFilterShader;
 
         if (ResolveMaterial(PhysicsRuntime::UPhysicalMaterial::GetDefault()) == nullptr) {
             MACAW_LOG(LogPhysics, Error, "Cannot create the default PhysX material.");

@@ -48,4 +48,18 @@ namespace Engine {
         return mTransform.ToMatrix();
     }
 
+    Engine::EComponentMobility Engine::USceneComponent::GetMobility() const {
+        return mMobility;
+    }
+
+    bool Engine::USceneComponent::SetMobility(Engine::EComponentMobility Mobility) {
+        if (Mobility != EComponentMobility::Static && Mobility != EComponentMobility::Stationary && Mobility != EComponentMobility::Movable) {
+            return false;
+        }
+
+        mMobility = Mobility;
+
+        return true;
+    }
+
 }

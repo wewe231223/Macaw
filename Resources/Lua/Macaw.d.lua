@@ -81,6 +81,7 @@ function Transform.new() end
 ---@field BlockingHit boolean
 ---@field ImpactPoint MacawVector
 ---@field Normal MacawVector
+---@field NormalImpulse MacawVector
 ---@field Time number
 HitResult = {}
 
@@ -122,7 +123,6 @@ function Component:IsAnimGraphPlayerFinished(Name) end
 ---@class MacawActor
 ---@field UUID string
 ---@field Location MacawVector
----@field Velocity MacawVector
 Actor = {}
 
 ---@return boolean
@@ -148,10 +148,6 @@ function Actor:GetComponentByClass(ClassName) end
 function Actor:GetSkeletalMeshComponent() end
 
 function Actor:PrintLocation() end
-
----@param Delta MacawVector
----@return MacawHitResult
-function Actor:MoveSwept(Delta) end
 
 ---@class MacawTasks
 Tasks = {}
