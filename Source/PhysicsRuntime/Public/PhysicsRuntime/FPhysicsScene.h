@@ -28,10 +28,13 @@ namespace PhysicsRuntime {
 
     struct FPhysicsCollisionEvent {
         PhysicsRuntime::EPhysicsCollisionEvent mType{};
+
         CoreUObject::FObjectHandle mFirst{};
         CoreUObject::FObjectHandle mSecond{};
+
         FVector mPoint{};
         FVector mNormal{};
+
         FVector mNormalImpulse{};
         float mPenetrationDepth{};
     };
@@ -84,6 +87,7 @@ namespace PhysicsRuntime {
         PhysicsRuntime::FPhysicsRuntime& mRuntime;
         physx::PxScene* mScene{};
         Core::TMap<const physx::PxActor*, CoreUObject::FObjectHandle> mCollisionComponents{};
+
         CoreUObject::ObjectHashMap<CoreUObject::FObjectHandle, FTriggerOverlaps> mTriggerOverlaps{};
         Core::TArray<PhysicsRuntime::FPhysicsCollisionEvent> mCollisionEvents{};
     };

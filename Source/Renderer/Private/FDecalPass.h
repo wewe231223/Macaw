@@ -12,7 +12,7 @@
 #include "Core/Types.h"
 #include "Engine/FDecalSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
-#include "RenderTarget.h"
+#include "FSceneTextures.h"
 
 #include <d3d11.h>
 #include <span>
@@ -79,12 +79,12 @@ namespace Renderer {
          * @brief 데칼 수신 표면에 정렬된 데칼을 투영하여 GBuffer를 갱신합니다.
          * @param Device 리소스를 생성할 D3D11 장치입니다.
          * @param Context 드로·복사 명령을 제출할 D3D11 장치 컨텍스트입니다.
-         * @param Target 복사하거나 그릴 렌더 타깃입니다.
+         * @param Target GBuffer·깊이와 데칼 노멀 복사본을 빌릴 장면 텍스처입니다.
          * @param Family 장면 뷰·조명·표시 모드를 제공하는 뷰 패밀리입니다.
          * @param Decals 장면에 등록된 데칼 프록시 목록입니다.
          * @return 실제로 제출한 드로 호출 수입니다.
          */
-        Uint32 Render(ID3D11Device* Device, ID3D11DeviceContext* Context, Renderer::FDXRenderTarget& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FDecalSceneProxy> Decals);
+        Uint32 Render(ID3D11Device* Device, ID3D11DeviceContext* Context, Renderer::FSceneTextures& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FDecalSceneProxy> Decals);
 
     private:
 

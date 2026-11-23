@@ -9,7 +9,7 @@
 
 #include "Engine/FSceneViewFamily.h"
 #include "FPassTarget.h"
-#include "RenderTarget.h"
+#include "FSceneTextures.h"
 
 namespace Renderer {
 
@@ -33,7 +33,7 @@ namespace Renderer {
         return true;
     }
 
-    Uint32 Renderer::FDeferredLightingPass::Render(ID3D11DeviceContext* Context, const Renderer::FDXRenderTarget& Target, const Renderer::FPassTarget& Output, const Engine::FSceneViewFamily& Family, ID3D11RasterizerState* Rasterizer) {
+    Uint32 Renderer::FDeferredLightingPass::Render(ID3D11DeviceContext* Context, const Renderer::FSceneTextures& Target, const Renderer::FPassTarget& Output, const Engine::FSceneViewFamily& Family, ID3D11RasterizerState* Rasterizer) {
         FConstants Constants{};
 
         if (!Family.mView.mViewProjection.TryInverse(Constants.mInverseViewProjection)) {
@@ -48,8 +48,8 @@ namespace Renderer {
         constexpr UINT ResourceSlot{11};
         Core::TStaticArray<ID3D11ShaderResourceView*, Renderer::GBuffer::AttachmentCount + 2> Resources{};
 
-        for (Index_t Index{}; Index < Target.GetGBuffer().size(); ++Index) {
-            Resources[Index] = Target.GetGBuffer()[Index]->GetShaderResourceView();
+        for (Index_t Index{}; Index < Renderer::GBuffer::AttachmentCount; ++Index) {
+            Resources[Index] = Target.GetGBuffer(Index)->GetShaderResourceView();
         }
 
         Resources[Renderer::GBuffer::AttachmentCount] = Target.GetSceneDepth()->GetShaderResourceView();

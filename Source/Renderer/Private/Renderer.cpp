@@ -28,6 +28,8 @@
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Core/Base/ErrorHandler.h"
 #include "RenderTarget.h"
+#include "FRenderTargetPool.h"
+#include "FSceneTextures.h"
 #include "FScene.h"
 #include "FMeshPassParameters.h"
 #include "FMeshDrawCommand.h"
@@ -208,6 +210,8 @@ namespace Renderer {
             Core::ErrorHandler::ReportHRESULT(Result, "Renderer", "D3D11 device creation failed", Core::ErrorHandler::EErrorLevel::Critical);
         }
 
+        mRenderTargetPool = std::make_unique<Renderer::FRenderTargetPool>();
+
         Microsoft::WRL::ComPtr<IDXGIFactory> Factory{};
 
         if (SUCCEEDED(mSwapChain->GetParent(IID_PPV_ARGS(Factory.GetAddressOf())))) {
@@ -275,6 +279,7 @@ namespace Renderer {
         mDepthDisabled.Reset();
         mDepthAlways.Reset();
 
+        mRenderTargetPool.reset();
         mBackBuffer.reset();
         mSwapChain.Reset();
         mAllowTearing = false;
@@ -324,7 +329,7 @@ namespace Renderer {
      * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.
      */
     std::unique_ptr<Engine::FRenderTarget> Renderer::FRenderer::CreateRenderTarget(Uint32 Width, Uint32 Height) {
-        auto Target{std::make_unique<Renderer::FDXRenderTarget>(mForwardShading)};
+        auto Target{std::make_unique<Renderer::FDXRenderTarget>()};
 
         return mDevice != nullptr && Target->Resize(mDevice.Get(), Width, Height) ? std::move(Target) : nullptr;
     }
@@ -409,6 +414,10 @@ namespace Renderer {
             mShadowResources->BeginFrame();
         }
 
+        if (mRenderTargetPool != nullptr) {
+            mRenderTargetPool->Tick();
+        }
+
         if (Width > 0 && Height > 0 && (mWidth != Width || mHeight != Height)) {
             CreateBackBuffer(Width, Height);
         }
@@ -435,8 +444,16 @@ namespace Renderer {
         const auto* Scene{dynamic_cast<const Renderer::FScene*>(Family.mScene)};
         auto* Target{dynamic_cast<Renderer::FDXRenderTarget*>(Family.mTarget)};
 
-        if (Scene == nullptr || Target == nullptr || mContext == nullptr) {
+        if (Scene == nullptr || Target == nullptr || Target->GetOutputColor() == nullptr || mContext == nullptr || mRenderTargetPool == nullptr) {
             Core::ErrorHandler::Fatal("Renderer", "Invalid scene view family");
+        }
+
+        Renderer::FSceneTextures SceneTextures{*mRenderTargetPool, mDevice.Get(), *Target->GetOutputColor(), !mForwardShading};
+
+        if (!SceneTextures.IsValid()) {
+            Core::ErrorHandler::Report("Renderer", "Scene texture allocation failed", Core::ErrorHandler::EErrorLevel::Error);
+
+            return;
         }
 
         ID3D11ShaderResourceView* Empty{};
@@ -458,7 +475,7 @@ namespace Renderer {
         }
 
         constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
-        const Renderer::FPassTarget SceneTarget{Target->GetSceneColor()->GetRenderTargetView(), Target->GetDepthView(), {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f}};
+        const Renderer::FPassTarget SceneTarget{SceneTextures.GetSceneColor()->GetRenderTargetView(), SceneTextures.GetDepthView(), {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f}};
         Renderer::FMeshPassParameters OpaqueParameters{};
         OpaqueParameters.mTarget = SceneTarget;
         OpaqueParameters.mColorAttachments = {&SceneTarget.mColor, 1};
@@ -467,7 +484,7 @@ namespace Renderer {
 
         if (!mForwardShading) {
             for (Index_t Index{}; Index < Attachments.size(); ++Index) {
-                Attachments[Index] = Target->GetGBuffer()[Index]->GetRenderTargetView();
+                Attachments[Index] = SceneTextures.GetGBuffer(Index)->GetRenderTargetView();
             }
 
             OpaqueParameters.mColorAttachments = Attachments;
@@ -482,11 +499,11 @@ namespace Renderer {
 
         if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mOpaqueMeshPass, *Scene, Family, OpaqueParameters, MarkDecalReceivers)) {
             if (DrawDecals) {
-                mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family, Scene->GetDecals());
+                mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), SceneTextures, Family, Scene->GetDecals());
             }
 
             if (mDeferredLightingPass != nullptr && Family.mViewMode != Engine::EViewMode::SceneDepth) {
-                mStats.mDrawCalls += mDeferredLightingPass->Render(mContext.Get(), *Target, SceneTarget, Family, mRasterizer.Get());
+                mStats.mDrawCalls += mDeferredLightingPass->Render(mContext.Get(), SceneTextures, SceneTarget, Family, mRasterizer.Get());
             }
         }
 
@@ -518,7 +535,7 @@ namespace Renderer {
         }
 
         FinishLighting();
-        mStats.mDrawCalls += mPostProcessResources->Render(mContext.Get(), *Target, Family, Scene->GetHeightFogs());
+        mStats.mDrawCalls += mPostProcessResources->Render(mContext.Get(), SceneTextures, Family, Scene->GetHeightFogs());
         RenderTarget = Target->GetRenderTargetView();
 
         if (DrawGrid && Family.mViewMode == Engine::EViewMode::SceneDepth) {
@@ -527,7 +544,7 @@ namespace Renderer {
             mStats.mDrawCalls += mGridResources->Render(mContext.Get(), OutputTarget, Family.mView, Family.mGridSpacing);
         }
 
-        mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
+        mContext->OMSetRenderTargets(1, &RenderTarget, SceneTextures.GetDepthView());
 
         const Uint32 EditorDrawCalls{mTranslucencyMeshPass->Render(Family, true, TranslucencyParameters)};
         mStats.mDrawCalls += EditorDrawCalls;
@@ -539,20 +556,20 @@ namespace Renderer {
         }
 
         if (Family.mBackgroundOverlay != nullptr) {
-            mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            mContext->ClearDepthStencilView(SceneTextures.GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
             DrawMeshes(Family.mBackgroundOverlay, false);
             DrawLines(Family.mBackgroundOverlay, false);
         }
 
         if (Family.mEditorElements != nullptr) {
-            mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            mContext->ClearDepthStencilView(SceneTextures.GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
             DrawMeshes(Family.mEditorElements, false);
             DrawLines(Family.mEditorElements, false);
         }
 
         mStats.mDrawCalls += mTranslucencyMeshPass->RenderOverlayTexts(Family, TranslucencyParameters);
 
-        mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(Renderer::FObjectConstants) + sizeof(FMatrix) + sizeof(Renderer::FEditorMeshConstants) + mLineBuffer.GetResourceBytes() + Target->GetResourceBytes();
+        mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(Renderer::FObjectConstants) + sizeof(FMatrix) + sizeof(Renderer::FEditorMeshConstants) + mLineBuffer.GetResourceBytes() + Target->GetResourceBytes() + mRenderTargetPool->GetResourceBytes();
         mStats.mGpuBytes += mTextRenderer != nullptr ? mTextRenderer->GetResourceBytes() : 0;
         mStats.mGpuBytes += mSpriteRenderer != nullptr ? mSpriteRenderer->GetResourceBytes() : 0;
         mStats.mGpuBytes += mStats.mShadowAtlasBytes;

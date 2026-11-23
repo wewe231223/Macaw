@@ -13,7 +13,7 @@
 #include "Engine/FHeightFogSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
 #include "FPostProcessConstants.h"
-#include "RenderTarget.h"
+#include "FSceneTextures.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -58,13 +58,13 @@ namespace Renderer {
         /**
          * @brief 가시 안개를 교대 타깃에 합성한 뒤 복사·깊이 시각화·FXAA 중 최종 패스를 실행합니다.
          * @param[in] Context GPU 명령을 기록하고 읽기·쓰기 상태를 설정할 Direct3D 11 컨텍스트입니다.
-         * @param[in,out] Target 입력 컬러·깊이와 교대 컬러·최종 출력을 소유한 렌더 타깃입니다.
+         * @param[in,out] Target 입력 컬러·깊이·교대 컬러·최종 출력을 가진 장면 텍스처입니다.
          * @param[in] Family 카메라·버퍼 모드·ShowFlag를 포함한 현재 뷰의 렌더 요청입니다.
          * @param[in] Fogs 순서대로 합성할 장면의 높이 안개 프록시 목록입니다.
          * @return 제출한 전체 화면 드로 수이며 역행렬을 구하지 못해 원본을 복사하면 0입니다.
          * @note Normal·Depth에는 안개와 FXAA를 적용하지 않습니다. 뷰포트 크기는 호출자가 미리 설정해야 합니다.
          */
-        Uint32 Render(ID3D11DeviceContext* Context, Renderer::FDXRenderTarget& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FHeightFogSceneProxy> Fogs);
+        Uint32 Render(ID3D11DeviceContext* Context, Renderer::FSceneTextures& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FHeightFogSceneProxy> Fogs);
 
         /**
          * @brief 원본 텍스처를 목적 텍스처의 출력 영역에 샘플링하여 그립니다.

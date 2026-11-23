@@ -11,7 +11,7 @@
 #include "Engine/FDecalSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
 #include "FMeshPass.h"
-#include "RenderTarget.h"
+#include "FSceneTextures.h"
 
 #include <algorithm>
 #include <cmath>
@@ -64,7 +64,7 @@ namespace Renderer {
         return true;
     }
 
-    Uint32 Renderer::FDecalPass::Render(ID3D11Device* Device, ID3D11DeviceContext* Context, Renderer::FDXRenderTarget& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FDecalSceneProxy> Decals) {
+    Uint32 Renderer::FDecalPass::Render(ID3D11Device* Device, ID3D11DeviceContext* Context, Renderer::FSceneTextures& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FDecalSceneProxy> Decals) {
         const Engine::FSceneView& View{Family.mView};
         FConstants Constants{};
 
@@ -78,8 +78,8 @@ namespace Renderer {
         constexpr UINT HistorySlot{14};
         Constants.mScreenAndOpacity = {1.0f / static_cast<float>(Width), 1.0f / static_cast<float>(Height), 0.0f, 0.0f};
 
-        Asset::UTexture2D* SurfaceNormals{Target.GetGBuffer()[Renderer::GBuffer::NormalAttachment].get()};
-        const Core::TStaticArray<ID3D11RenderTargetView*, 2> Outputs{Target.GetGBuffer().front()->GetRenderTargetView(), SurfaceNormals->GetRenderTargetView()};
+        Asset::UTexture2D* SurfaceNormals{Target.GetGBuffer(Renderer::GBuffer::NormalAttachment)};
+        const Core::TStaticArray<ID3D11RenderTargetView*, 2> Outputs{Target.GetGBuffer(0)->GetRenderTargetView(), SurfaceNormals->GetRenderTargetView()};
         ID3D11ShaderResourceView* Depth{Target.GetSceneDepth()->GetShaderResourceView()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
 
@@ -120,7 +120,7 @@ namespace Renderer {
             }
 
             if (Normal != nullptr && ReceiverSource == nullptr) {
-                ReceiverSource = Target.GetDecalNormalSource(Device, false);
+                ReceiverSource = Target.GetDecalNormalSource(false);
 
                 if (ReceiverSource != nullptr) {
                     Context->OMSetRenderTargets(1, Outputs.data(), Target.GetReadOnlyDepthView());
@@ -139,7 +139,7 @@ namespace Renderer {
             D3D11_RECT Overlap{};
 
             if (Normal != nullptr && IntersectRect(&Overlap, &WrittenNormals, &Scissor)) {
-                PreviousNormals = Target.GetDecalNormalSource(Device, true);
+                PreviousNormals = Target.GetDecalNormalSource(true);
 
                 if (PreviousNormals != nullptr) {
                     const D3D11_BOX Region{static_cast<UINT>(Scissor.left), static_cast<UINT>(Scissor.top), 0, static_cast<UINT>(Scissor.right), static_cast<UINT>(Scissor.bottom), 1};

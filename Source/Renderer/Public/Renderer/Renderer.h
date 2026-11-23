@@ -41,6 +41,7 @@ namespace Renderer {
     class FSkyResources;
     class FGridResources;
     class FScene;
+    class FRenderTargetPool;
     struct FPassTarget;
     struct FMeshPassParameters;
     struct FMeshDrawCommand;
@@ -446,6 +447,11 @@ namespace Renderer {
          * @brief 콘솔에서 조절하는 그림자 렌더링 옵션입니다.
          */
         RenderCore::FShadowSettings mShadowSettings{};
+
+        /**
+         * @brief 뷰 렌더링 동안 장면 컬러·깊이·GBuffer를 빌려주는 렌더 타깃 풀입니다.
+         */
+        std::unique_ptr<Renderer::FRenderTargetPool> mRenderTargetPool{};
 
         /**
          * @brief 그림자 아틀라스 타일마다 그림자 생성 메시의 깊이를 기록하는 메시 패스입니다.

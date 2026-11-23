@@ -11,7 +11,7 @@
 #include "Core/Types.h"
 #include "Engine/FSceneViewFamily.h"
 #include "FPassTarget.h"
-#include "RenderTarget.h"
+#include "FSceneTextures.h"
 
 #include <span>
 #include <wrl/client.h>
@@ -75,13 +75,13 @@ namespace Renderer {
         /**
          * @brief GBuffer를 샘플링하여 조명 결과 또는 선택 버퍼를 출력 타깃에 그립니다.
          * @param Context 드로·복사 명령을 제출할 D3D11 장치 컨텍스트입니다.
-         * @param Target 복사하거나 그릴 렌더 타깃입니다.
+         * @param Target GBuffer·깊이·스텐실을 읽을 장면 텍스처입니다.
          * @param Output 렌더 결과를 기록할 출력 타깃입니다.
          * @param Family 장면 뷰·조명·표시 모드를 제공하는 뷰 패밀리입니다.
          * @param Rasterizer 호출자가 소유하는 래스터라이저 상태입니다.
          * @return 제출한 드로 호출 수입니다.
          */
-        Uint32 Render(ID3D11DeviceContext* Context, const Renderer::FDXRenderTarget& Target, const Renderer::FPassTarget& Output, const Engine::FSceneViewFamily& Family, ID3D11RasterizerState* Rasterizer);
+        Uint32 Render(ID3D11DeviceContext* Context, const Renderer::FSceneTextures& Target, const Renderer::FPassTarget& Output, const Engine::FSceneViewFamily& Family, ID3D11RasterizerState* Rasterizer);
 
     private:
 

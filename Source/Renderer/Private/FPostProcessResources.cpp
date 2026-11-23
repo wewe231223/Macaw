@@ -6,7 +6,7 @@
 
 #include "FPostProcessResources.h"
 #include "FPostProcessConstants.h"
-#include "RenderTarget.h"
+#include "FSceneTextures.h"
 #include "Engine/FSceneViewFamily.h"
 #include "Engine/FHeightFogSceneProxy.h"
 #include "Core/Types.h"
@@ -69,7 +69,7 @@ namespace Renderer {
     /**
      * @brief 가시 안개를 교대 타깃에 합성한 뒤 복사·깊이 시각화·FXAA 중 최종 패스를 실행합니다.
      */
-    Uint32 Renderer::FPostProcessResources::Render(ID3D11DeviceContext* Context, Renderer::FDXRenderTarget& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FHeightFogSceneProxy> Fogs) {
+    Uint32 Renderer::FPostProcessResources::Render(ID3D11DeviceContext* Context, Renderer::FSceneTextures& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FHeightFogSceneProxy> Fogs) {
         Renderer::FPostProcessConstants Constants{};
 
         if (!Family.mView.mViewProjection.TryInverse(Constants.mInverseViewProjection)) {
