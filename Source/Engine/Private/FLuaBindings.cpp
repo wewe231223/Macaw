@@ -18,24 +18,20 @@
 
 using namespace Engine;
 
-namespace {
-
-    Engine::UActorComponent* FindComponent(const Engine::AActor& Actor, const CoreUObject::UClass* Class) {
-        for (const auto& Component : Actor.GetComponents()) {
-            if (Component->IsA(Class)) {
-                return Component.get();
-            }
+Engine::UActorComponent* FLuaRuntime::FindComponent(const Engine::AActor& Actor, const CoreUObject::UClass* Class) const {
+    for (const auto& Component : Actor.GetComponents()) {
+        if (Component->IsA(Class)) {
+            return Component.get();
         }
-        return nullptr;
     }
+    return nullptr;
+}
 
-    Engine::UProjectileMovementComponent& ResolveMovement(const Engine::AActor& Actor) {
-        if (auto* Movement{static_cast<Engine::UProjectileMovementComponent*>(FindComponent(Actor, Engine::UProjectileMovementComponent::StaticClass()))}) {
-            return *Movement;
-        }
-        throw sol::error{"Actor needs a Projectile Movement component for Velocity"};
+Engine::UProjectileMovementComponent& FLuaRuntime::ResolveMovement(const Engine::AActor& Actor) const {
+    if (auto* Movement{static_cast<Engine::UProjectileMovementComponent*>(FindComponent(Actor, Engine::UProjectileMovementComponent::StaticClass()))}) {
+        return *Movement;
     }
-
+    throw sol::error{"Actor needs a Projectile Movement component for Velocity"};
 }
 
 AActor& FLuaRuntime::FActorRef::Resolve() const {
@@ -161,7 +157,7 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
     Actor["SetActorTransform"] = [](const FActorRef& Ref, const FTransform& Value) {
         return Ref.Resolve().SetActorTransform(Value);
     };
-    Actor["GetComponentByClass"] = [](const FActorRef& Ref, const Core::FString& ClassName) -> sol::optional<FLuaComponentRef> {
+    Actor["GetComponentByClass"] = [this](const FActorRef& Ref, const Core::FString& ClassName) -> sol::optional<FLuaComponentRef> {
         const auto* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
         if (Class == nullptr || !Class->IsChildOf(Engine::UActorComponent::StaticClass())) {
             throw sol::error{"Invalid component class: " + ClassName};
@@ -171,7 +167,7 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
         }
         return sol::nullopt;
     };
-    Actor["GetSkeletalMeshComponent"] = [](const FActorRef& Ref) -> sol::optional<FLuaComponentRef> {
+    Actor["GetSkeletalMeshComponent"] = [this](const FActorRef& Ref) -> sol::optional<FLuaComponentRef> {
         if (auto* Found{FindComponent(Ref.Resolve(), Engine::USkeletalMeshComponent::StaticClass())}) {
             return FLuaComponentRef{Found};
         }
@@ -187,9 +183,9 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
             throw sol::error{"Invalid actor transform"};
         }
     });
-    Actor["Velocity"] = sol::property([](const FActorRef& Ref) {
+    Actor["Velocity"] = sol::property([this](const FActorRef& Ref) {
         return ResolveMovement(Ref.Resolve()).GetVelocity();
-    }, [](const FActorRef& Ref, const FVector& Value) {
+    }, [this](const FActorRef& Ref, const FVector& Value) {
         if (!ResolveMovement(Ref.Resolve()).SetVelocity(Value)) {
             throw sol::error{"Invalid movement velocity"};
         }

@@ -12,6 +12,7 @@
 #include "CoreUObject/TDelegate.h"
 #include "Core/Math/FVector4.h"
 #include "Core/Math/FBox.h"
+#include "Core/Literals/QuantityTypes.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "PhysicsRuntime/EBodyType.h"
 #include "PhysicsRuntime/FBodyInstance.h"
@@ -203,6 +204,8 @@ namespace Engine {
         const PhysicsRuntime::UPhysicalMaterial& GetDefaultPhysicalMaterial() const;
         physx::PxTransform MakePhysicsPose() const;
         std::unique_ptr<PhysicsRuntime::FBodyInstance> CreatePhysicsBody(PhysicsRuntime::EBodyType BodyType);
+
+        void AddArc(Engine::FPrimitiveDrawInterface& DrawInterface, const FVector& C, const FVector& U, const FVector& V, float R, Core::FAngle StartAngle, Core::FAngle EndAngle, const FVector& Color) const;
 
     private:
         /**

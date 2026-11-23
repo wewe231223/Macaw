@@ -49,312 +49,305 @@
 
 namespace Editor {
 
+    bool Editor::FDetailsWidget::DrawLuaScriptSlot(const Editor::FEditorContext& Context, Core::FString& Path) const {
+        const auto& Style{ImGui::GetStyle()};
+        const Core::FString Name{Path.empty() ? "Drop Lua Script" : Core::FilePath::ToUtf8(Core::FilePath::FromUtf8(Path).filename())};
+        ImGui::InvisibleButton("##LuaScript", {std::max(1.0f, ImGui::GetContentRegionAvail().x), ImGui::GetFrameHeight()});
+
+        const ImVec2 Minimum{ImGui::GetItemRectMin()};
+        const ImVec2 Maximum{ImGui::GetItemRectMax()};
+        const ImVec2 TextPosition{Minimum.x + Style.FramePadding.x, Minimum.y + Style.FramePadding.y};
+        const ImVec4 Clip{TextPosition.x, Minimum.y, Maximum.x - Style.FramePadding.x, Maximum.y};
+        ImGui::RenderFrame(Minimum, Maximum, ImGui::GetColorU32(ImGuiCol_FrameBg), true, Style.FrameRounding);
+        ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), TextPosition, ImGui::GetColorU32(Path.empty() ? ImGuiCol_TextDisabled : ImGuiCol_Text), Name.data(), Name.data() + Name.size(), 0.0f, &Clip);
+
+        if (!Path.empty()) {
+            ImGui::SetItemTooltip("%s", Path.c_str());
+        }
+
+        if ((ImGui::GetItemFlags() & ImGuiItemFlags_Disabled) != 0 || !ImGui::BeginDragDropTarget()) {
+            return false;
+        }
+
+        bool Changed{};
+
+        if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(Editor::EditorAssetDragDrop::LuaScriptPayload)}; Payload != nullptr && Payload->Data != nullptr && Payload->DataSize > 1 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
+            const Core::FString Candidate{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)};
+            const auto Relative{Core::FilePath::FromUtf8(Candidate)};
+            const auto* Project{Context.GetProject()};
+
+            if (Project != nullptr && Project->GetAssets() != nullptr && !Relative.has_root_path() && Core::FilePath::ToLowerExtension(Relative) == L".lua") {
+                Core::FString Error{};
+                const auto Resolved{Project->GetAssets()->ResolvePath(Relative, Error)};
+                std::error_code Code{};
+
+                if (!Resolved.empty() && std::filesystem::is_regular_file(Resolved, Code) && Path != Candidate) {
+                    Path = Candidate;
+                    Changed = true;
+                }
+            }
+        }
+
+        ImGui::EndDragDropTarget();
+
+        return Changed;
+    }
+
     /**
-     * @brief Details 패널에서 사용하는 컴포넌트 표시 이름 변환입니다.
+     * @brief 내부 식별자를 사람이 읽기 쉬운 표시 이름으로 변환합니다.
+     * @param Name 조회하거나 표시할 이름입니다.
+     * @return 공백과 이름 규칙을 반영한 표시 문자열입니다.
      */
-    namespace {
+    Core::FString Editor::FDetailsWidget::DisplayName(std::string_view Name) const {
+        Core::FString Label{};
 
-        bool DrawLuaScriptSlot(const Editor::FEditorContext& Context, Core::FString& Path) {
-            const auto& Style{ImGui::GetStyle()};
-            const Core::FString Name{Path.empty() ? "Drop Lua Script" : Core::FilePath::ToUtf8(Core::FilePath::FromUtf8(Path).filename())};
-            ImGui::InvisibleButton("##LuaScript", {std::max(1.0f, ImGui::GetContentRegionAvail().x), ImGui::GetFrameHeight()});
+        for (Index_t Index{}; Index < Name.size(); ++Index) {
+            const auto Character{static_cast<unsigned char>(Name[Index])};
 
-            const ImVec2 Minimum{ImGui::GetItemRectMin()};
-            const ImVec2 Maximum{ImGui::GetItemRectMax()};
-            const ImVec2 TextPosition{Minimum.x + Style.FramePadding.x, Minimum.y + Style.FramePadding.y};
-            const ImVec4 Clip{TextPosition.x, Minimum.y, Maximum.x - Style.FramePadding.x, Maximum.y};
-            ImGui::RenderFrame(Minimum, Maximum, ImGui::GetColorU32(ImGuiCol_FrameBg), true, Style.FrameRounding);
-            ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), TextPosition, ImGui::GetColorU32(Path.empty() ? ImGuiCol_TextDisabled : ImGuiCol_Text), Name.data(), Name.data() + Name.size(), 0.0f, &Clip);
-
-            if (!Path.empty()) {
-                ImGui::SetItemTooltip("%s", Path.c_str());
+            if (Index > 0 && std::isupper(Character) && (std::islower(static_cast<unsigned char>(Name[Index - 1])) || (Index + 1 < Name.size() && std::islower(static_cast<unsigned char>(Name[Index + 1]))))) {
+                Label.push_back(' ');
             }
 
-            if ((ImGui::GetItemFlags() & ImGuiItemFlags_Disabled) != 0 || !ImGui::BeginDragDropTarget()) {
+            Label.push_back(Name[Index]);
+        }
+
+        return Label;
+    }
+
+    /**
+     * @brief 선언 클래스와 프로퍼티 이름에 맞는 표시 분류를 선택합니다.
+     * @param Owner 프로퍼티를 선언한 클래스입니다.
+     * @param Name 조회하거나 표시할 이름입니다.
+     * @return 정적 분류 이름 또는 메타데이터의 문자열 뷰입니다.
+     * @details Tick 그룹과 편집 Tick 허용 설정은 선언 클래스에 따라 Actor Tick 또는 Component Tick에 표시합니다.
+     */
+    std::string_view Editor::FDetailsWidget::DetailCategory(const CoreUObject::UClass* Owner, std::string_view Name) const {
+        if (Name == "Transform") {
+            return "Transform";
+        }
+
+        if (Name == "Material") {
+            return "Materials";
+        }
+
+        if (Name == "Mesh" || Name == "SkeletalMesh" || Name == "Skeleton" || Name == "PrimitiveType") {
+            return "Mesh";
+        }
+
+        if (Name == "AnimClass" || Name == "Animation" || Name == "AnimGraph" || (Owner == Engine::USkeletalMeshComponent::StaticClass() && (Name == "Looping" || Name == "PlayRate"))) {
+            return "Animation";
+        }
+
+        if (Name == "TickGroup" || Name == "EditorTickable") {
+            return Owner == Engine::AActor::StaticClass() ? "Actor Tick" : "Component Tick";
+        }
+
+        if (Owner->IsChildOf(Engine::ULightComponent::StaticClass()) || Owner->GetName() == "ULightComponentBase") {
+            return "Light";
+        }
+
+        if (Name == "Visible" || Name == "CastShadow" || Name == "ReceiveShadow" || Name == "ReceivesDecals") {
+            return "Rendering";
+        }
+
+        const std::string_view ClassName{Owner->GetName()};
+
+        if (Owner == Engine::ULuaScriptComponent::StaticClass()) {
+            return "Script";
+        }
+
+        if (ClassName == "UCameraComponent") {
+            return "Camera";
+        }
+
+        if (ClassName == "UHeightFogComponent") {
+            return "Fog";
+        }
+
+        if (ClassName == "UShapeComponent" || ClassName == "UBoxComponent" || ClassName == "USphereComponent" || ClassName == "UCapsuleComponent") {
+            return "Shape";
+        }
+
+        if (ClassName == "UProjectileMovementComponent" || ClassName == "URotationMovementComponent") {
+            return "Movement";
+        }
+
+        return Owner == CoreUObject::UObject::StaticClass() || Owner == Engine::AActor::StaticClass() || Owner == Engine::UActorComponent::StaticClass() ? "General" : "Settings";
+    }
+
+    /**
+     * @brief 리플렉션 메타데이터와 이름 규칙으로 프로퍼티 표시 이름을 만듭니다.
+     * @param Property 표시·직렬화·조회할 프로퍼티 메타데이터입니다.
+     * @return 상세 패널에 표시할 이름입니다.
+     */
+    Core::FString Editor::FDetailsWidget::PropertyLabel(const CoreUObject::FProperty* Property) const {
+        const Core::FString& Name{Property->GetName()};
+
+        if (Name == "ShadowBiasPreset") {
+            return "Depth Bias Preset";
+        }
+
+        if (Name == "ShadowSlopeBiasPreset") {
+            return "Slope-Scaled Bias Preset";
+        }
+
+        if (Name == "Animation") {
+            return "Anim to Play";
+        }
+
+        if (Name == "Material") {
+            return "All Slots Override";
+        }
+
+        return DisplayName(Name);
+    }
+
+    /**
+     * @brief 프로퍼티 이름에 따른 고급 항목 분류를 확인합니다.
+     * @param Name 조회하거나 표시할 이름입니다.
+     * @return 고급 표시 필터의 대상이면 true입니다.
+     */
+    bool Editor::FDetailsWidget::IsAdvancedProperty(std::string_view Name) const {
+        return Name == "EditorTickable" || Name.starts_with("Shadow") || Name == "ReceivesDecals";
+    }
+
+    /**
+     * @brief 선택 객체가 액터 또는 컴포넌트일 때 소유 액터를 찾습니다.
+     * @param Object 외부에서 수명을 보장하는 에셋 객체입니다.
+     * @return 비소유 액터 포인터이며 해당하지 않으면 nullptr입니다.
+     */
+    Engine::AActor* Editor::FDetailsWidget::GetOwningActor(CoreUObject::UObject* Object) const {
+        if (auto* Actor{CoreUObject::Cast<Engine::AActor>(Object)}) {
+            return Actor;
+        }
+
+        auto* Component{CoreUObject::Cast<Engine::UActorComponent>(Object)};
+
+        return Component != nullptr ? Component->GetOwner() : nullptr;
+    }
+
+    /**
+     * @brief 프로퍼티 variant의 형식과 실제 값을 비교합니다.
+     * @param First 비교할 첫 번째 프로퍼티 값입니다.
+     * @param Second 비교할 두 번째 프로퍼티 값입니다.
+     * @return 형식과 값이 같으면 true입니다.
+     */
+    bool Editor::FDetailsWidget::EqualValues(const CoreUObject::FPropertyValue& First, const CoreUObject::FPropertyValue& Second) const {
+        return std::visit([&Second](const auto& Value) {
+            using FValue = std::decay_t<decltype(Value)>;
+            const auto* Other{std::get_if<FValue>(&Second)};
+
+            if (Other == nullptr) {
                 return false;
             }
 
-            bool Changed{};
-
-            if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(Editor::EditorAssetDragDrop::LuaScriptPayload)}; Payload != nullptr && Payload->Data != nullptr && Payload->DataSize > 1 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
-                const Core::FString Candidate{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)};
-                const auto Relative{Core::FilePath::FromUtf8(Candidate)};
-                const auto* Project{Context.GetProject()};
-
-                if (Project != nullptr && Project->GetAssets() != nullptr && !Relative.has_root_path() && Core::FilePath::ToLowerExtension(Relative) == L".lua") {
-                    Core::FString Error{};
-                    const auto Resolved{Project->GetAssets()->ResolvePath(Relative, Error)};
-                    std::error_code Code{};
-
-                    if (!Resolved.empty() && std::filesystem::is_regular_file(Resolved, Code) && Path != Candidate) {
-                        Path = Candidate;
-                        Changed = true;
-                    }
-                }
-            }
-
-            ImGui::EndDragDropTarget();
-
-            return Changed;
-        }
-
-        /**
-         * @brief 내부 식별자를 사람이 읽기 쉬운 표시 이름으로 변환합니다.
-         * @param Name 조회하거나 표시할 이름입니다.
-         * @return 공백과 이름 규칙을 반영한 표시 문자열입니다.
-         */
-        Core::FString DisplayName(std::string_view Name) {
-            Core::FString Label{};
-
-            for (Index_t Index{}; Index < Name.size(); ++Index) {
-                const auto Character{static_cast<unsigned char>(Name[Index])};
-
-                if (Index > 0 && std::isupper(Character) && (std::islower(static_cast<unsigned char>(Name[Index - 1])) || (Index + 1 < Name.size() && std::islower(static_cast<unsigned char>(Name[Index + 1]))))) {
-                    Label.push_back(' ');
-                }
-
-                Label.push_back(Name[Index]);
-            }
-
-            return Label;
-        }
-
-        /**
-         * @brief 선언 클래스와 프로퍼티 이름에 맞는 표시 분류를 선택합니다.
-         * @param Owner 프로퍼티를 선언한 클래스입니다.
-         * @param Name 조회하거나 표시할 이름입니다.
-         * @return 정적 분류 이름 또는 메타데이터의 문자열 뷰입니다.
-         * @details Tick 그룹과 편집 Tick 허용 설정은 선언 클래스에 따라 Actor Tick 또는 Component Tick에 표시합니다.
-         */
-        std::string_view DetailCategory(const CoreUObject::UClass* Owner, std::string_view Name) {
-            if (Name == "Transform") {
-                return "Transform";
-            }
-
-            if (Name == "Material") {
-                return "Materials";
-            }
-
-            if (Name == "Mesh" || Name == "SkeletalMesh" || Name == "Skeleton" || Name == "PrimitiveType") {
-                return "Mesh";
-            }
-
-            if (Name == "AnimClass" || Name == "Animation" || Name == "AnimGraph" || (Owner == Engine::USkeletalMeshComponent::StaticClass() && (Name == "Looping" || Name == "PlayRate"))) {
-                return "Animation";
-            }
-
-            if (Name == "TickGroup" || Name == "EditorTickable") {
-                return Owner == Engine::AActor::StaticClass() ? "Actor Tick" : "Component Tick";
-            }
-
-            if (Owner->IsChildOf(Engine::ULightComponent::StaticClass()) || Owner->GetName() == "ULightComponentBase") {
-                return "Light";
-            }
-
-            if (Name == "Visible" || Name == "CastShadow" || Name == "ReceiveShadow" || Name == "ReceivesDecals") {
-                return "Rendering";
-            }
-
-            const std::string_view ClassName{Owner->GetName()};
-
-            if (Owner == Engine::ULuaScriptComponent::StaticClass()) {
-                return "Script";
-            }
-
-            if (ClassName == "UCameraComponent") {
-                return "Camera";
-            }
-
-            if (ClassName == "UHeightFogComponent") {
-                return "Fog";
-            }
-
-            if (ClassName == "UShapeComponent" || ClassName == "UBoxComponent" || ClassName == "USphereComponent" || ClassName == "UCapsuleComponent") {
-                return "Shape";
-            }
-
-            if (ClassName == "UProjectileMovementComponent" || ClassName == "URotationMovementComponent") {
-                return "Movement";
-            }
-
-            return Owner == CoreUObject::UObject::StaticClass() || Owner == Engine::AActor::StaticClass() || Owner == Engine::UActorComponent::StaticClass() ? "General" : "Settings";
-        }
-
-        /**
-         * @brief 리플렉션 메타데이터와 이름 규칙으로 프로퍼티 표시 이름을 만듭니다.
-         * @param Property 표시·직렬화·조회할 프로퍼티 메타데이터입니다.
-         * @return 상세 패널에 표시할 이름입니다.
-         */
-        Core::FString PropertyLabel(const CoreUObject::FProperty* Property) {
-            const Core::FString& Name{Property->GetName()};
-
-            if (Name == "ShadowBiasPreset") {
-                return "Depth Bias Preset";
-            }
-
-            if (Name == "ShadowSlopeBiasPreset") {
-                return "Slope-Scaled Bias Preset";
-            }
-
-            if (Name == "Animation") {
-                return "Anim to Play";
-            }
-
-            if (Name == "Material") {
-                return "All Slots Override";
-            }
-
-            return DisplayName(Name);
-        }
-
-        /**
-         * @brief 프로퍼티 이름에 따른 고급 항목 분류를 확인합니다.
-         * @param Name 조회하거나 표시할 이름입니다.
-         * @return 고급 표시 필터의 대상이면 true입니다.
-         */
-        bool IsAdvancedProperty(std::string_view Name) {
-            return Name == "EditorTickable" || Name.starts_with("Shadow") || Name == "ReceivesDecals";
-        }
-
-        /**
-         * @brief 선택 객체가 액터 또는 컴포넌트일 때 소유 액터를 찾습니다.
-         * @param Object 외부에서 수명을 보장하는 에셋 객체입니다.
-         * @return 비소유 액터 포인터이며 해당하지 않으면 nullptr입니다.
-         */
-        Engine::AActor* GetOwningActor(CoreUObject::UObject* Object) {
-            if (auto* Actor{CoreUObject::Cast<Engine::AActor>(Object)}) {
-                return Actor;
-            }
-
-            auto* Component{CoreUObject::Cast<Engine::UActorComponent>(Object)};
-
-            return Component != nullptr ? Component->GetOwner() : nullptr;
-        }
-
-        /**
-         * @brief 프로퍼티 variant의 형식과 실제 값을 비교합니다.
-         * @param First 비교할 첫 번째 프로퍼티 값입니다.
-         * @param Second 비교할 두 번째 프로퍼티 값입니다.
-         * @return 형식과 값이 같으면 true입니다.
-         */
-        bool EqualValues(const CoreUObject::FPropertyValue& First, const CoreUObject::FPropertyValue& Second) {
-            return std::visit([&Second](const auto& Value) {
-                using FValue = std::decay_t<decltype(Value)>;
-                const auto* Other{std::get_if<FValue>(&Second)};
-
-                if (Other == nullptr) {
-                    return false;
-                }
-
-                if constexpr (std::is_same_v<FValue, FTransform>) {
-                    return Value.Equals(*Other, 0.0f);
-                } else if constexpr (std::is_same_v<FValue, CoreUObject::FObjectReference>) {
-                    return Value.GetGuid() == Other->GetGuid();
-                } else if constexpr (requires { Value == *Other; }) {
-                    return Value == *Other;
-                } else {
-                    return false;
-                }
-            }, First);
-        }
-
-        /**
-         * @brief 프로퍼티 variant의 현재 형식에 맞춰 상세 편집 값을 직렬화합니다.
-         * @param Archive 저장·로드 방향과 오류 상태를 제공하는 아카이브입니다.
-         * @param Value 표시·비교하거나 적용할 값입니다.
-         * @return 지원하는 형식의 직렬화가 성공하면 true입니다.
-         */
-        bool ArchiveDetailValue(Serialization::FJsonArchive& Archive, CoreUObject::FPropertyValue& Value) {
-            if (Archive.IsLoading() && !Archive.HasField("Value")) {
+            if constexpr (std::is_same_v<FValue, FTransform>) {
+                return Value.Equals(*Other, 0.0f);
+            } else if constexpr (std::is_same_v<FValue, CoreUObject::FObjectReference>) {
+                return Value.GetGuid() == Other->GetGuid();
+            } else if constexpr (requires { Value == *Other; }) {
+                return Value == *Other;
+            } else {
                 return false;
             }
+        }, First);
+    }
 
-            return std::visit([&Archive](auto& Field) {
-                if constexpr (requires { Archive.Serialize("Value", Field); }) {
-                    Archive.Serialize("Value", Field);
-
-                    return !Archive.HasError();
-                } else {
-                    return false;
-                }
-            }, Value);
+    /**
+     * @brief 프로퍼티 variant의 현재 형식에 맞춰 상세 편집 값을 직렬화합니다.
+     * @param Archive 저장·로드 방향과 오류 상태를 제공하는 아카이브입니다.
+     * @param Value 표시·비교하거나 적용할 값입니다.
+     * @return 지원하는 형식의 직렬화가 성공하면 true입니다.
+     */
+    bool Editor::FDetailsWidget::ArchiveDetailValue(Serialization::FJsonArchive& Archive, CoreUObject::FPropertyValue& Value) const {
+        if (Archive.IsLoading() && !Archive.HasField("Value")) {
+            return false;
         }
 
-        /**
-         * @brief 프로퍼티 기본값 복원 버튼을 표시합니다.
-         * @return 버튼을 눌렀으면 true입니다.
-         */
-        bool DrawResetButton() {
-            return Editor::EditorStyle::IconButton("Reset to Default", Editor::EditorStyle::EIcon::Rotate);
-        }
+        return std::visit([&Archive](auto& Field) {
+            if constexpr (requires { Archive.Serialize("Value", Field); }) {
+                Archive.Serialize("Value", Field);
 
-        /**
-         * @brief 이름·값 열을 사용하는 상세 프로퍼티 표를 시작합니다.
-         * @return 표가 시작되어 행을 그릴 수 있으면 true입니다.
-         */
-        bool BeginPropertyTable() {
-            constexpr ImGuiTableFlags Flags{ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp};
-
-            if (!ImGui::BeginTable("##Properties", 3, Flags)) {
+                return !Archive.HasError();
+            } else {
                 return false;
             }
+        }, Value);
+    }
 
-            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 0.4f);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 0.6f);
-            ImGui::TableSetupColumn("Reset", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoResize, ImGui::GetFrameHeight());
+    /**
+     * @brief 프로퍼티 기본값 복원 버튼을 표시합니다.
+     * @return 버튼을 눌렀으면 true입니다.
+     */
+    bool Editor::FDetailsWidget::DrawResetButton() const {
+        return Editor::EditorStyle::IconButton("Reset to Default", Editor::EditorStyle::EIcon::Rotate);
+    }
 
-            return true;
+    /**
+     * @brief 이름·값 열을 사용하는 상세 프로퍼티 표를 시작합니다.
+     * @return 표가 시작되어 행을 그릴 수 있으면 true입니다.
+     */
+    bool Editor::FDetailsWidget::BeginPropertyTable() const {
+        constexpr ImGuiTableFlags Flags{ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp};
+
+        if (!ImGui::BeginTable("##Properties", 3, Flags)) {
+            return false;
         }
 
-        /**
-         * @brief 클래스 접두사와 Component 접미사를 제거해 컴포넌트 메뉴 이름을 만듭니다.
-         * @param[in] Class 생성하거나 이름을 표시할 리플렉션 클래스입니다.
-         * @return 계산하거나 조회한 값입니다.
-         */
-        Core::FString ComponentLabel(const CoreUObject::UClass* Class) {
-            Core::FString Name{Class->GetName()};
+        ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 0.4f);
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 0.6f);
+        ImGui::TableSetupColumn("Reset", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoResize, ImGui::GetFrameHeight());
 
-            if (Name.starts_with("U")) {
-                Name.erase(0, 1);
-            }
+        return true;
+    }
 
-            if (Name.ends_with("Component")) {
-                Name.resize(Name.size() - 9);
-            }
+    /**
+     * @brief 클래스 접두사와 Component 접미사를 제거해 컴포넌트 메뉴 이름을 만듭니다.
+     * @param[in] Class 생성하거나 이름을 표시할 리플렉션 클래스입니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
+    Core::FString Editor::FDetailsWidget::ComponentLabel(const CoreUObject::UClass* Class) const {
+        Core::FString Name{Class->GetName()};
 
-            return DisplayName(Name);
+        if (Name.starts_with("U")) {
+            Name.erase(0, 1);
         }
 
-        /**
-         * @brief Details에 표시할 비일시적 편집 가능 또는 읽기 전용 프로퍼티인지 검사합니다.
-         * @param[in] Property 유효한 리플렉션 프로퍼티의 비소유 주소입니다.
-         * @return Transient가 아니고 Edit 또는 ReadOnly 플래그가 있으면 true입니다.
-         */
-        bool IsVisibleProperty(const CoreUObject::FProperty* Property) {
-            return !Property->HasFlag(Core::EPropertyFlags::Transient) && (Property->HasFlag(Core::EPropertyFlags::Edit) || Property->HasFlag(Core::EPropertyFlags::ReadOnly));
+        if (Name.ends_with("Component")) {
+            Name.resize(Name.size() - 9);
         }
 
-        /**
-         * @brief 필드 이름을 사용 가능한 너비에 맞춰 표시합니다.
-         * @param Label UI 항목의 표시 이름입니다.
-         * @param TrailingWidth 이름 뒤 위젯에 남겨 둘 너비(픽셀)입니다.
-         * @return 위젯 구분에 사용할 필드 이름 문자열입니다.
-         */
-        Core::FString DrawFieldLabel(const char* Label, float TrailingWidth = 0.0f) {
-            const float LabelEnd{ImGui::GetCursorPosX() + std::max(1.0f, ImGui::GetContentRegionAvail().x * 0.4f)};
+        return DisplayName(Name);
+    }
 
-            ImGui::AlignTextToFramePadding();
-            ImGui::PushTextWrapPos(LabelEnd);
-            ImGui::TextUnformatted(Label);
-            ImGui::PopTextWrapPos();
+    /**
+     * @brief Details에 표시할 비일시적 편집 가능 또는 읽기 전용 프로퍼티인지 검사합니다.
+     * @param[in] Property 유효한 리플렉션 프로퍼티의 비소유 주소입니다.
+     * @return Transient가 아니고 Edit 또는 ReadOnly 플래그가 있으면 true입니다.
+     */
+    bool Editor::FDetailsWidget::IsVisibleProperty(const CoreUObject::FProperty* Property) const {
+        return !Property->HasFlag(Core::EPropertyFlags::Transient) && (Property->HasFlag(Core::EPropertyFlags::Edit) || Property->HasFlag(Core::EPropertyFlags::ReadOnly));
+    }
 
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(LabelEnd + ImGui::GetStyle().ItemInnerSpacing.x);
-            ImGui::SetNextItemWidth(std::max(1.0f, ImGui::GetContentRegionAvail().x - TrailingWidth));
+    /**
+     * @brief 필드 이름을 사용 가능한 너비에 맞춰 표시합니다.
+     * @param Label UI 항목의 표시 이름입니다.
+     * @param TrailingWidth 이름 뒤 위젯에 남겨 둘 너비(픽셀)입니다.
+     * @return 위젯 구분에 사용할 필드 이름 문자열입니다.
+     */
+    Core::FString Editor::FDetailsWidget::DrawFieldLabel(const char* Label, float TrailingWidth) const {
+        const float LabelEnd{ImGui::GetCursorPosX() + std::max(1.0f, ImGui::GetContentRegionAvail().x * 0.4f)};
 
-            return Core::FString{"##"} + Label;
-        }
+        ImGui::AlignTextToFramePadding();
+        ImGui::PushTextWrapPos(LabelEnd);
+        ImGui::TextUnformatted(Label);
+        ImGui::PopTextWrapPos();
 
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(LabelEnd + ImGui::GetStyle().ItemInnerSpacing.x);
+        ImGui::SetNextItemWidth(std::max(1.0f, ImGui::GetContentRegionAvail().x - TrailingWidth));
+
+        return Core::FString{"##"} + Label;
     }
 
     /**

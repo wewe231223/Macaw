@@ -26,6 +26,10 @@
 #include <optional>
 #include <string_view>
 
+namespace Serialization {
+    class FJsonArchive;
+}
+
 namespace Editor {
 
     /**
@@ -247,6 +251,22 @@ namespace Editor {
          * @return 선택 경로가 변경되면 true입니다.
          */
         bool DrawAssetPicker(const char* Label, Core::FString& Path, Asset::EAssetType Type, const char* EmptyLabel, const Core::FString& InheritedPath = {});
+
+        bool DrawLuaScriptSlot(const Editor::FEditorContext& Context, Core::FString& Path) const;
+        bool DrawResetButton() const;
+        bool BeginPropertyTable() const;
+        Core::FString DrawFieldLabel(const char* Label, float TrailingWidth = 0.0f) const;
+
+        Core::FString DisplayName(std::string_view Name) const;
+        std::string_view DetailCategory(const CoreUObject::UClass* Owner, std::string_view Name) const;
+        Core::FString PropertyLabel(const CoreUObject::FProperty* Property) const;
+        Core::FString ComponentLabel(const CoreUObject::UClass* Class) const;
+        bool IsAdvancedProperty(std::string_view Name) const;
+        bool IsVisibleProperty(const CoreUObject::FProperty* Property) const;
+
+        Engine::AActor* GetOwningActor(CoreUObject::UObject* Object) const;
+        bool EqualValues(const CoreUObject::FPropertyValue& First, const CoreUObject::FPropertyValue& Second) const;
+        bool ArchiveDetailValue(Serialization::FJsonArchive& Archive, CoreUObject::FPropertyValue& Value) const;
 
     private:
 

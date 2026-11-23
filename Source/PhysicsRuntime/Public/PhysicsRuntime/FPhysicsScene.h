@@ -31,6 +31,9 @@ namespace PhysicsRuntime {
         std::unique_ptr<PhysicsRuntime::FBodyInstance> CreateBodyActor(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose);
         bool AddBodyToScene(physx::PxRigidActor& Actor, const PhysicsRuntime::FBodyInstanceSettings& Settings);
 
+        physx::PxTransform MakeShapePose(const FVector& Center, const FQuat& Rotation) const;
+        bool AttachShape(physx::PxRigidActor& Actor, const physx::PxGeometry& Geometry, const physx::PxTransform& Pose, const physx::PxMaterial& Material) const;
+
     private:
         PhysicsRuntime::FPhysicsRuntime& mRuntime;
         physx::PxScene* mScene{};

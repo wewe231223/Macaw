@@ -5,27 +5,6 @@
 #include <cmath>
 
 namespace PhysicsRuntime {
-    namespace {
-        physx::PxTransform MakeShapePose(const FVector& Center, const FQuat& Rotation) {
-            return physx::PxTransform{physx::PxVec3{Center.x, Center.y, Center.z}, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
-        }
-
-        bool AttachShape(physx::PxRigidActor& Actor, const physx::PxGeometry& Geometry, const physx::PxTransform& Pose, const physx::PxMaterial& Material) {
-            if (!Pose.isValid() || !physx::PxGeometryQuery::isValid(Geometry)) {
-                return false;
-            }
-
-            physx::PxShape* Shape{physx::PxRigidActorExt::createExclusiveShape(Actor, Geometry, Material)};
-
-            if (Shape == nullptr) {
-                return false;
-            }
-
-            Shape->setLocalPose(Pose);
-            return true;
-        }
-    }
-
     FPhysicsScene::FPhysicsScene(PhysicsRuntime::FPhysicsRuntime& Runtime, physx::PxPhysics& Physics, const physx::PxSceneDesc& Description)
 		: mRuntime{Runtime},
 		  mScene{Physics.createScene(Description)} {
@@ -160,6 +139,25 @@ namespace PhysicsRuntime {
 
         mScene->simulate(DeltaSeconds);
         return mScene->fetchResults(true);
+    }
+
+    physx::PxTransform FPhysicsScene::MakeShapePose(const FVector& Center, const FQuat& Rotation) const {
+        return physx::PxTransform{physx::PxVec3{Center.x, Center.y, Center.z}, physx::PxQuat{Rotation.x, Rotation.y, Rotation.z, Rotation.w}};
+    }
+
+    bool FPhysicsScene::AttachShape(physx::PxRigidActor& Actor, const physx::PxGeometry& Geometry, const physx::PxTransform& Pose, const physx::PxMaterial& Material) const {
+        if (!Pose.isValid() || !physx::PxGeometryQuery::isValid(Geometry)) {
+            return false;
+        }
+
+        physx::PxShape* Shape{physx::PxRigidActorExt::createExclusiveShape(Actor, Geometry, Material)};
+
+        if (Shape == nullptr) {
+            return false;
+        }
+
+        Shape->setLocalPose(Pose);
+        return true;
     }
 
     std::unique_ptr<PhysicsRuntime::FBodyInstance> FPhysicsScene::CreateBodyActor(PhysicsRuntime::EBodyType BodyType, const physx::PxTransform& Pose) {
