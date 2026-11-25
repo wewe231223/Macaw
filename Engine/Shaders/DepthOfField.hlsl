@@ -13,11 +13,6 @@ Texture2D<float4> BackgroundLayer : register(t3);
 /** @brief 절반 해상도 텍셀의 전경(R)·배경(G) 착란원 반경이며 절반 해상도 텍셀 단위입니다. */
 Texture2D<float4> CircleOfConfusion : register(t4);
 
-struct FDepthOfFieldLayers {
-    float4 mForeground : SV_TARGET0;
-    float4 mBackground : SV_TARGET1;
-};
-
 struct FDepthOfFieldSeparation {
     float4 mForeground : SV_TARGET0;
     float4 mBackground : SV_TARGET1;
@@ -141,7 +136,8 @@ FDepthOfFieldSeparation SeparateDepthOfField(FVertexOutput Input) {
     return Output;
 }
 
-FDepthOfFieldLayers BlurDepthOfField(FVertexOutput Input) {
+// 한 번에 한 레이어만 흐리게 하므로 그 레이어 하나만 출력합니다. 쓰지 않는 출력 슬롯을 비워 두면 D3D11 경고가 납니다.
+float4 BlurDepthOfField(FVertexOutput Input) : SV_TARGET {
     const bool BlurForeground = {Settings.x == 0.0f};
     const float Sides = {Settings.y};
     const float2 HalfSize = {ceil(ScreenSize.xy * 0.5f)};
@@ -188,17 +184,13 @@ FDepthOfFieldLayers BlurDepthOfField(FVertexOutput Input) {
         }
     }
 
-    FDepthOfFieldLayers Output = {(FDepthOfFieldLayers)0};
-
     if (BlurForeground) {
         // 전경은 덮은 디스크들의 불투명도를 그대로 누적합니다. 흐린 전경이 원래 실루엣 밖으로 반투명하게 번집니다.
-        Output.mForeground = Sum / max(Sum.a, 1.0f);
-    } else {
-        // 배경은 뒤를 모두 채우므로 가중 평균합니다. 합성에서 RGB를 알파로 나눠 색을 복원합니다.
-        Output.mBackground = Sum / max(TotalWeight, 0.000001f);
+        return Sum / max(Sum.a, 1.0f);
     }
 
-    return Output;
+    // 배경은 뒤를 모두 채우므로 가중 평균합니다. 합성에서 RGB를 알파로 나눠 색을 복원합니다.
+    return Sum / max(TotalWeight, 0.000001f);
 }
 
 float3 CompositeBackground(float3 Color, float BackgroundWeight, float2 LayerUV) {
