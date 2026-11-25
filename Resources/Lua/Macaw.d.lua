@@ -410,6 +410,21 @@ function World.SetActiveCamera(Value) end
 ---@field MouseRight integer
 Key = {}
 
+Audio = {}
+
+---배경 음악 하나를 튼다. 경로는 Content 기준(mp3, wav). 이미 틀어 둔 음악은 끄고 바꾼다.
+---@param Path string 예: "Audio/BGM.mp3"
+---@param Volume? number 0부터 1까지, 기본 1
+---@param Loop? boolean 기본 true
+---@param StartSeconds? number 이 시간(초)부터 재생, 기본 0
+---@return boolean
+function Audio.PlayMusic(Path, Volume, Loop, StartSeconds) end
+
+---@param Volume number 0부터 1까지
+function Audio.SetMusicVolume(Volume) end
+
+function Audio.StopMusic() end
+
 Input = {}
 
 ---@param KeyCode integer
