@@ -103,6 +103,8 @@ namespace Engine {
          */
         DepthOfFieldWeights = 17,
 
+        PhysicsBodies = 18,
+
         /**
          * @brief 재질과 기본 조명을 사용하여 면을 채웁니다.
          */

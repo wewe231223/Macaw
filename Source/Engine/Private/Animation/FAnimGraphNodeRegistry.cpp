@@ -50,9 +50,10 @@ namespace Engine {
             Core::TArray<Engine::FAnimGraphNodeType> Types{};
 
             const Engine::FAnimGraphParameterInfo PlayRate{"PlayRate", Engine::EAnimGraphParameterType::Float, "1", false, -3.0f, 3.0f};
+            const Engine::FAnimGraphParameterInfo SequencePlayRate{"PlayRate", Engine::EAnimGraphParameterType::Float, "1", true, -3.0f, 3.0f};
             const Engine::FAnimGraphParameterInfo Loop{"Loop", Engine::EAnimGraphParameterType::Bool, "true"};
 
-            Types.push_back({"SequencePlayer", "Sequence Player", {}, {{"Sequence", Engine::EAnimGraphParameterType::AnimSequence}, PlayRate, Loop}, [](const Engine::FAnimGraphNodeBuildContext& Context) {
+            Types.push_back({"SequencePlayer", "Sequence Player", {}, {{"Sequence", Engine::EAnimGraphParameterType::AnimSequence}, SequencePlayRate, Loop}, [](const Engine::FAnimGraphNodeBuildContext& Context) {
                 auto Node{std::make_unique<Engine::FAnimNode_SequencePlayer>()};
 
                 Node->mSequence = Context.mLoadSequence ? Context.mLoadSequence(Context.GetString("Sequence")) : nullptr;

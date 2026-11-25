@@ -30,6 +30,7 @@ namespace Engine {
 
         void GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) override;
 
+        void GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs) override;
         double GetCurrentAssetLength() const override;
 
         /**
@@ -46,6 +47,8 @@ namespace Engine {
         CoreUObject::TObjectRef<const Asset::UAnimSequence> mSequence{};
 
     private:
+        Engine::FAnimFloatLink mPlayRateInput{};
+
 
         /**
          * @brief 시퀀스 시간 진행을 일시 정지할지 여부입니다.

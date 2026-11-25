@@ -418,9 +418,25 @@ namespace Renderer {
         const Core::FScopedStatTimer StatTimer{RenderTime};
         const RenderCore::FRenderStats PreviousStats{mStats};
         Engine::FSceneViewFamily Family{RequestedFamily};
+        const bool PhysicsBodies{Family.mViewMode == Engine::EViewMode::PhysicsBodies};
 
         if (mForwardShading && Engine::RequiresDeferredShading(Family.mViewMode)) {
             Family.mViewMode = Engine::EViewMode::Lit_Phong;
+        }
+
+        if (PhysicsBodies) {
+            Family.mShowFlags.mPrimitives = false;
+            Family.mShowFlags.mSprites = false;
+            Family.mShowFlags.mText = false;
+            Family.mShowFlags.mLightIcons = false;
+            Family.mShowFlags.mFogIcons = false;
+            Family.mShowFlags.mSky = false;
+            Family.mShowFlags.mFog = false;
+            Family.mShowFlags.mDepthOfField = false;
+            Family.mShowFlags.mFXAA = false;
+            Family.mGridSpacing = 0.0f;
+            Family.mBackgroundOverlay = nullptr;
+            Family.mCheckerboardBackground = false;
         }
 
         const auto* Scene{dynamic_cast<const Renderer::FScene*>(Family.mScene)};
@@ -438,7 +454,7 @@ namespace Renderer {
         mContext->HSSetShader(nullptr, nullptr, 0);
         mContext->DSSetShader(nullptr, nullptr, 0);
 
-        if (mShadowResources != nullptr) {
+        if (!PhysicsBodies && mShadowResources != nullptr) {
             if (!mShadowResources->Prepare(mDevice.Get(), mContext.Get(), *Scene, Family, mShadowSettings, mStats)) {
                 Core::ErrorHandler::Report("Shadow", "Shadow atlas preparation failed", Core::ErrorHandler::EErrorLevel::Error);
             }
@@ -473,7 +489,10 @@ namespace Renderer {
         const bool MarkDecalReceivers{DrawDecals || Family.mViewMode == Engine::EViewMode::SceneStencil};
         const bool NeedsLighting{Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
 
-        if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mOpaqueMeshPass, *Scene, Family, OpaqueParameters, MarkDecalReceivers)) {
+        if (PhysicsBodies) {
+            mContext->RSSetViewports(1, &SceneTarget.mViewport);
+            mViewBuffer.Update(mContext.Get(), Family.mView.mViewProjection);
+        } else if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mOpaqueMeshPass, *Scene, Family, OpaqueParameters, MarkDecalReceivers)) {
             if (DrawDecals) {
                 mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family, Scene->GetDecals());
             }

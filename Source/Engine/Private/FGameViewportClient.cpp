@@ -12,6 +12,8 @@
 #include "Engine/FSceneViewport.h"
 #include "Core/Input.h"
 #include "Engine/FSceneViewFamily.h"
+#include "Engine/FPrimitiveDrawInterface.h"
+#include "Engine/PhysicsBodyDrawing.h"
 #include "RenderCore/IRendererModule.h"
 
 namespace Engine {
@@ -65,6 +67,10 @@ namespace Engine {
         mShowDepthOfField = Enabled;
     }
 
+    void Engine::FGameViewportClient::SetPhysicsBodiesView(bool Enabled, float LineThickness) {
+        mPhysicsBodyLineThickness = Enabled ? LineThickness : 0.0f;
+    }
+
     /**
      * @brief 게임 뷰포트가 연결된 월드에 프레임 입력을 전달합니다.
      */
@@ -89,7 +95,14 @@ namespace Engine {
         }
 
         Engine::FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, nullptr};
+        Engine::FPrimitiveDrawInterface PhysicsBodies{};
         Family.mShowFlags.mDepthOfField = mShowDepthOfField;
+
+        if (mPhysicsBodyLineThickness > 0.0f) {
+            Engine::PhysicsBodyDrawing::DrawWorldBodies(PhysicsBodies, *World, mPhysicsBodyLineThickness);
+            Family.mEditorElements = &PhysicsBodies;
+            Family.mViewMode = Engine::EViewMode::PhysicsBodies;
+        }
 
         Renderer->BeginRenderingViewFamily(Family);
     }

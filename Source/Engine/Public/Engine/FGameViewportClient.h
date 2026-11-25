@@ -50,6 +50,7 @@ namespace Engine {
 
         /** @brief 이 게임 뷰포트의 피사계 심도 표시 플래그를 설정합니다. */
         void SetDepthOfFieldShowFlag(bool Enabled);
+        void SetPhysicsBodiesView(bool Enabled, float LineThickness);
 
         /**
          * @brief 게임 뷰포트가 연결된 월드에 프레임 입력을 전달합니다.
@@ -75,6 +76,7 @@ namespace Engine {
          */
         Engine::FWorldHandle mWorld{};
         bool mShowDepthOfField{true};
+        float mPhysicsBodyLineThickness{};
     };
 
 }

@@ -66,12 +66,12 @@ namespace {
     /**
      * @brief 버퍼 시각화를 제외한 컬러 조명·와이어프레임 표시 모드 목록입니다.
      */
-    const Core::TStaticArray<Engine::EViewMode, 5> ViewModes{Engine::EViewMode::Lit_Gouraud, Engine::EViewMode::Lit_Lambert, Engine::EViewMode::Lit_Phong, Engine::EViewMode::Unlit, Engine::EViewMode::Wireframe};
+    const Core::TStaticArray<Engine::EViewMode, 6> ViewModes{Engine::EViewMode::Lit_Gouraud, Engine::EViewMode::Lit_Lambert, Engine::EViewMode::Lit_Phong, Engine::EViewMode::Unlit, Engine::EViewMode::Wireframe, Engine::EViewMode::PhysicsBodies};
 
     /**
      * @brief 컬러 표시 모드 목록과 같은 순서로 보여 줄 설정 UI 이름입니다.
      */
-    const Core::TStaticArray<const char*, 5> ViewModeNames{"Lit - Gouraud", "Lit - Lambert", "Lit - Phong", "Unlit", "Wireframe"};
+    const Core::TStaticArray<const char*, ViewModes.size()> ViewModeNames{"Lit - Gouraud", "Lit - Lambert", "Lit - Phong", "Unlit", "Wireframe", "Physics Bodies"};
 
     /**
      * @brief 카메라 조작·표시·변환 스냅·통계 그룹 설정을 뷰포트별로 저장하거나 복원합니다.
@@ -1064,7 +1064,8 @@ void FEditorSettings::DrawViewportSettings() {
     ImGui::TextWrapped("Camera projection is stored with the scene when you save it.");
     ImGui::SeparatorText("Display");
 
-    const auto Current{std::find(ViewModes.begin(), ViewModes.end(), Client.GetColorViewMode())};
+    const Engine::EViewMode ActiveMode{Client.GetViewMode() == Engine::EViewMode::PhysicsBodies ? Engine::EViewMode::PhysicsBodies : Client.GetColorViewMode()};
+    const auto Current{std::find(ViewModes.begin(), ViewModes.end(), ActiveMode)};
     int Mode{Current == ViewModes.end() ? 2 : static_cast<int>(Current - ViewModes.begin())};
 
     if (ImGui::Combo("View Mode", &Mode, ViewModeNames.data(), static_cast<int>(ViewModeNames.size()))) {

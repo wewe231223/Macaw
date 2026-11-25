@@ -99,6 +99,7 @@ namespace Editor {
 
         const Editor::FEditorViewportClient* ViewportClient{mViewport->GetClient()};
         mGameClient.SetDepthOfFieldShowFlag(ViewportClient->GetShowFlags().mDepthOfField);
+        mGameClient.SetPhysicsBodiesView(ViewportClient->GetViewMode() == Engine::EViewMode::PhysicsBodies, ViewportClient->GetLineThickness());
 
         Engine::UWorld* Source{mContext->GetWorld()};
         Core::TArray<std::pair<const CoreUObject::UObject*, CoreUObject::TObjectRef<CoreUObject::UObject>>> Originals{{Source, CoreUObject::MakeObjectRef(Source)}, {Source->GetPersistentLevel(), CoreUObject::MakeObjectRef(Source->GetPersistentLevel())}};
@@ -304,7 +305,9 @@ namespace Editor {
         }
 
         if (Playing) {
-            mGameClient.SetDepthOfFieldShowFlag(mViewport->GetClient()->GetShowFlags().mDepthOfField);
+            const Editor::FEditorViewportClient* ViewportClient{mViewport->GetClient()};
+            mGameClient.SetDepthOfFieldShowFlag(ViewportClient->GetShowFlags().mDepthOfField);
+            mGameClient.SetPhysicsBodiesView(ViewportClient->GetViewMode() == Engine::EViewMode::PhysicsBodies, ViewportClient->GetLineThickness());
         }
 
         Engine::FWorldHandle Replacement{};

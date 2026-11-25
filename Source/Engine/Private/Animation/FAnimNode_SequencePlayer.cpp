@@ -12,6 +12,7 @@ namespace Engine {
 
     void FAnimNode_SequencePlayer::Update(const Engine::FAnimationUpdateContext& Context) {
         SetRootMotionDelta({});
+        mPlayRate = mPlayRateInput.Evaluate(Context, mPlayRate);
 
         if (!mPaused) {
             AdvanceTime(Context.GetDeltaTime(), GetCurrentAssetLength());
@@ -42,6 +43,10 @@ namespace Engine {
         OutValues.push_back(std::move(Sequence));
 
         GetPlayerDebugValues(OutValues);
+    }
+
+    void FAnimNode_SequencePlayer::GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs) {
+        OutInputs.push_back({"PlayRate", &mPlayRateInput});
     }
 
     double FAnimNode_SequencePlayer::GetCurrentAssetLength() const {

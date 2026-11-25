@@ -30,6 +30,7 @@ namespace Editor {
         constexpr Editor::EditorStyle::EIcon ViewModeIcon{Editor::EditorStyle::EIcon::Material};
         constexpr Core::TStaticArray<Engine::EViewMode, 5> ColorModes{Engine::EViewMode::Lit_Gouraud, Engine::EViewMode::Lit_Lambert, Engine::EViewMode::Lit_Phong, Engine::EViewMode::Unlit, Engine::EViewMode::Wireframe};
         constexpr Core::TStaticArray<const char*, ColorModes.size()> ColorModeNames{"Lit (Gouraud)", "Lit (Lambert)", "Lit", "Unlit", "Wireframe"};
+        constexpr char PhysicsBodiesName[]{"Physics Bodies"};
         constexpr Core::TStaticArray<const char*, 7> ViewTypeNames{"Perspective", "Top", "Bottom", "Front", "Back", "Left", "Right"};
 
         struct FSnapControl {
@@ -235,6 +236,10 @@ namespace Editor {
         }
 
         const char* GetViewModeName(Editor::FEditorViewportClient* Client) {
+            if (Client->GetViewMode() == Engine::EViewMode::PhysicsBodies) {
+                return PhysicsBodiesName;
+            }
+
             const Index_t Buffer{GetBufferModeIndex(Client->GetViewMode())};
 
             if (Buffer != 0) {
@@ -251,6 +256,10 @@ namespace Editor {
                 if (ImGui::MenuItem(ColorModeNames[Mode], nullptr, Client->GetViewMode() == ColorModes[Mode])) {
                     Client->SetViewMode(ColorModes[Mode]);
                 }
+            }
+
+            if (ImGui::MenuItem(PhysicsBodiesName, nullptr, Client->GetViewMode() == Engine::EViewMode::PhysicsBodies)) {
+                Client->SetViewMode(Engine::EViewMode::PhysicsBodies);
             }
 
             ImGui::Separator();
@@ -573,6 +582,16 @@ namespace Editor {
             ImGui::SetCursorScreenPos(Content);
 
             if (PlayStatus != nullptr) {
+                const bool PhysicsBodies{Client->GetViewMode() == Engine::EViewMode::PhysicsBodies};
+
+                ImGui::BeginDisabled(!AllowInput);
+
+                if (Editor::EditorStyle::LabelButton(PhysicsBodies ? PhysicsBodiesName : "Lit", &ViewModeIcon, true, false, "Toggle Physics Bodies")) {
+                    Client->SetViewMode(PhysicsBodies ? Client->GetColorViewMode() : Engine::EViewMode::PhysicsBodies);
+                }
+
+                ImGui::EndDisabled();
+                ImGui::SameLine();
                 ImGui::AlignTextToFramePadding();
                 ImGui::TextUnformatted(PlayStatus);
             } else {

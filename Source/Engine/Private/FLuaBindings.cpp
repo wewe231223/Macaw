@@ -18,13 +18,18 @@
 #include "Engine/Component/UVehicleMovementComponent.h"
 #include "Engine/FWorldHit.h"
 #include "Engine/UWorld.h"
+#include "PhysicsRuntime/FPhysicsRuntime.h"
 #include "PhysicsRuntime/FVehicleManager.h"
 
 #include "Asset/FAssetManager.h"
 #include "Core/FilePath.h"
 
+#include <PxMaterial.h>
+#include <PxPhysics.h>
 #include <PxRigidActor.h>
+#include <PxShape.h>
 
+#include <cmath>
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
@@ -66,6 +71,16 @@ namespace {
         throw sol::error{"Actor needs a Projectile Movement component for Velocity"};
     }
 
+    physx::PxShape* GetSinglePhysicsShape(const Engine::UPrimitiveComponent* Component) {
+        const auto* Body{Component != nullptr ? Component->GetBodyInstance().GetPxRigidActor() : nullptr};
+        physx::PxShape* Shape{};
+        return Body != nullptr && Body->getNbShapes() == 1 && Body->getShapes(&Shape, 1) == 1 ? Shape : nullptr;
+    }
+
+}
+
+void Engine::StopLuaMusic() {
+    SendMusicCommand(L"close macaw_bgm");
 }
 
 void Engine::StopLuaMusic() {
@@ -177,6 +192,14 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
     Hit["StartPenetrating"] = sol::readonly(&Engine::FHitResult::mStartPenetrating);
     Hit["PenetrationDepth"] = sol::property([](const Engine::FHitResult& Value) {
         return Value.mPenetrationDepth.GetBase();
+    });
+    Hit["SurfaceFriction"] = sol::property([](const Engine::FHitResult& Value) -> sol::optional<float> {
+        const auto* Shape{GetSinglePhysicsShape(Value.GetComponent())};
+        physx::PxMaterial* Material{};
+        if (Shape != nullptr && Shape->getMaterials(&Material, 1) == 1 && Material != nullptr) {
+            return Material->getDynamicFriction();
+        }
+        return sol::nullopt;
     });
 
     auto RaycastHit{Lua.new_usertype<Engine::FWorldHit>("RaycastHit", sol::no_constructor)};
@@ -335,6 +358,23 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
 
         return Mesh != nullptr && Mesh->SetSkeletonPath(SkeletonPath) && Mesh->SetMeshPath(MeshPath) && Mesh->GetSkeletalMesh() != nullptr && Mesh->GetSkeleton() != nullptr;
     };
+    Component["SetSkeletalCollisionEnabled"] = [](const FLuaComponentRef& Ref, bool Enabled) {
+        auto* Mesh{CoreUObject::Cast<Engine::USkeletalMeshComponent>(&Ref.Resolve())};
+        if (Mesh == nullptr) {
+            return false;
+        }
+
+        Mesh->SetCollisionEnabled(Enabled);
+        return true;
+    };
+    Component["GetBoneWorldLocation"] = [](const FLuaComponentRef& Ref, const Core::FString& BoneName) -> sol::optional<FVector> {
+        const auto* Mesh{CoreUObject::Cast<Engine::USkeletalMeshComponent>(&Ref.Resolve())};
+        FTransform Transform{};
+        if (Mesh != nullptr && Mesh->GetBoneWorldTransform(Mesh->GetBoneIndex(BoneName), Transform)) {
+            return Transform.mLocation;
+        }
+        return sol::nullopt;
+    };
     Component["GetDriveState"] = [](const FLuaComponentRef& Ref) {
         const auto* Movement{CoreUObject::Cast<Engine::UVehicleMovementComponent>(&Ref.Resolve())};
         return Movement != nullptr ? std::tuple{Movement->GetCurrentGear(), Movement->GetForwardSpeed().GetBase()} : std::tuple{Int32{}, 0.0f};
@@ -361,6 +401,26 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
         auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(&Ref.Resolve())};
         return Primitive != nullptr && Linear.IsFinite() && Angular.IsFinite() &&
                Primitive->SetPhysicsLinearVelocity(Linear) && Primitive->SetPhysicsAngularVelocity(Angular);
+    };
+    Component["SetPhysicsFriction"] = [](const FLuaComponentRef& Ref, float StaticFriction, float DynamicFriction) {
+        auto& Target{Ref.Resolve()};
+        auto* Shape{GetSinglePhysicsShape(CoreUObject::Cast<Engine::UPrimitiveComponent>(&Target))};
+        auto* World{Target.GetWorld()};
+        auto* Runtime{World != nullptr ? World->GetPhysicsRuntime() : nullptr};
+        auto* Physics{Runtime != nullptr ? Runtime->GetPhysics() : nullptr};
+        if (Shape == nullptr || Physics == nullptr || !std::isfinite(StaticFriction) || !std::isfinite(DynamicFriction) || DynamicFriction < 0.0f || StaticFriction < DynamicFriction) {
+            return false;
+        }
+
+        auto* Material{Physics->createMaterial(StaticFriction, DynamicFriction, 0.0f)};
+        if (Material == nullptr) {
+            return false;
+        }
+
+        Material->setFrictionCombineMode(physx::PxCombineMode::eMIN);
+        Shape->setMaterials(&Material, 1);
+        Material->release();
+        return true;
     };
     Component["AddForce"] = [](const FLuaComponentRef& Ref, const FVector& Force) {
         auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(&Ref.Resolve())};

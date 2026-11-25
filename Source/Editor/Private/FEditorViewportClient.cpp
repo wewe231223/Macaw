@@ -41,6 +41,7 @@
 #include "Core/Math/FBox.h"
 #include "Engine/FSceneView.h"
 #include "Engine/FSceneViewFamily.h"
+#include "Engine/PhysicsBodyDrawing.h"
 #include "Engine/FViewportInput.h"
 #include "Engine/FSceneViewport.h"
 #include "Engine/FWorldHit.h"
@@ -233,6 +234,14 @@ namespace Editor {
         }
 
         UpdateCameraFocus(DeltaTime);
+
+        if (mViewMode == Engine::EViewMode::PhysicsBodies) {
+            if (!PreviewingCamera) {
+                NavigateCamera(Input, Size, DeltaTime);
+            }
+
+            return;
+        }
 
         if (!mGizmo.IsDragging() && Input.mFocused && !Input.mRightDown && !Input.mAlt && !Input.mControl) {
             bool ModeRequested{};
@@ -509,6 +518,15 @@ namespace Editor {
         const Engine::FSceneView View{CalcSceneView(Viewport->GetSize())};
 
         mDrawInterface.Clear();
+
+        if (mViewMode == Engine::EViewMode::PhysicsBodies) {
+            Engine::PhysicsBodyDrawing::DrawWorldBodies(mDrawInterface, *World, mLineThickness);
+            const Engine::FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface, mViewMode};
+
+            mContext->GetRenderer()->BeginRenderingViewFamily(Family);
+
+            return;
+        }
 
         if (mShowFlags.mAxes) {
             constexpr float AxisLength{(1000_m).GetBase()};
@@ -1114,7 +1132,7 @@ namespace Editor {
     Engine::FHitProxy Editor::FEditorViewportClient::GetHitProxy(const Engine::FSceneViewport* Viewport, const FVector2& Position) const {
         Engine::UWorld* World{mContext->GetWorld()};
 
-        if (Viewport == nullptr || World == nullptr) {
+        if (Viewport == nullptr || World == nullptr || mViewMode == Engine::EViewMode::PhysicsBodies) {
             return {};
         }
 
@@ -1329,7 +1347,10 @@ namespace Editor {
             return;
         }
 
-        if (Engine::IsBufferVisualization(Mode)) {
+        if (Mode == Engine::EViewMode::PhysicsBodies) {
+            mGizmo.Cancel();
+            mViewMode = Mode;
+        } else if (Engine::IsBufferVisualization(Mode)) {
             mViewMode = Mode;
         } else if (Mode == Engine::EViewMode::Lit_Phong || Mode == Engine::EViewMode::Lit_Gouraud || Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::Wireframe) {
             mViewMode = Mode;
