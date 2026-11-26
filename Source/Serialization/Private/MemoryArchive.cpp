@@ -122,9 +122,10 @@ namespace Serialization {
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      */
-    void Serialization::FMemoryArchive::Serialize(std::string_view, float& Value) {
+    void Serialization::FMemoryArchive::Serialize(std::string_view Name, float& Value) {
         if (!IsLoading() && !std::isfinite(Value)) {
-            SetError("Cannot serialize a non-finite float");
+            // 어느 값이 깨졌는지 알 수 있도록 이름을 붙입니다.
+            SetError("Cannot serialize a non-finite float: " + Core::FString{Name});
 
             return;
         }

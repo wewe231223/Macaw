@@ -21,19 +21,39 @@
 #include "PhysicsRuntime/FPhysicsRuntime.h"
 #include "PhysicsRuntime/FVehicleManager.h"
 
+#include "Asset/FAssetManager.h"
+#include "Core/FilePath.h"
+
 #include <PxMaterial.h>
 #include <PxPhysics.h>
 #include <PxRigidActor.h>
 #include <PxShape.h>
 
 #include <cmath>
+#include <algorithm>
+#include <filesystem>
 #include <iostream>
+#include <string>
 #include <tuple>
+
+// 배경 음악은 Windows에 기본으로 있는 MCI로 재생합니다(mp3, wav 지원). windows.h 매크로가 다른 코드와 부딪히지 않도록 함수 하나만 선언합니다.
+struct HWND__;
+extern "C" __declspec(dllimport) unsigned long __stdcall mciSendStringW(const wchar_t* Command, wchar_t* ReturnString, unsigned int ReturnLength, HWND__* Callback);
+#pragma comment(lib, "winmm.lib")
 
 using namespace Engine;
 using namespace Core::Literals;
 
 namespace {
+
+    bool SendMusicCommand(const std::wstring& Command) {
+        return mciSendStringW(Command.c_str(), nullptr, 0, nullptr) == 0;
+    }
+
+    void SetMusicVolume(float Volume) {
+        // MCI 음량은 0~1000입니다.
+        SendMusicCommand(L"setaudio macaw_bgm volume to " + std::to_wstring(static_cast<int>(std::clamp(Volume, 0.0f, 1.0f) * 1000.0f)));
+    }
 
     Engine::UActorComponent* FindComponent(const Engine::AActor& Actor, const CoreUObject::UClass* Class) {
         for (const auto& Component : Actor.GetComponents()) {
@@ -57,6 +77,10 @@ namespace {
         return Body != nullptr && Body->getNbShapes() == 1 && Body->getShapes(&Shape, 1) == 1 ? Shape : nullptr;
     }
 
+}
+
+void Engine::StopLuaMusic() {
+    SendMusicCommand(L"close macaw_bgm");
 }
 
 AActor& FLuaRuntime::FActorRef::Resolve() const {
@@ -577,6 +601,39 @@ void FLuaRuntime::RegisterBindings(sol::state_view Lua) {
     };
 
     Lua.new_enum<Core::EKey>("Key", {{"W", Core::EKey::W}, {"A", Core::EKey::A}, {"S", Core::EKey::S}, {"D", Core::EKey::D}, {"C", Core::EKey::C}, {"V", Core::EKey::V}, {"F", Core::EKey::F}, {"Q", Core::EKey::Q}, {"R", Core::EKey::R}, {"E", Core::EKey::E}, {"X", Core::EKey::X}, {"K", Core::EKey::K}, {"H", Core::EKey::H}, {"Z", Core::EKey::Z}, {"Space", Core::EKey::Space}, {"Backspace", Core::EKey::Backspace}, {"Delete", Core::EKey::Delete}, {"Shift", Core::EKey::Shift}, {"LeftShift", Core::EKey::LeftShift}, {"RightShift", Core::EKey::RightShift}, {"MouseLeft", Core::EKey::MouseLeft}, {"MouseRight", Core::EKey::MouseRight}});
+
+    // 배경 음악 하나를 틀고 끕니다. 경로는 스크립트처럼 Content 기준입니다. 예: Audio.PlayMusic("Audio/BGM.mp3", 0.8, true, 5) — 5초 지점부터
+    auto Audio{Lua.create_named_table("Audio")};
+    Audio["PlayMusic"] = [this](const Core::FString& Path, sol::optional<float> Volume, sol::optional<bool> Loop, sol::optional<float> StartSeconds) {
+        Core::FString Error{};
+        const auto* Assets{mWorld.GetAssets()};
+        const auto Resolved{Assets != nullptr ? Assets->ResolvePath(Core::FilePath::FromUtf8(Path), Error) : std::filesystem::path{}};
+        std::error_code Missing{};
+
+        if (Resolved.empty() || !std::filesystem::is_regular_file(Resolved, Missing)) {
+            throw sol::error{"Cannot find music file: " + Path};
+        }
+
+        StopLuaMusic();
+
+        if (!SendMusicCommand(L"open \"" + Resolved.wstring() + L"\" type mpegvideo alias macaw_bgm")) {
+            return false;
+        }
+
+        SetMusicVolume(Volume.value_or(1.0f));
+
+        // 시작 위치(초)부터 재생합니다. 반복하면 곡 처음부터 다시 돕니다.
+        SendMusicCommand(L"set macaw_bgm time format milliseconds");
+        const auto From{std::to_wstring(static_cast<long long>(std::max(StartSeconds.value_or(0.0f), 0.0f) * 1000.0f))};
+
+        return SendMusicCommand(L"play macaw_bgm from " + From + (Loop.value_or(true) ? L" repeat" : L""));
+    };
+    Audio["SetMusicVolume"] = [](float Volume) {
+        SetMusicVolume(Volume);
+    };
+    Audio["StopMusic"] = [] {
+        StopLuaMusic();
+    };
 
     auto Input{Lua.create_named_table("Input")};
     Input["IsDown"] = [this](Core::EKey Key) {

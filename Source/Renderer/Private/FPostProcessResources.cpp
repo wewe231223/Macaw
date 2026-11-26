@@ -220,10 +220,10 @@ namespace Renderer {
         Draw(Context, mSeparateDepthOfField.Get(), Separated, SceneInputs);
 
         // 블러는 표본마다 자신의 착란원 반경으로 퍼지는 scatter-as-gather입니다. 레이어마다 탐색 반경이 달라 따로 실행합니다.
-        // Settings.x가 블러할 레이어(0 전경, 1 배경)이며 다른 출력 슬롯은 비워 둡니다.
+        // Settings.x가 블러할 레이어(0 전경, 1 배경)입니다. 셰이더는 그 레이어 하나만 출력하므로 해당 타깃만 0번 슬롯에 묶습니다.
         const Core::TStaticArray<ID3D11ShaderResourceView*, 5> BlurInputs{nullptr, nullptr, Foreground->GetShaderResourceView(), Background->GetShaderResourceView(), Layers->mCircleOfConfusion->GetShaderResourceView()};
-        const Core::TStaticArray<ID3D11RenderTargetView*, 2> BlurredForegroundOnly{BlurredForeground->GetRenderTargetView(), nullptr};
-        const Core::TStaticArray<ID3D11RenderTargetView*, 2> BlurredBackgroundOnly{nullptr, BlurredBackground->GetRenderTargetView()};
+        const Core::TStaticArray<ID3D11RenderTargetView*, 1> BlurredForegroundOnly{BlurredForeground->GetRenderTargetView()};
+        const Core::TStaticArray<ID3D11RenderTargetView*, 1> BlurredBackgroundOnly{BlurredBackground->GetRenderTargetView()};
 
         Constants.mSettings.x = 0.0f;
         mConstants.Update(Context, Constants);

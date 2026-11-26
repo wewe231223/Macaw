@@ -16,6 +16,9 @@ FLuaRuntime::FLuaRuntime(Engine::UWorld& World)
 }
 
 FLuaRuntime::~FLuaRuntime() {
+    // 플레이가 끝나면 스크립트가 틀어 둔 배경 음악도 끕니다.
+    StopLuaMusic();
+
     for (auto& Entry : mInstances) {
         auto& Instance{Entry.second};
         if (auto* Component{Instance.mComponent.Get()}; Component != nullptr && Component->mRuntimeInstance == &Instance) {
