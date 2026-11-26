@@ -83,10 +83,6 @@ void Engine::StopLuaMusic() {
     SendMusicCommand(L"close macaw_bgm");
 }
 
-void Engine::StopLuaMusic() {
-    SendMusicCommand(L"close macaw_bgm");
-}
-
 AActor& FLuaRuntime::FActorRef::Resolve() const {
     auto* Actor{mActor.Get()};
     if (Actor == nullptr || Actor->IsPendingDestroy()) {
